@@ -36,40 +36,45 @@
   (display "Copyright (C) 2026 Iris Microtypography Project.\n")
   (display "Experimental build of the Iris Typesetting Engine.\n"))
 
-(define (main raw-args)
-  (let ((args (cdr raw-args)))
-    (let* ((parsed (parse-cli-args args))
-           (show-help? (cdr (assoc 'help parsed)))
-           (show-version? (cdr (assoc 'version parsed)))
-           (apply-pegs? (cdr (assoc 'apply-pegs parsed)))
-           (opts-output (cdr (assoc 'output-path parsed)))
-           (fmt-override (cdr (assoc 'format parsed)))
-           (positional (cdr (assoc 'positional parsed))))
-      (cond
-        (show-help? (show-help))
-        (show-version? (show-version))
-        (else
-         (let* ((input-spec (if (null? positional) #f (car positional)))
-                (output-spec (if opts-output
-                                 opts-output
-                                 (if (> (length positional) 1) (cadr positional) #f)))
-                (in-bytes (read-input-bytes input-spec))
-                (input-flavor (detect-font-flavor in-bytes))
-                (input-json (if (or (eq? input-flavor 'otf) (eq? input-flavor 'ttf))
-                                (serialize-metrics-to-json (extract-font-metrics in-bytes))
-                                (utf8->string in-bytes)))
-                (target-fmt (detect-output-format fmt-override output-spec 'json))
-                (pegged-json (auto-place-pegs-in-json input-json apply-pegs?))
-                (out-data (if (eq? target-fmt 'json)
-                              pegged-json
-                              (compile-json-to-opentype pegged-json)))
-                (log-msg (string-append "Successfully processed "
-                                        (if input-spec input-spec "stdin")
-                                        " -> "
-                                        (if output-spec output-spec "stdout")
-                                        " [format=" (symbol->string target-fmt)
-                                        ", apply-pegs=" (if apply-pegs? "yes" "no") "]")))
-           (write-output output-spec out-data target-fmt log-msg)))))))
+(define *main-executed* #f)
 
-;; Direct execution
-(main (command-line))
+(define (main raw-args)
+  (unless *main-executed*
+    (set! *main-executed* #t)
+    (let ((args (if (and (pair? raw-args) (not (null? (cdr raw-args)))) (cdr raw-args) '())))
+      (let* ((parsed (parse-cli-args args))
+             (show-help? (cdr (assoc 'help parsed)))
+             (show-version? (cdr (assoc 'version parsed)))
+             (apply-pegs? (cdr (assoc 'apply-pegs parsed)))
+             (opts-output (cdr (assoc 'output-path parsed)))
+             (fmt-override (cdr (assoc 'format parsed)))
+             (positional (cdr (assoc 'positional parsed))))
+        (cond
+          (show-help? (show-help))
+          (show-version? (show-version))
+          (else
+           (let* ((input-spec (if (null? positional) #f (car positional)))
+                  (output-spec (if opts-output
+                                   opts-output
+                                   (if (> (length positional) 1) (cadr positional) #f)))
+                  (in-bytes (read-input-bytes input-spec))
+                  (input-flavor (detect-font-flavor in-bytes))
+                  (input-json (if (or (eq? input-flavor 'otf) (eq? input-flavor 'ttf))
+                                  (serialize-metrics-to-json (extract-font-metrics in-bytes))
+                                  (utf8->string in-bytes)))
+                  (target-fmt (detect-output-format fmt-override output-spec 'json))
+                  (pegged-json (auto-place-pegs-in-json input-json apply-pegs?))
+                  (out-data (if (eq? target-fmt 'json)
+                                pegged-json
+                                (compile-json-to-opentype pegged-json)))
+                  (log-msg (string-append "Successfully processed "
+                                          (if input-spec input-spec "stdin")
+                                          " -> "
+                                          (if output-spec output-spec "stdout")
+                                          " [format=" (symbol->string target-fmt)
+                                          ", apply-pegs=" (if apply-pegs? "yes" "no") "]")))
+             (write-output output-spec out-data target-fmt log-msg))))))))
+
+;; Direct execution fallback (guarded against duplicate invocation by Scheme runtime driver)
+(when (not *main-executed*)
+  (main (command-line)))
