@@ -169,7 +169,7 @@ export const FontMetricsPanel: React.FC<FontMetricsPanelProps> = ({
                 fcQuery === 'FreeSerif' ? 'bg-amber-500 text-black font-bold border-amber-500' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10'
               }`}
             >
-              FreeSerif (Ambiguous)
+              FreeSerif
             </button>
             <button
               onClick={() => handleFcQueryChange('FreeSerif:style=Regular')}
@@ -178,6 +178,22 @@ export const FontMetricsPanel: React.FC<FontMetricsPanelProps> = ({
               }`}
             >
               FreeSerif:style=Regular
+            </button>
+            <button
+              onClick={() => handleFcQueryChange('Mokka')}
+              className={`px-2.5 py-1 text-[10px] uppercase tracking-wider font-mono rounded border transition ${
+                fcQuery === 'Mokka' ? 'bg-amber-500 text-black font-bold border-amber-500' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              Mokka (Ambiguous)
+            </button>
+            <button
+              onClick={() => handleFcQueryChange('Mokka:style=Small Caps')}
+              className={`px-2.5 py-1 text-[10px] uppercase tracking-wider font-mono rounded border transition ${
+                fcQuery === 'Mokka:style=Small Caps' ? 'bg-amber-500 text-black font-bold border-amber-500' : 'bg-white/5 text-white/10 hover:bg-white/10'
+              }`}
+            >
+              Mokka:style=Small Caps
             </button>
             <button
               onClick={() => handleFcQueryChange('Sorts Mill Goudy')}

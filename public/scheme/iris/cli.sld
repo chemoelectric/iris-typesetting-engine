@@ -246,7 +246,7 @@
 
                 ;; Positional argument
                 (else
-                 (loop (cdr rest) in-options? apply-pegs? output-path format-override show-help? show-version? (cons arg positional))))))))
+                 (loop (cdr rest) in-options? apply-pegs? output-path format-override show-help? show-version? (cons arg positional))))))
 
     ;; Read all bytes from a input file path OR standard input (if path is #f or "-"), resolving font queries via resolve-font-path
     (define (read-input-bytes input-path)

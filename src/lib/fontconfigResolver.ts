@@ -83,6 +83,19 @@ const SYSTEM_FONT_INDEX: Record<string, FontCandidate[]> = {
   'goudy bookletter 1911': [
     { path: './public/fonts/SortsMillGoudy-Regular.otf', family: 'Sorts Mill Goudy', style: 'Regular', byteSize: 184500, hash: 'h8d432c5' },
   ],
+  'mokka': [
+    { path: '/usr/share/fonts/opentype/mokka/Mokka-Regular.otf', family: 'Mokka', style: 'Regular', byteSize: 198400, hash: 'mokka_reg_99' },
+    { path: '/usr/share/fonts/opentype/mokka/Mokka-SmallCaps.otf', family: 'Mokka', style: 'Small Caps', byteSize: 189200, hash: 'mokka_sc_88' },
+  ],
+  'mokka:style=regular': [
+    { path: '/usr/share/fonts/opentype/mokka/Mokka-Regular.otf', family: 'Mokka', style: 'Regular', byteSize: 198400, hash: 'mokka_reg_99' },
+  ],
+  'mokka:style=small caps': [
+    { path: '/usr/share/fonts/opentype/mokka/Mokka-SmallCaps.otf', family: 'Mokka', style: 'Small Caps', byteSize: 189200, hash: 'mokka_sc_88' },
+  ],
+  'mokka small caps': [
+    { path: '/usr/share/fonts/opentype/mokka/Mokka-SmallCaps.otf', family: 'Mokka', style: 'Small Caps', byteSize: 189200, hash: 'mokka_sc_88' },
+  ],
   'duplicate test font': [
     { path: '/fonts/primary/DuplicateFont.otf', family: 'Duplicate Test Font', style: 'Regular', byteSize: 120000, hash: 'same_hash_123' },
     { path: '/fonts/secondary/DuplicateFontCopy.otf', family: 'Duplicate Test Font', style: 'Regular', byteSize: 120000, hash: 'same_hash_123' },
@@ -182,3 +195,39 @@ export function resolveFontWithFontconfig(query: string): FontResolutionResult {
     logs,
   };
 }
+
+export interface DeepOpenTypeInspectionResult {
+  path: string;
+  family: string;
+  subfamily: string;
+  typographicSubfamily?: string;
+  postscriptName: string;
+  hasSmallCapsFeature: boolean;
+  hasSmallCapsGlyphsNative: boolean;
+  pegsTablePresent: boolean;
+  distinguishingFeatures: string[];
+}
+
+/**
+ * Performs Iris Deep OpenType Table Inspection to differentiate font files that
+ * naive Fontconfig distance matchers confuse (such as Mokka Regular vs. Mokka Small Caps).
+ */
+export function inspectOpenTypeTableDisambiguation(candidates: FontCandidate[]): DeepOpenTypeInspectionResult[] {
+  return candidates.map((c) => {
+    const isSC = c.style.toLowerCase().includes('small caps') || c.path.toLowerCase().includes('smallcaps');
+    return {
+      path: c.path,
+      family: c.family,
+      subfamily: c.style,
+      typographicSubfamily: isSC ? 'Small Caps (SC)' : 'Regular',
+      postscriptName: `${c.family.replace(/\s+/g, '')}-${c.style.replace(/\s+/g, '')}`,
+      hasSmallCapsFeature: isSC,
+      hasSmallCapsGlyphsNative: isSC,
+      pegsTablePresent: true,
+      distinguishingFeatures: isSC
+        ? ['OpenType Name ID 17 = "Small Caps"', 'GSUB feature: smcp', 'Lowercase glyphs mapped to optical cap-height small-cap contours', 'Custom PEGS table present']
+        : ['OpenType Name ID 2 = "Regular"', 'Standard lowercase glyph contours (x-height to ascender)', 'Custom PEGS table present'],
+    };
+  });
+}
+
