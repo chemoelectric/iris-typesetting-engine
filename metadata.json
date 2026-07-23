@@ -1,0 +1,6 @@
+{
+  "name": "Iris Typesetting Engine",
+  "description": "High-precision mathematical notation and document typesetting engine leveraging Counting-Iris numbers, Cl(4,1,1) Clifford geometric algebra, and Jaynesian MaxEnt layout optimization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
