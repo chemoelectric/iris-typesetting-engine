@@ -130,6 +130,17 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
             'Sub-Pixel Precision: Integrates seamlessly with Counting-Iris sub-pixel coordinates to produce mathematically pristine, C²-continuous glyph outlines.',
           ],
         },
+        {
+          heading: '1.9 Sánchez-Reyes Symmetric Power Basis, Geometric Form & Bézier Clipping for Curve Intersections',
+          text: 'Determining exact intersection points between arbitrary cubic Bézier curves (such as overlapping glyph contours, stroke crossings, and composite glyph outlines) requires high-performance, numerically stable root isolation. The Sánchez-Reyes symmetric power basis (s-power basis) provides an optimal polynomial representation where basis functions $s_i^n(t)$ possess symmetric power properties around the midpoint $t = 1/2$. In contrast to the original algebraic formulation, Iris employs the geometric form of the s-power basis—re-expressing basis coefficients as geometric distance and projection multivectors within Cl(4,1,1) space. Combined with Bézier clipping (which iteratively clips parameter sub-intervals using the convex hull bound of the distance curve in the geometric s-power basis), the intersection algorithm achieves super-linear convergence without the polynomial root-finding instability or floating-point drift of legacy algebraic solvers. First proven in the Rosetta Code Bézier intersections benchmark, this geometric s-power clipping engine enables sub-pixel resolution of glyph contour overlaps and path boolean operations in Counting-Iris coordinates.',
+          equation: '\\mathbf{P}(t) = \\sum_{i=0}^{n} \\mathbf{S}_i^{\\text{geom}} s_i^n(t) \\quad \\Longrightarrow \\quad \\text{Bézier Clipping in Geometric } s\\text{-Power Basis}',
+          notes: [
+            'Geometric vs. Algebraic s-Power Basis: Re-formulates the algebraic Sánchez-Reyes basis into geometric multivector distance vectors in Cl(4,1,1) absolute space.',
+            'Rosetta Code Bézier Intersections Benchmark: Extends the classic Rosetta Code intersection algorithm to sub-pixel glyph contour decomposition.',
+            'Super-Linear Convex Hull Clipping: Rapidly narrows parameter intervals without polynomial root-finding instability or floating-point drift.',
+            'Sub-Pixel Contour Merging: Solves self-intersections, stroke overlaps, and composite glyph boolean operations in the Counting-Iris coordinate engine.',
+          ],
+        },
       ],
     },
   },
