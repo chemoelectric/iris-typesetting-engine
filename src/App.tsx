@@ -15,6 +15,7 @@ import { Cl411RotorPanel } from './components/Cl411RotorPanel';
 import { MaxEntPanel } from './components/MaxEntPanel';
 import { FontMetricsPanel } from './components/FontMetricsPanel';
 import { TextbookPanel } from './components/TextbookPanel';
+import { SpiroWorkbench } from './components/SpiroWorkbench';
 import { ExportModal } from './components/ExportModal';
 
 export default function App() {
@@ -99,6 +100,10 @@ export default function App() {
         {activeTab === 'textbook' ? (
           <div className="h-full overflow-hidden">
             <TextbookPanel />
+          </div>
+        ) : activeTab === 'spiro' ? (
+          <div className="h-full overflow-hidden">
+            <SpiroWorkbench />
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full overflow-hidden">

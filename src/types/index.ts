@@ -139,4 +139,4 @@ export interface DocumentTemplate {
   markup: string;
 }
 
-export type ViewTab = 'editor' | 'iris' | 'cl411' | 'maxent' | 'font' | 'textbook';
+export type ViewTab = 'editor' | 'spiro' | 'iris' | 'cl411' | 'maxent' | 'font' | 'textbook';
