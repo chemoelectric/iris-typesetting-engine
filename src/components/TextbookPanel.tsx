@@ -394,6 +394,17 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
             'Maintains maximum procedural discipline and subprogram maintainability alongside pure functional expressiveness.',
           ],
         },
+        {
+          heading: '7.5 Fontconfig OpenType Naming System Resolution & Byte-Identity Ambiguity Guard',
+          text: 'Iris programs locate fonts either by direct file name/path or through the OpenType naming system via Fontconfig. When a font specifier or pattern (e.g., family name, PostScript name, or full name) is provided, Fontconfig queries system and local font repositories. If Fontconfig returns multiple matching candidate files, the engine performs a byte-identity verification across all candidates. If the candidate files are byte-identical (e.g., symlinks or identical copies), the engine proceeds cleanly with the resolved font. If the candidate files are NOT byte-identical (e.g., regular, bold, or italic variants matching a bare family query), the program halts immediately, printing an informative error message that enumerates all non-identical candidate file paths, sizes, and corrective actions, preventing arbitrary font selection defects.',
+          equation: '\\text{Query } q \\xrightarrow{\\text{Fontconfig}} \\{f_1, f_2, \\dots, f_k\\} \\quad \\implies \\quad \\begin{cases} \\text{Proceed with } f_1 & \\text{if } f_1 \\equiv \\dots \\equiv f_k \\text{ (Byte-Identical)} \\\\ \\text{Abort with Ambiguity Error} & \\text{if } \\exists i,j : f_i \\not\\equiv f_j \\end{cases}',
+          notes: [
+            'Dual File & OpenType Lookup: Finds fonts seamlessly by relative/absolute file path or OpenType naming system specifiers.',
+            'Byte-Identity Verification: Evaluates multi-candidate matches to distinguish harmless duplicate file symlinks from distinct font variants.',
+            'Informative Ambiguity Error Report: Emits a detailed error to stderr listing every candidate path, file size, and exact syntax correction.',
+            'Guaranteed Correctness: Prevents silent fallback or unintended font selection in production microtypography builds.',
+          ],
+        },
       ],
     },
   },

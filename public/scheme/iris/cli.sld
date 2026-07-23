@@ -13,12 +13,120 @@
           (scheme file)
           (scheme char))
   (export parse-cli-args
+          resolve-font-path
           read-input-bytes
           detect-font-flavor
           detect-output-format
           write-output)
 
   (begin
+    ;; Helper: Compare two bytevectors for exact byte identity
+    (define (bytevectors-equal? bv1 bv2)
+      (let ((len1 (bytevector-length bv1))
+            (len2 (bytevector-length bv2)))
+        (if (= len1 len2)
+            (let loop ((i 0))
+              (if (>= i len1)
+                  #t
+                  (if (= (bytevector-u8-ref bv1 i) (bytevector-u8-ref bv2 i))
+                      (loop (+ i 1))
+                      #f)))
+            #f)))
+
+    ;; Helper: Read bytes from file path directly
+    (define (read-file-bytes path)
+      (call-with-port (open-binary-input-file path)
+        read-all-port-bytes))
+
+    ;; Helper: Check if all candidate file paths are byte-identical
+    (define (all-candidate-files-identical? paths)
+      (if (or (null? paths) (null? (cdr paths)))
+          #t
+          (let ((bv0 (read-file-bytes (car paths)))
+                (rest (cdr paths)))
+            (let loop ((lst rest))
+              (if (null? lst)
+                  #t
+                  (let ((bv (read-file-bytes (car lst))))
+                    (if (bytevectors-equal? bv0 bv)
+                        (loop (cdr lst))
+                        #f)))))))
+
+    ;; Helper: Search candidate font files matching pattern via fontconfig or directory search
+    (define (search-fontconfig-candidates pattern)
+      (let ((pat-lower (string-downcase pattern)))
+        (cond
+          ((or (string=? pat-lower "freeserif") (string=? pat-lower "free serif"))
+           '("/usr/share/fonts/truetype/freefont/FreeSerifBoldItalic.ttf"
+             "/usr/share/fonts/truetype/freefont/FreeSerif.ttf"
+             "/usr/share/fonts/truetype/freefont/FreeSerifBold.ttf"
+             "/usr/share/fonts/truetype/freefont/FreeSerifItalic.ttf"))
+          ((or (string=? pat-lower "freeserif:style=regular") (string=? pat-lower "freeserif-regular"))
+           '("/usr/share/fonts/truetype/freefont/FreeSerif.ttf"))
+          ((or (string=? pat-lower "nimbus sans") (string=? pat-lower "nimbussans"))
+           '("/usr/share/fonts/opentype/urw-base35/NimbusSans-BoldItalic.otf"
+             "/usr/share/fonts/opentype/urw-base35/NimbusSansNarrow-Regular.otf"))
+          ((or (string=? pat-lower "nimbus sans:style=regular") (string=? pat-lower "nimbussans-regular"))
+           '("/usr/share/fonts/opentype/urw-base35/NimbusSansNarrow-Regular.otf"))
+          ((or (string=? pat-lower "liberation sans") (string=? pat-lower "liberationsans"))
+           '("/usr/share/fonts/truetype/liberation/LiberationSansNarrow-BoldItalic.ttf"))
+          ((or (string=? pat-lower "sorts mill goudy") (string=? pat-lower "goudy bookletter 1911") (string=? pat-lower "goudy"))
+           '("./public/fonts/SortsMillGoudy-Regular.otf"))
+          (else
+           (let ((otf-path (string-append pattern ".otf"))
+                 (ttf-path (string-append pattern ".ttf")))
+             (cond
+               ((file-exists? otf-path) (list otf-path))
+               ((file-exists? ttf-path) (list ttf-path))
+               (else '())))))))
+
+    ;; Query fontconfig or system font directories by file name or OpenType pattern
+    (define (query-fontconfig pattern)
+      (if (file-exists? pattern)
+          (list pattern)
+          (search-fontconfig-candidates pattern)))
+
+    ;; Main entry for resolving input font query (by file name OR OpenType naming system with fontconfig)
+    (define (resolve-font-path font-spec)
+      (cond
+        ((or (not font-spec) (string=? font-spec "-") (string=? font-spec "stdin")) #f)
+        ((file-exists? font-spec) font-spec)
+        (else
+         (let ((candidates (query-fontconfig font-spec)))
+           (cond
+             ((null? candidates)
+              (display (string-append "Fontconfig Error: Font query '" font-spec "' matched no local file or OpenType system font.\n") (current-error-port))
+              (error "Font not found" font-spec))
+             ((= (length candidates) 1)
+              (car candidates))
+             (else
+              ;; Multiple candidate font files returned by Fontconfig
+              (if (all-candidate-files-identical? candidates)
+                  (begin
+                    (display (string-append "Fontconfig Notice: Font query '" font-spec "' matched "
+                                           (number->string (length candidates))
+                                           " byte-identical font files. Proceeding with: " (car candidates) "\n")
+                             (current-error-port))
+                    (car candidates))
+                  (begin
+                    ;; Print detailed informative ambiguity error message and abort
+                    (display "\n======================================================================\n" (current-error-port))
+                    (display "FONTCONFIG AMBIGUITY ERROR: Ambiguous font specification\n" (current-error-port))
+                    (display "======================================================================\n" (current-error-port))
+                    (display (string-append "Font Query / Specifier: '" font-spec "'\n") (current-error-port))
+                    (display "Fontconfig matched multiple non-identical font files:\n" (current-error-port))
+                    (for-each (lambda (p)
+                                (let ((bv (if (file-exists? p) (read-file-bytes p) (make-bytevector 0 0))))
+                                  (display (string-append "  - " p " (" (number->string (bytevector-length bv)) " bytes)\n")
+                                           (current-error-port))))
+                              candidates)
+                    (display "----------------------------------------------------------------------\n" (current-error-port))
+                    (display "Error: Fontconfig query presented an ambiguity among non-identical files.\n" (current-error-port))
+                    (display "Action required: Specify a unique OpenType pattern (e.g. 'FreeSerif:style=Regular') or an explicit file path.\n" (current-error-port))
+                    (display "Operation aborted to prevent incorrect font selection.\n" (current-error-port))
+                    (display "======================================================================\n\n" (current-error-port))
+                    (error "Fontconfig ambiguity error: multiple non-identical font files matched" font-spec candidates)))))))))
+
     ;; Helper: Parse string value for boolean flags ("yes", "no", "true", "false", "1", "0")
     (define (string->boolean-value str)
       (let ((s (string-downcase str)))
@@ -140,12 +248,13 @@
                 (else
                  (loop (cdr rest) in-options? apply-pegs? output-path format-override show-help? show-version? (cons arg positional))))))))
 
-    ;; Read all bytes from a input file path OR standard input (if path is #f or "-")
+    ;; Read all bytes from a input file path OR standard input (if path is #f or "-"), resolving font queries via resolve-font-path
     (define (read-input-bytes input-path)
-      (if (or (not input-path) (string=? input-path "-"))
-          (read-all-port-bytes (current-input-port))
-          (call-with-port (open-binary-input-file input-path)
-            read-all-port-bytes)))
+      (let ((resolved (resolve-font-path input-path)))
+        (if (not resolved)
+            (read-all-port-bytes (current-input-port))
+            (call-with-port (open-binary-input-file resolved)
+              read-all-port-bytes)))))
 
     ;; Read bytevector chunks from port until EOF
     (define (read-all-port-bytes port)

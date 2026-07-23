@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { Type, Upload, CheckCircle2, FileText, Sparkles, Search } from 'lucide-react';
+import { Type, Upload, CheckCircle2, FileText, Sparkles, Search, AlertTriangle, ShieldCheck, Terminal } from 'lucide-react';
 import { FontInfo } from '../types';
 import { getGlyphPath, getKerning } from '../lib/openTypeEngine';
+import { resolveFontWithFontconfig, FontResolutionResult } from '../lib/fontconfigResolver';
 
 interface FontMetricsPanelProps {
   fontInfo: FontInfo;
@@ -16,6 +17,15 @@ export const FontMetricsPanel: React.FC<FontMetricsPanelProps> = ({
   const [testChar1, setTestChar1] = useState<string>('F');
   const [testChar2, setTestChar2] = useState<string>('A');
   const [searchFilter, setSearchFilter] = useState<string>('');
+
+  // Fontconfig resolution state
+  const [fcQuery, setFcQuery] = useState<string>('FreeSerif');
+  const [fcResult, setFcResult] = useState<FontResolutionResult>(() => resolveFontWithFontconfig('FreeSerif'));
+
+  const handleFcQueryChange = (q: string) => {
+    setFcQuery(q);
+    setFcResult(resolveFontWithFontconfig(q));
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -120,6 +130,108 @@ export const FontMetricsPanel: React.FC<FontMetricsPanelProps> = ({
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Fontconfig & OpenType Naming System Resolver Inspector */}
+      <div className="bg-white/5 p-4 rounded border border-white/10 space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+          <div className="flex items-center space-x-2">
+            <Terminal className="w-4 h-4 text-amber-500" />
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-amber-500">
+              Fontconfig & OpenType Naming Resolver (Ambiguity Verification)
+            </span>
+          </div>
+          <span className="text-[9px] uppercase tracking-wider text-white/40 font-mono">
+            R⁷RS / C23 / Fontconfig Protocol
+          </span>
+        </div>
+
+        <p className="text-xs text-white/70 leading-relaxed">
+          Resolves fonts by file name or OpenType naming system via Fontconfig. If Fontconfig returns multiple matching candidate files, the engine verifies byte-identity. If candidate files are <strong>not byte-identical</strong>, an informative ambiguity error is issued and resolution is halted to prevent unintended font selection.
+        </p>
+
+        {/* Query Input & Presets */}
+        <div className="space-y-2">
+          <label className="text-[10px] uppercase tracking-wider text-white/40 font-mono block">
+            Font Query / Pattern Specifier:
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={fcQuery}
+              onChange={(e) => handleFcQueryChange(e.target.value)}
+              placeholder="e.g. FreeSerif, FreeSerif:style=Regular, Sorts Mill Goudy..."
+              className="flex-1 bg-black/50 border border-white/15 rounded px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+            />
+            <button
+              onClick={() => handleFcQueryChange('FreeSerif')}
+              className={`px-2.5 py-1 text-[10px] uppercase tracking-wider font-mono rounded border transition ${
+                fcQuery === 'FreeSerif' ? 'bg-amber-500 text-black font-bold border-amber-500' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              FreeSerif (Ambiguous)
+            </button>
+            <button
+              onClick={() => handleFcQueryChange('FreeSerif:style=Regular')}
+              className={`px-2.5 py-1 text-[10px] uppercase tracking-wider font-mono rounded border transition ${
+                fcQuery === 'FreeSerif:style=Regular' ? 'bg-amber-500 text-black font-bold border-amber-500' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              FreeSerif:style=Regular
+            </button>
+            <button
+              onClick={() => handleFcQueryChange('Sorts Mill Goudy')}
+              className={`px-2.5 py-1 text-[10px] uppercase tracking-wider font-mono rounded border transition ${
+                fcQuery === 'Sorts Mill Goudy' ? 'bg-amber-500 text-black font-bold border-amber-500' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              Sorts Mill Goudy
+            </button>
+          </div>
+        </div>
+
+        {/* Resolution Output Status */}
+        {fcResult.isAmbiguous ? (
+          <div className="p-3.5 bg-red-950/40 border border-red-500/50 rounded-lg space-y-2">
+            <div className="flex items-center space-x-2 text-red-400 font-bold text-xs">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+              <span>FONTCONFIG AMBIGUITY ERROR DETECTED</span>
+            </div>
+            <pre className="p-3 bg-black/80 rounded border border-red-900/50 text-[11px] font-mono text-red-200/90 whitespace-pre-wrap leading-relaxed overflow-x-auto">
+              {fcResult.errorMessage}
+            </pre>
+            <div className="text-[10px] text-red-300/80 font-mono">
+              ★ Ambiguity Prevention Guard Active: Operation halted. To proceed, qualify the query with a specific style (e.g. <code>:style=Regular</code>) or file path.
+            </div>
+          </div>
+        ) : fcResult.resolvedPath ? (
+          <div className="p-3.5 bg-amber-950/30 border border-amber-500/40 rounded-lg space-y-2">
+            <div className="flex items-center space-x-2 text-amber-400 font-bold text-xs">
+              <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>Fontconfig Query Successfully Resolved</span>
+            </div>
+            <div className="text-xs font-mono text-white/90">
+              Resolved File Path: <span className="text-amber-300 font-bold">{fcResult.resolvedPath}</span>
+            </div>
+            {fcResult.candidates.length > 1 && (
+              <div className="text-[10px] text-amber-300/80 font-mono">
+                Matched {fcResult.candidates.length} candidate files; verified 100% byte-identity across all candidates.
+              </div>
+            )}
+            <div className="p-2 bg-black/50 rounded border border-white/10 font-mono text-[10px] text-white/60 space-y-1">
+              {fcResult.candidates.map((c, i) => (
+                <div key={i} className="flex justify-between">
+                  <span>- {c.path} ({c.style})</span>
+                  <span>{c.byteSize} bytes | hash:{c.hash}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 bg-black/40 border border-white/10 rounded text-xs font-mono text-white/50">
+            {fcResult.errorMessage || 'No font matched query.'}
+          </div>
+        )}
       </div>
 
       {/* Kerning Debugger Sandbox */}
