@@ -4,55 +4,69 @@
 ;;; Executable Script: autopeg
 ;;; Language: R7RS-large Scheme
 ;;; Shebang: #!/usr/bin/env scheme-r7rs
-;;; Usage: autopeg [options] <input_metrics.json> [<output_pegged.json>]
+;;; Usage: autopeg [options] [<input.json|otf|ttf>] [<output.json|otf|ttf>]
 ;;; Options:
-;;;   --apply[=yes|no|true|false]  Apply spacing by pegs to metrics (default: yes if passed, no if omitted)
-;;;   -a[=yes|no|true|false]       Short alias for --apply
+;;;   -a, --apply           Apply spacing by pegs to metrics (short getopt flag)
+;;;   -o, --output=FILE     Specify output file path (or '-' for stdout)
+;;;   -f, --format=FORMAT   Override output format (otf, ttf, json)
+;;;   --                    Stop option parsing
 ;;; ==============================================================================
 
 (import (scheme base)
         (scheme write)
-        (scheme file)
         (scheme process-context)
-        (iris autopeg))
+        (iris autopeg)
+        (iris font2json)
+        (iris json2font)
+        (iris cli))
 
-(define (flag? arg)
-  (or (and (> (string-length arg) 0) (char=? (string-ref arg 0) #\-))))
+(define (show-help)
+  (display "Usage: autopeg [options] [<input.json|otf|ttf|-] [<output.json|otf|ttf|-]\n")
+  (display "Options:\n")
+  (display "  -a, --apply           Apply spacing by pegs (short flag, no required value)\n")
+  (display "  -o, --output=FILE     Specify output file path (or '-' for stdout)\n")
+  (display "  -f, --format=FORMAT   Override output format (otf, ttf, json)\n")
+  (display "  --                    Stop option flags processing\n"))
 
-(define (filter-positional-args args)
-  (let loop ((rest args) (acc '()))
+(define (help-requested? args)
+  (let loop ((rest args))
     (if (null? rest)
-        (reverse acc)
-        (if (flag? (car rest))
-            (loop (cdr rest) acc)
-            (loop (cdr rest) (cons (car rest) acc))))))
+        #f
+        (if (or (string=? (car rest) "-h")
+                (string=? (car rest) "--help"))
+            #t
+            (loop (cdr rest))))))
 
-(define (main args)
-  (let* ((apply-pegs? (parse-apply-flag args))
-         (positional (filter-positional-args (cdr args)))
-         (num-args (length positional)))
-    (cond
-      ((< num-args 1)
-       (display "Usage: autopeg [options] <input_metrics.json> [<output_pegged.json>]\n")
-       (display "Options:\n")
-       (display "  --apply[=yes|no]  Apply spacing by pegs (default: yes if passed, no if absent)\n")
-       (display "  -a[=yes|no]       Short alias for --apply\n"))
-      (else
-       (let* ((input-path (car positional))
-              (output-path (if (> num-args 1) (cadr positional) "pegged_font_metrics.json"))
-              (input-json (call-with-port (open-input-file input-path) read-string))
-              (pegged-json (auto-place-pegs-in-json input-json apply-pegs?)))
-         (call-with-port (open-output-file output-path)
-           (lambda (port)
-             (display pegged-json port)))
-         (display "Successfully calculated ")
-         (if apply-pegs?
-             (display "and applied pegs for ")
-             (display "pegs (dry-run mode, --apply=no) for "))
-         (display input-path)
-         (display " -> ")
-         (display output-path)
-         (newline))))))
+(define (main raw-args)
+  (let ((args (cdr raw-args)))
+    (if (help-requested? args)
+        (show-help)
+        (let* ((parsed (parse-cli-args args))
+               (apply-pegs? (cdr (assoc 'apply-pegs parsed)))
+               (opts-output (cdr (assoc 'output-path parsed)))
+               (fmt-override (cdr (assoc 'format parsed)))
+               (positional (cdr (assoc 'positional parsed)))
+               (input-spec (if (null? positional) #f (car positional)))
+               (output-spec (if opts-output
+                                opts-output
+                                (if (> (length positional) 1) (cadr positional) #f)))
+               (in-bytes (read-input-bytes input-spec))
+               (input-flavor (detect-font-flavor in-bytes))
+               (input-json (if (or (eq? input-flavor 'otf) (eq? input-flavor 'ttf))
+                               (serialize-metrics-to-json (extract-font-metrics in-bytes))
+                               (utf8->string in-bytes)))
+               (target-fmt (detect-output-format fmt-override output-spec 'json))
+               (pegged-json (auto-place-pegs-in-json input-json apply-pegs?))
+               (out-data (if (eq? target-fmt 'json)
+                             pegged-json
+                             (compile-json-to-opentype pegged-json)))
+               (log-msg (string-append "Successfully processed "
+                                       (if input-spec input-spec "stdin")
+                                       " -> "
+                                       (if output-spec output-spec "stdout")
+                                       " [format=" (symbol->string target-fmt)
+                                       ", apply-pegs=" (if apply-pegs? "yes" "no") "]")))
+          (write-output output-spec out-data target-fmt log-msg)))))
 
-;; Direct entry point
+;; Direct execution
 (main (command-line))

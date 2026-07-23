@@ -4,30 +4,63 @@
 ;;; Executable Script: json2font
 ;;; Language: R7RS-large Scheme
 ;;; Shebang: #!/usr/bin/env scheme-r7rs
-;;; Usage: json2font <input.json> [<output.otf>]
+;;; Usage: json2font [options] [<input.json|-] [<output.otf|ttf|-]
+;;; Options:
+;;;   -o, --output=FILE     Specify output file path (or '-' for stdout)
+;;;   -f, --format=FORMAT   Override output format (otf, ttf, json)
+;;;   --                    Stop option parsing
 ;;; ==============================================================================
 
 (import (scheme base)
         (scheme write)
-        (scheme file)
         (scheme process-context)
-        (iris json2font))
+        (iris font2json)
+        (iris json2font)
+        (iris cli))
 
-(define (main args)
-  (let ((num-args (length args)))
-    (cond
-      ((< num-args 2)
-       (display "Usage: json2font <input.json> [<output.otf>]\n")
-       (display "Compiles JSON metric specs and custom 'PEGS' OpenType table to binary OTF.\n"))
-      (else
-       (let* ((input-path (cadr args))
-              (output-path (if (> num-args 2) (caddr args) "rebuilt_font.otf")))
-         (convert-json-to-font input-path output-path)
-         (display "Successfully compiled ")
-         (display input-path)
-         (display " into binary OpenType font ")
-         (display output-path)
-         (newline))))))
+(define (show-help)
+  (display "Usage: json2font [options] [<input.json|-] [<output.otf|ttf|-]\n")
+  (display "Options:\n")
+  (display "  -o, --output=FILE     Specify output file path (or '-' for stdout)\n")
+  (display "  -f, --format=FORMAT   Override output format (otf, ttf, json)\n")
+  (display "  --                    Stop option flags processing\n"))
 
-;; Direct entry invocation
+(define (help-requested? args)
+  (let loop ((rest args))
+    (if (null? rest)
+        #f
+        (if (or (string=? (car rest) "-h")
+                (string=? (car rest) "--help"))
+            #t
+            (loop (cdr rest))))))
+
+(define (main raw-args)
+  (let ((args (cdr raw-args)))
+    (if (help-requested? args)
+        (show-help)
+        (let* ((parsed (parse-cli-args args))
+               (opts-output (cdr (assoc 'output-path parsed)))
+               (fmt-override (cdr (assoc 'format parsed)))
+               (positional (cdr (assoc 'positional parsed)))
+               (input-spec (if (null? positional) #f (car positional)))
+               (output-spec (if opts-output
+                                opts-output
+                                (if (> (length positional) 1) (cadr positional) #f)))
+               (in-bytes (read-input-bytes input-spec))
+               (input-flavor (detect-font-flavor in-bytes))
+               (json-str (if (eq? input-flavor 'json)
+                             (utf8->string in-bytes)
+                             (serialize-metrics-to-json (extract-font-metrics in-bytes))))
+               (target-fmt (detect-output-format fmt-override output-spec 'otf))
+               (out-data (if (eq? target-fmt 'json)
+                             json-str
+                             (compile-json-to-opentype json-str)))
+               (log-msg (string-append "Successfully compiled "
+                                       (if input-spec input-spec "stdin")
+                                       " -> "
+                                       (if output-spec output-spec "stdout")
+                                       " [format=" (symbol->string target-fmt) "]")))
+          (write-output output-spec out-data target-fmt log-msg)))))
+
+;; Direct execution
 (main (command-line))

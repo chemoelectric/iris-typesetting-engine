@@ -685,6 +685,18 @@ export const TextbookPanel: React.FC = () => {
                       <span className="text-[9px] uppercase tracking-wider text-white/40 group-hover:text-amber-400">Fortran 2008 (GCC 16)</span>
                     </a>
                     <a
+                      href="/scheme/iris/cli.sld"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-black/50 border border-white/10 hover:border-amber-500/50 rounded flex items-center justify-between text-white/80 hover:text-amber-300 transition group"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Terminal className="w-3.5 h-3.5 text-amber-400" />
+                        <span>/scheme/iris/cli.sld</span>
+                      </div>
+                      <span className="text-[9px] uppercase tracking-wider text-white/40 group-hover:text-amber-400">R⁷RS Scheme</span>
+                    </a>
+                    <a
                       href="/scheme/iris/autopeg.sld"
                       target="_blank"
                       rel="noopener noreferrer"
