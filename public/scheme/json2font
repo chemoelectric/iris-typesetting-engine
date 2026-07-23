@@ -1,0 +1,33 @@
+#!/usr/bin/env scheme-r7rs
+;;; ==============================================================================
+;;; IRIS MICROTYPOGRAPHY LAYOUT ENGINE
+;;; Executable Script: json2font
+;;; Language: R7RS-large Scheme
+;;; Shebang: #!/usr/bin/env scheme-r7rs
+;;; Usage: json2font <input.json> [<output.otf>]
+;;; ==============================================================================
+
+(import (scheme base)
+        (scheme write)
+        (scheme file)
+        (scheme process-context)
+        (iris json2font))
+
+(define (main args)
+  (let ((num-args (length args)))
+    (cond
+      ((< num-args 2)
+       (display "Usage: json2font <input.json> [<output.otf>]\n")
+       (display "Compiles JSON metric specs and custom 'PEGS' OpenType table to binary OTF.\n"))
+      (else
+       (let* ((input-path (cadr args))
+              (output-path (if (> num-args 2) (caddr args) "rebuilt_font.otf")))
+         (convert-json-to-font input-path output-path)
+         (display "Successfully compiled ")
+         (display input-path)
+         (display " into binary OpenType font ")
+         (display output-path)
+         (newline))))))
+
+;; Direct entry invocation
+(main (command-line))

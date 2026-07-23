@@ -57,13 +57,14 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
           ],
         },
         {
-          heading: '1.2 Unified Field Coupling in Microtypography',
-          text: 'Electromagnetism and gravity are unified under a single field framework governing glyph force equilibrium. Glyph contours act as charged boundaries within a potential field, where inter-character repulsions (collisions) and attraction forces (kerning pairs) achieve static field equilibrium.',
-          equation: 'F = \\nabla_{Cl(4,1,1)} A = E + i B + G + S',
+          heading: '1.2 Rejection of Solid-Body Outline Models & Full Physical Multi-Medium Field Coupling',
+          text: 'The Iris Engine completely rejects naive models where glyph outlines act as solid bodies or halo-colliding geometry. Instead, typesetting fidelity requires comprehensive physical multi-medium modeling: (1) Human Visual System (HVS) contrast sensitivity functions and foveal spatial frequency perception; (2) Ink-on-paper physical mechanics (capillary fiber absorption, ink spreading, dot gain, and Yule-Nielsen substrate scattering); and (3) Thin-Film Transistor (TFT) display optics (subpixel layouts, aperture point-spread functions, and gamma diffraction).',
+          equation: 'F = \\nabla_{Cl(4,1,1)} A = H_{\\text{HVS}} + P_{\\text{Ink/Paper}} + D_{\\text{TFT/Display}} + S_{\\text{Density}}',
           notes: [
-            'E and B represent electro-optical glyph boundary potentials.',
-            'G represents gravitational baseline attraction.',
-            'S represents scalar optical density balance.',
+            'Explicitly rejects solid-body outline contact and halo collision models.',
+            'HVS Model: Incorporates foveal spatial frequency response and contrast sensitivity functions (CSF).',
+            'Paper/Ink Physics: Simulates capillary fluid absorption, dot gain, and light scattering in paper substrate.',
+            'TFT Display Optics: Accounts for subpixel geometry, point-spread functions (PSF), and panel diffraction.',
           ],
         },
       ],
@@ -198,32 +199,48 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
             'Tested and proven on Sorts Mill classic revivals (Goudy, Fanwood, Linden Hill, Prociono).',
           ],
         },
+        {
+          heading: '5.3 Composite Glyph Peg Inheritance, Overrides, & Inferential Auto-Placement',
+          text: 'The Spacing by Pegs framework features an automated composite merging system: when combining multiple base glyphs and diacritics into composite glyphs (e.g., ligatures, accented characters), component pegs are automatically inherited and propagated to the combined form. Occasional contextual override pegs allow targeted adjustments for special boundary pairs. Furthermore, for unspaced fonts lacking prior metrics, well-placed initial pegs are inferred automatically by analyzing geometric profile extrema (outer hull tangents, optical center of mass, white-space area distribution, and contour curvature bounds).',
+          equation: '\\text{Peg}_{\\text{Composite}} = \\mathcal{T}_{\\text{Inherit}}(\\text{Peg}_{\\text{Base1}}, \\text{Peg}_{\\text{Base2}}) + \\delta_{\\text{Override}} + f_{\\text{Infer}}(\\text{ProfileExtrema})',
+          notes: [
+            'Automatic merging of multiple glyphs carries constituent component pegs forward into composite glyphs.',
+            'Contextual override pegs provide surgical adjustments for exceptional glyph pair interactions.',
+            'Inferential Auto-Placement: Analyzes optical center of mass, contour profile curvature, and white-space area bounds to place initial pegs on raw unspaced fonts with high fidelity.',
+          ],
+        },
       ],
     },
   },
   {
     id: 'parallel',
     number: 'CHAPTER VI',
-    title: 'Parallel Numerical Optimization & Josephson-SQUID Resonator Analogs',
-    subtitle: 'Coupled Non-Linear Phase-Locked Resonator Relaxation for Multi-Core Systems',
+    title: 'Spectral Analysis & Massively Parallel Digital Resonator Algorithms',
+    subtitle: 'Fourier/Wavelet Frequency Decomposition & Digital Phase-Locked Network Solver',
     icon: Cpu,
     content: {
       summary:
-        'Instead of restricting paragraph break optimization to traditional sequential dynamic programming, Iris embraces parallel numerical relaxation algorithms. The engine utilizes physical analogs derived from superconducting quantum interference devices (SQUIDs) and Josephson junction networks, treating layout energy states as coupled phase-locked non-linear oscillators running in parallel across multi-core processors.',
+        'Iris completely abandons traditional sequential dynamic programming and character-run searching algorithms. Instead, global visual balance and layout rhythm are evaluated using 2D/3D Fourier and Wavelet Spectral Analysis on optical density fields. Solver convergence is executed via high-performance parallel digital algorithms—utilizing digital Josephson-SQUID phase-locked resonator network analogs executed across multi-core CPUs.',
       sections: [
         {
-          heading: '6.1 Non-Linear Phase-Locked Resonator Dynamics',
-          text: 'Glyph baseline coordinates and line break nodes are mapped to phase variables φ_i in a system of coupled non-linear differential equations resembling Josephson junction arrays and SQUID loops. The collective system rapidly relaxes to its minimum energy state via parallel multi-grid solver iterations.',
-          equation: '\\frac{d^2 \\phi_i}{dt^2} + \\gamma \\frac{d\\phi_i}{dt} + \\sin(\\phi_i - \\phi_{i-1}) = I_{\\text{MaxEnt}}(\\vec{\\lambda})',
+          heading: '6.1 2D/3D Fourier & Wavelet Spectral Layout Analysis',
+          text: 'Rather than scanning text in linear sequential runs, Iris performs continuous 2D/3D Fast Fourier Transforms (FFT) and Wavelet decompositions on paragraph and page optical density fields. Spectral peak distributions directly measure typographic rhythm, visual harmony, and balance across spatial frequency bands.',
+          equation: '\\hat{\\rho}(\\vec{k}) = \\int_{\\mathbb{R}^3} \\rho(\\vec{r}) e^{-i \\vec{k} \\cdot \\vec{r}} d^3r \\quad \\Longrightarrow \\quad S(\\vec{k}) = |\\hat{\\rho}(\\vec{k})|^2',
           notes: [
-            'ϕᵢ represents the spatial phase angle of glyph i in the layout stream.',
-            'Coupling term sin(ϕᵢ - ϕᵢ₋₁) enforces elasticity constraints across neighboring glyphs.',
-            'Enables massive multi-threaded parallel speedup across multi-core architectures (e.g. 24-core Zen 5 processors).',
+            'Replaces line-run text scanning and dynamic programming with spatial frequency analysis.',
+            'Evaluates page optical density, visual rhythm, and typographic balance in 2D/3D frequency space.',
+            'Wavelet transforms identify local density anomalies and rivering patterns instantly.',
           ],
         },
         {
-          heading: '6.2 High-Throughput SIMD & Superconducting Circuit Analogs',
-          text: 'Phase locking across thousands of text nodes converges orders of magnitude faster than serial dynamic programming, achieving global layout equilibrium simultaneously across entire documents.',
+          heading: '6.2 Parallel Digital Resonator Algorithms (Josephson-SQUID Analogs)',
+          text: 'Layout optimization is formulated as a system of coupled non-linear digital resonators (digital Josephson-SQUID phase-locked network analogs). Operating as deterministic parallel digital algorithms across multi-core processors, spatial phase variables φ_i converge simultaneously to global MaxEnt layout equilibrium.',
+          equation: '\\frac{d^2 \\phi_i}{dt^2} + \\gamma \\frac{d\\phi_i}{dt} + \\sin(\\phi_i - \\phi_{i-1}) = I_{\\text{MaxEnt}}(\\vec{\\lambda})',
+          notes: [
+            'Deterministic parallel digital algorithms running in Cl(4,1,1) absolute spatial coordinates.',
+            'Massively parallel relaxation across 24+ CPU cores replaces serial dynamic programming.',
+            'Achieves global document layout equilibrium simultaneously across entire pages.',
+          ],
         },
       ],
     },
@@ -258,6 +275,28 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
             'Direct translation of plain-prose directives into Jaynesian energy potential Lagrange multipliers.',
             'Zero macro expansion loops or stateful macro redefinition side-effects.',
             'Predictable, reproducible typesetting at maximum Fortran/C23 compiler efficiency.',
+          ],
+        },
+        {
+          heading: '7.3 Decoupled Modular Unix-Style Utilities (`font2json` & `json2font`) & Custom OpenType `PEGS` Table',
+          text: 'To avoid fragile, monolithically integrated systems, Iris mandates a strictly modular architecture composed of small, independent CLI utilities (`font2json` and `json2font`) invoked directly by script name via `#!/usr/bin/env scheme-r7rs`. Furthermore, as permitted by the OpenType specification, Iris defines a custom 4-character OpenType table (`PEGS`) embedded directly into `.otf`/`.ttf` binaries. This allows fonts to natively carry Sorts Mill peg coordinates, composite glyph inheritance trees, contextual overrides, and auto-inference profiles inside the font file itself, perfectly parsed and compiled by R⁷RS-large Scheme tools.',
+          equation: '\\text{Binary Font (.otf/.ttf with } \\texttt{PEGS} \\text{ table)} \\xrightleftharpoons[\\texttt{json2font}]{\\texttt{font2json}} \\text{Structured JSON + Peg Specs}',
+          notes: [
+            'Rejects monolithic integration in favor of small, stable, decoupled Unix-philosophy utilities.',
+            'Direct execution: Executable scripts `font2json` and `json2font` use shebang `#!/usr/bin/env scheme-r7rs`.',
+            'Custom OpenType Table (`PEGS`): Leverages OpenType standard extensibility to store native Sorts Mill peg coordinates directly inside binary font files.',
+            'R⁷RS-large Scheme (e.g. Gauche Scheme in R⁷RS mode) processes string manipulation, custom table binary packing, and JSON serialization with maximum user modifiability.',
+          ],
+        },
+        {
+          heading: '7.4 Structured Programming Scope & Functional Exemption (Scheme & ATS2 Rule)',
+          text: 'Procedural and imperative language backends (Modern Fortran 2023, ISO C23, and D) enforce strict structured programming: unstructured jumps (`goto`) are prohibited, single-entry/single-exit control flow is mandatory, and C23 explicitly bans `++` and `--` operators in favor of explicit assignments (`x += 1`, `x -= 1`). Conversely, functional languages (Scheme and ATS2) are explicitly EXEMPT from single-exit structured programming rules, as single exit points make no sense in functional paradigms (and ATS2 programs often cannot compile under single-exit constraints).',
+          equation: 'x_{\\text{new}} = x_{\\text{old}} + 1 \\quad \\Longleftrightarrow \\quad \\texttt{x += 1;} \\quad (\\text{Imperative Rule; Scheme/ATS2 Exempt})',
+          notes: [
+            'Strict structured programming mandatory for imperative languages (Fortran, C23, D); ISO C23 bans `++` and `--`.',
+            'Functional languages (R⁷RS Scheme and ATS2) are explicitly exempt from single-entry/single-exit constraints.',
+            'Respects functional idioms where single exit points are semantically meaningless or impossible in ATS2 type proofs.',
+            'Maintains maximum procedural discipline alongside pure functional expressiveness.',
           ],
         },
       ],
@@ -558,6 +597,98 @@ export const TextbookPanel: React.FC = () => {
                   )}
                 </div>
               ))}
+
+              {/* Public Code Libraries for Chapter VII */}
+              {activeChapter.id === 'tools' && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-3 mt-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-amber-400 font-mono flex items-center gap-2">
+                      <FileCode className="w-4 h-4 text-amber-400" />
+                      Public Source Libraries & Executables
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-300/60 bg-black/40 px-2 py-0.5 rounded border border-amber-500/20">
+                      /public/ directory
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/70 leading-relaxed font-sans">
+                    All Fortran 2023 and R⁷RS-large Scheme libraries and standalone executables for <code className="text-amber-300">font2json</code> and <code className="text-amber-300">json2font</code> are deployed in the public web root for direct execution and user modification:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs font-mono">
+                    <a
+                      href="/fortran/font2json_mod.f90"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-black/50 border border-white/10 hover:border-amber-500/50 rounded flex items-center justify-between text-white/80 hover:text-amber-300 transition group"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Code2 className="w-3.5 h-3.5 text-amber-500" />
+                        <span>/fortran/font2json_mod.f90</span>
+                      </div>
+                      <span className="text-[9px] uppercase tracking-wider text-white/40 group-hover:text-amber-400">Fortran 2023</span>
+                    </a>
+                    <a
+                      href="/fortran/json2font_mod.f90"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-black/50 border border-white/10 hover:border-amber-500/50 rounded flex items-center justify-between text-white/80 hover:text-amber-300 transition group"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Code2 className="w-3.5 h-3.5 text-amber-500" />
+                        <span>/fortran/json2font_mod.f90</span>
+                      </div>
+                      <span className="text-[9px] uppercase tracking-wider text-white/40 group-hover:text-amber-400">Fortran 2023</span>
+                    </a>
+                    <a
+                      href="/scheme/iris/font2json.sld"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-black/50 border border-white/10 hover:border-amber-500/50 rounded flex items-center justify-between text-white/80 hover:text-amber-300 transition group"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Terminal className="w-3.5 h-3.5 text-amber-400" />
+                        <span>/scheme/iris/font2json.sld</span>
+                      </div>
+                      <span className="text-[9px] uppercase tracking-wider text-white/40 group-hover:text-amber-400">R⁷RS Scheme</span>
+                    </a>
+                    <a
+                      href="/scheme/iris/json2font.sld"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-black/50 border border-white/10 hover:border-amber-500/50 rounded flex items-center justify-between text-white/80 hover:text-amber-300 transition group"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Terminal className="w-3.5 h-3.5 text-amber-400" />
+                        <span>/scheme/iris/json2font.sld</span>
+                      </div>
+                      <span className="text-[9px] uppercase tracking-wider text-white/40 group-hover:text-amber-400">R⁷RS Scheme</span>
+                    </a>
+                    <a
+                      href="/scheme/font2json"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-black/50 border border-amber-500/30 hover:border-amber-400 rounded flex items-center justify-between text-amber-200 hover:text-amber-300 transition group"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <FileCode className="w-3.5 h-3.5 text-amber-300" />
+                        <span>/scheme/font2json</span>
+                      </div>
+                      <span className="text-[9px] uppercase tracking-wider text-amber-400/80 group-hover:text-amber-300">#!/usr/bin/env scheme-r7rs</span>
+                    </a>
+                    <a
+                      href="/scheme/json2font"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 bg-black/50 border border-amber-500/30 hover:border-amber-400 rounded flex items-center justify-between text-amber-200 hover:text-amber-300 transition group"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <FileCode className="w-3.5 h-3.5 text-amber-300" />
+                        <span>/scheme/json2font</span>
+                      </div>
+                      <span className="text-[9px] uppercase tracking-wider text-amber-400/80 group-hover:text-amber-300">#!/usr/bin/env scheme-r7rs</span>
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
