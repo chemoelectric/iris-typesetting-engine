@@ -346,3 +346,21 @@ Iris programs locate fonts either by direct file name/path or through the OpenTy
 * Byte-Identity Verification: Evaluates multi-candidate matches to distinguish harmless duplicate file symlinks from distinct font variants.
 * Informative Ambiguity Error Report: Emits a detailed error to stderr listing every candidate path, file size, and exact syntax correction.
 * Guaranteed Correctness: Prevents silent fallback or unintended font selection in production microtypography builds.
+
+=== 7.6 Application Writer Implementation Guide: Font Disambiguation for Desktops (KDE/Plasma) & Graphics Tools (GIMP, Inkscape, Scribus)
+
+To overcome Fontconfig's structural defect where its distance-minimization pattern matcher (`fonts-conf(5)`) selects nearest-neighbor fonts regardless of divergence from the intended pattern, application developers constructing desktop environments (KDE/Plasma) and creative applications (GIMP, Inkscape, Scribus, LibreOffice) must implement Iris Disambiguation Protocols: (1) Enforce strict candidate set evaluation rather than accepting single `FcFontMatch` returns; (2) Perform deep OpenType `name` table inspection (Name IDs 1, 2, 6, 16, 17) and `GSUB` feature parsing (`smcp`, `c2sc`, `swsh`) to differentiate files like Mokka Regular vs. Mokka Small Caps; (3) Verify byte-identity across candidate files (`FcFontSort`); (4) Serialize full PostScript names (`Name ID 6`) or qualified pattern specifiers (`Family:style=Subfamily`) in document formats (`.svg`, `.xcf`, `.sla`) and desktop theme configurations (`kdeglobals`); and (5) Provide an explicit UI/console warning when non-identical candidates match a loose pattern, prohibiting arbitrary font substitution.
+
+[latexmath]
+++++
+\text{Application } \mathcal{A} \quad \implies \quad \text{Serialize } \text{ID}_6 \, (\text{PostScript Name}) \quad \land \quad \text{Validate } \text{ID}_{17} \, (\text{Typographic Subfamily}) \quad \land \quad \text{Reject Nearest-Neighbor Fallback}
+++++
+
+==== Axiomatic Principles
+
+* Defect Root Cause: `fonts-conf(5)` distance matching guarantees a font is always returned, even if completely dissimilar from requested parameters.
+* KDE/Plasma Theme Integration: Desktop font selectors must store qualified specifiers (e.g., `Mokka:style=Small Caps` or PostScript name `Mokka-SmallCaps`) in `kdeglobals` rather than unstyled family strings.
+* GIMP & Inkscape Document Safety: Vector/raster editors must record OpenType Name ID 6 (PostScript Name) and `GSUB` feature tags (`smcp`) inside SVG/XCF XML metadata to prevent document rendering drift across machines.
+* Deep OpenType Name Table Disambiguation: Directly parses Name ID 16 (Typographic Family) & Name ID 17 (Typographic Subfamily) to separate separate font files (e.g. Regular vs Small Caps) that share a primary family name.
+* Zero Arbitrary Fallback: Halts resolution with an explicit diagnostic alert listing all matching candidate paths when a loose specifier matches non-identical font binaries.
+
