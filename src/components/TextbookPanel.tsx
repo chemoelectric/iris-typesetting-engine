@@ -170,26 +170,33 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
   {
     id: 'opentype',
     number: 'CHAPTER V',
-    title: 'Native OpenType Metrical Model Optimization',
-    subtitle: 'Direct Feature-Level Optimization Beyond TeX Box-and-Glue Constraints',
+    title: 'Native OpenType Metrical Model & Spacing by Pegs',
+    subtitle: 'Primary Font-Native Spacing and Deterministic Boundary Peg Autospacing',
     icon: Type,
     content: {
       summary:
-        'Rather than imposing TeX\'s rigid secondary "box and glue" abstraction upon font data, the Iris engine optimizes directly within the metrical model inherent to OpenType fonts themselves—leveraging native OpenType features (GPOS, GSUB, mark positioning, contextual alternates, optical kerning tables, and design-space axes).',
+        'The Iris engine establishes the font file\'s native metrics, kerning tables, and OpenType features (GPOS, GSUB, mark positioning, cursive attachment `curs`, and contextual alternates) as the authoritative, primary means of glyph spacing. For fonts with flawed metrics requiring manual override or autokerning, Iris rejects non-deterministic energy calculations in favor of the "Spacing by Pegs" (formerly "spacing by anchors") visual boundary framework.',
       sections: [
         {
-          heading: '5.1 Direct Metrical Integration vs. TeX Box-and-Glue',
-          text: 'TeX maps characters into fixed rectangular boxes with static glue and penalty metrics from TFM files. Iris bypasses this coarse model by evaluating OpenType GPOS lookup tables, contextual glyph positioning, and variable font design-space axes directly in energy potential equations.',
-          equation: '\\Delta x_{\\text{GPOS}} = f_{\\text{OpenType}}(c_i, c_{i+1}, \\text{features})',
+          heading: '5.1 Native OpenType Feature Supremacy',
+          text: 'Font-embedded metrics and GPOS feature tables are the primary, uncorrupted authority for text spacing. Cursive scripts such as Caflisch Script rely strictly on native OpenType cursive attachment anchors (`curs`) embedded within the font file to achieve seamless joining. TeX\'s coarse "box and glue" truncation is bypassed in favor of native font-specified positioning.',
+          equation: '\\Delta x_{\\text{Primary}} = f_{\\text{OpenType}}(c_i, c_{i+1}, \\text{GPOS}, \\text{curs}, \\text{calt})',
           notes: [
-            'Preserves author-intended OpenType feature tables (kern, liga, mark, mkmk, calt).',
-            'Eliminates artificial box boundary truncation errors.',
-            'Integrates native variable font axes (wght, wdth, opsz) directly into MaxEnt optical sizing.',
+            'Font-native metrics and OpenType feature tables (kern, liga, mark, mkmk, curs, calt) are strictly authoritative for primary spacing.',
+            'Cursive scripts (e.g., Caflisch Script) join according to font-embedded cursive attachment anchors.',
+            'Eliminates TeX box-boundary truncation and artificial metric overrides on well-crafted fonts.',
           ],
         },
         {
-          heading: '5.2 OpenType Feature-Space Potential Energy',
-          text: 'Inter-glyph spacing incorporates both native OpenType GPOS adjustment vectors and Jaynesian density relaxation, yielding seamless microtypographic balance.',
+          heading: '5.2 Secondary Override Engine: Spacing by Pegs (Sorts Mill Framework)',
+          text: 'When a font is poorly spaced or kerned and requires override or repair, Iris uses a secondary autospacing and autokerning mechanism called "Spacing by Pegs" (derived from the Sorts Mill font family methodology, including Goudy, Fanwood, Linden Hill, and Prociono). Based on explicit visual boundaries defined by manually placed pegs, this system enables instantaneous, completely reproducible re-spacing and re-kerning across the entire font—without relying on energy calculations for glyph kerning.',
+          equation: '\\Delta x_{\\text{Pegs}} = g_{\\text{VisualBoundary}}(\\text{Peg}_L(c_{i+1}) - \\text{Peg}_R(c_i))',
+          notes: [
+            'Energy models are strictly excluded from inter-glyph spacing and kerning calculations.',
+            'Manually assigned visual pegs define reproducible glyph boundary anchor points.',
+            'Enables fast, deterministic, fully reproducible font re-spacing and autokerning.',
+            'Tested and proven on Sorts Mill classic revivals (Goudy, Fanwood, Linden Hill, Prociono).',
+          ],
         },
       ],
     },
