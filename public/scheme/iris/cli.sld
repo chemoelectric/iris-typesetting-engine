@@ -112,7 +112,7 @@
                      (loop (cdr rest) in-options? apply-pegs? output-path format-override show-help? show-version? positional)
                      (loop (cddr rest) in-options? apply-pegs? (cadr rest) format-override show-help? show-version? positional)))
                 ((and in-options? (string-prefix? "--output=" arg))
-                 (loop (cdr rest) in-options? apply-pegs? output-path (substring arg 9 (string-length arg)) format-override show-help? show-version? positional))
+                 (loop (cdr rest) in-options? apply-pegs? (substring arg 9 (string-length arg)) format-override show-help? show-version? positional))
 
                 ;; Format option: -f FORMAT, -fFORMAT, --format FORMAT, --format=FORMAT
                 ((and in-options? (string=? arg "-f"))
