@@ -453,6 +453,59 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
       ],
     },
   },
+  {
+    id: 'ch8',
+    number: 'CHAPTER VIII',
+    title: 'Numerical Stabilization of Levien’s Spiro Clothoid Splines via SVD Gauss-Newton & Scale-Invariant Fresnel Integration',
+    subtitle: 'Stabilizing Euler Spiral Splines Against Newton Divergence, Singular Jacobians, and Coincident Knot Failures',
+    icon: Compass,
+    content: {
+      summary:
+        'Raph Levien’s Spiro curve framework generates visually harmonious G² continuous spline curves by modeling clothoid (Euler spiral) segments whose curvature varies linearly with arc length: κ(s) = κ₀ + κ′s. However, legacy Spiro solvers suffer from severe numerical instabilities: matrix singularities near inflection points (κ = 0), divergent Newton-Raphson iterations on sharp corner constraints or collinear knot setups, loss of significance during Fresnel integral evaluation, and infinite scaling factors when knot spacing approaches zero (Δs → 0). The Iris engine resolves these structural defects by reformulating Levien’s solver using Tikhonov / Jaynesian MaxEnt regularized Singular Value Decomposition (SVD), scale-invariant Gauss-Legendre Fresnel quadrature, and automatic knot collapse / corner node decomposition.',
+      sections: [
+        {
+          heading: '8.1 The Clothoid Segment Model & Scale-Invariant Fresnel Quadrature',
+          text: 'The positional displacement (Δx, Δy) along a clothoid segment of length L with initial heading θ₀, normalized initial curvature K₀ = κ₀L, and curvature change K₁ = (κ₁ - κ₀)L is evaluated using scale-invariant quadrature on the normalized parameter t = s/L ∈ [0, 1]:',
+          equation: '\\Delta x = L \\int_0^1 \\cos\\left(\\theta_0 + K_0 t + \\frac{1}{2} K_1 t^2 \\right) dt, \\quad \\Delta y = L \\int_0^1 \\sin\\left(\\theta_0 + K_0 t + \\frac{1}{2} K_1 t^2 \\right) dt',
+          notes: [
+            'Normalizes integration parameter t = s / L ∈ [0, 1] to achieve scale-invariant numerical conditioning.',
+            'Employs 16-point Gauss-Legendre quadrature, guaranteeing machine-precision (10⁻¹⁵) integration without loss of significance.',
+            'Completely eliminates legacy slow-converging Taylor expansions and cancellation-prone rational Chebyshev approximations.',
+          ],
+        },
+        {
+          heading: '8.2 SVD Gauss-Newton Solver & Jaynesian MaxEnt Tikhonov Regularization',
+          text: 'To solve multi-knot Spiro spline networks, the positional error residual vector r(ϕ) with respect to knot orientation angles ϕ is linearized via Jacobian matrix J = ∂r / ∂ϕ. Rather than solving J Δϕ = -r via fragile LU decomposition, Iris decomposes J = U Σ Vᵀ using Singular Value Decomposition and applies Jaynesian MaxEnt Tikhonov regularization:',
+          equation: '\\Delta \\boldsymbol{\\phi} = - V \\text{diag}\\left( \\frac{\\sigma_i}{\\sigma_i^2 + \\lambda^2} \\right) U^T \\mathbf{r}, \\quad J = U \\Sigma V^T',
+          notes: [
+            'Singular Value Decomposition (SVD): Decomposes singular or ill-conditioned Jacobian matrices J = U Σ Vᵀ reliably.',
+            'Jaynesian MaxEnt Regularization: Tikhonov damping factor λ = 10⁻⁶ smoothly attenuates small singular values (σᵢ < 10⁻¹²).',
+            'Guaranteed Convergence: Completely prevents division-by-zero, singular matrix halts, and wild solver iteration runaway near inflection points or collinear knot arrangements.',
+          ],
+        },
+        {
+          heading: '8.3 Degenerate Knot Collapse & Automatic Corner Node Decomposition',
+          text: 'When adjacent knot coordinates approach coincidence (||p_{i+1} - p_i|| < ε_min = 10⁻⁷), standard clothoid equations yield zero chord length and infinite polynomial coefficients. Iris automatically detects degenerate knot pairs, executing instant knot collapse or decomposing the node into a sharp corner constraint (G⁰ continuity) without solver interruption.',
+          equation: '\\text{If } \\|p_{i+1} - p_i\\| < \\epsilon_{\\text{min}} \\implies \\text{Collapse Knot} \\quad \\lor \\quad \\text{Decompose into Sharp Corner Node (G}^0\\text{)}',
+          notes: [
+            'Coincident Knot Immunity: Automatically handles near-zero knot spacing Δs < 10⁻⁷ without division by zero.',
+            'Sharp Corner Decomposition: Safely transitions from G² clothoid continuity to G⁰ sharp corner constraints.',
+            'Curvature Bound Regularization: Restricts curvature derivatives ||κ₁|| to prevent unphysical spiral loop formations.',
+          ],
+        },
+        {
+          heading: '8.4 Dual Numerical Backend Architecture: Standard LAPACK Bridge (`dgesvd`) & High-Performance Embedded C23 / Fortran 2008 Modules',
+          text: 'The Iris engine provides dual numerical implementation backends for maximum flexibility across environments: an embedded zero-dependency C23 / Fortran 2008 solver for standalone microtypography CLI binaries, and a standard LAPACK bridge (`dgesvd`) for heavy multi-dimensional Jacobian systems. All C23 and Fortran 2008 routines strictly enforce structured programming rules (single-entry / single-exit, no `goto`, no `++`/`--` operators in C23, McCabe complexity M ≤ 10).',
+          equation: '\\text{Spiro System } \\mathbf{r}(\\boldsymbol{\\phi}) = 0 \\underset{\\text{LAPACK } \\texttt{dgesvd}}{\\overset{\\text{Embedded C23 / Fortran SVD}}{\\rightleftharpoons}} \\Delta \\boldsymbol{\\phi} \\in \\text{Absolute Cl(4,1,1) Continuum}',
+          notes: [
+            'Standalone Embedded Solvers: Direct C23 (`spiro_svd.c`) and Fortran 2008 (`spiro_svd_mod.f90`) libraries run with zero external library dependencies.',
+            'LAPACK Bridge: Optional LAPACK integration (`dgesvd`) handles arbitrary M × N multi-knot Jacobian matrices with peak hardware LAPACK acceleration.',
+            'Strict Language Discipline: Formally verified ISO C23 and Fortran 2008 implementations adhere to single-exit structured programming and modified McCabe cyclomatic complexity M ≤ 10.',
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export function generateAsciiDocTextbook(): string {
