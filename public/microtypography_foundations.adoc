@@ -178,7 +178,7 @@ Font-embedded metrics and GPOS feature tables are the primary, uncorrupted autho
 
 === 5.2 Secondary Override Engine: Spacing by Pegs (Sorts Mill Framework)
 
-When a font is poorly spaced or kerned and requires override or repair, Iris uses a secondary autospacing and autokerning mechanism called "Spacing by Pegs" (derived from the Sorts Mill font family methodology, including Goudy, Fanwood, Linden Hill, and Prociono). Based on explicit visual boundaries defined by manually placed pegs, this system enables instantaneous, completely reproducible re-spacing and re-kerning across the entire font—without relying on energy calculations for glyph kerning.
+When a font is poorly spaced or kerned and requires override or repair, Iris uses a secondary autospacing and autokerning mechanism called "Spacing by Pegs" (derived from the Sorts Mill font family methodology, including Goudy, Fanwood, and Linden Hill). Based on explicit visual boundaries defined by manually placed pegs, this system enables instantaneous, completely reproducible re-spacing and re-kerning across the entire font—without relying on energy calculations for glyph kerning.
 
 [latexmath]
 ++++
@@ -190,7 +190,7 @@ When a font is poorly spaced or kerned and requires override or repair, Iris use
 * Energy models are strictly excluded from inter-glyph spacing and kerning calculations.
 * Manually assigned visual pegs define reproducible glyph boundary anchor points.
 * Enables fast, deterministic, fully reproducible font re-spacing and autokerning.
-* Tested and proven on Sorts Mill classic revivals (Goudy, Fanwood, Linden Hill, Prociono).
+* Tested and proven on Sorts Mill classic revivals (Goudy, Fanwood, Linden Hill).
 
 === 5.3 Composite Glyph Peg Inheritance, Overrides, & Inferential Auto-Placement
 

@@ -275,13 +275,13 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
         },
         {
           heading: '5.2 Secondary Override Engine: Spacing by Pegs (Sorts Mill Framework)',
-          text: 'When a font is poorly spaced or kerned and requires override or repair, Iris uses a secondary autospacing and autokerning mechanism called "Spacing by Pegs" (derived from the Sorts Mill font family methodology, including Goudy, Fanwood, Linden Hill, and Prociono). Based on explicit visual boundaries defined by manually placed pegs, this system enables instantaneous, completely reproducible re-spacing and re-kerning across the entire font—without relying on energy calculations for glyph kerning.',
+          text: 'When a font is poorly spaced or kerned and requires override or repair, Iris uses a secondary autospacing and autokerning mechanism called "Spacing by Pegs" (derived from the Sorts Mill font family methodology, including Goudy, Fanwood, and Linden Hill). Based on explicit visual boundaries defined by manually placed pegs, this system enables instantaneous, completely reproducible re-spacing and re-kerning across the entire font—without relying on energy calculations for glyph kerning.',
           equation: '\\Delta x_{\\text{Pegs}} = g_{\\text{VisualBoundary}}(\\text{Peg}_L(c_{i+1}) - \\text{Peg}_R(c_i))',
           notes: [
             'Energy models are strictly excluded from inter-glyph spacing and kerning calculations.',
             'Manually assigned visual pegs define reproducible glyph boundary anchor points.',
             'Enables fast, deterministic, fully reproducible font re-spacing and autokerning.',
-            'Tested and proven on Sorts Mill classic revivals (Goudy, Fanwood, Linden Hill, Prociono).',
+            'Tested and proven on Sorts Mill classic revivals (Goudy, Fanwood, Linden Hill).',
           ],
         },
         {
