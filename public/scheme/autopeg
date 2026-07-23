@@ -1,0 +1,58 @@
+#!/usr/bin/env scheme-r7rs
+;;; ==============================================================================
+;;; IRIS MICROTYPOGRAPHY LAYOUT ENGINE
+;;; Executable Script: autopeg
+;;; Language: R7RS-large Scheme
+;;; Shebang: #!/usr/bin/env scheme-r7rs
+;;; Usage: autopeg [options] <input_metrics.json> [<output_pegged.json>]
+;;; Options:
+;;;   --apply[=yes|no|true|false]  Apply spacing by pegs to metrics (default: yes if passed, no if omitted)
+;;;   -a[=yes|no|true|false]       Short alias for --apply
+;;; ==============================================================================
+
+(import (scheme base)
+        (scheme write)
+        (scheme file)
+        (scheme process-context)
+        (iris autopeg))
+
+(define (flag? arg)
+  (or (and (> (string-length arg) 0) (char=? (string-ref arg 0) #\-))))
+
+(define (filter-positional-args args)
+  (let loop ((rest args) (acc '()))
+    (if (null? rest)
+        (reverse acc)
+        (if (flag? (car rest))
+            (loop (cdr rest) acc)
+            (loop (cdr rest) (cons (car rest) acc))))))
+
+(define (main args)
+  (let* ((apply-pegs? (parse-apply-flag args))
+         (positional (filter-positional-args (cdr args)))
+         (num-args (length positional)))
+    (cond
+      ((< num-args 1)
+       (display "Usage: autopeg [options] <input_metrics.json> [<output_pegged.json>]\n")
+       (display "Options:\n")
+       (display "  --apply[=yes|no]  Apply spacing by pegs (default: yes if passed, no if absent)\n")
+       (display "  -a[=yes|no]       Short alias for --apply\n"))
+      (else
+       (let* ((input-path (car positional))
+              (output-path (if (> num-args 1) (cadr positional) "pegged_font_metrics.json"))
+              (input-json (call-with-port (open-input-file input-path) read-string))
+              (pegged-json (auto-place-pegs-in-json input-json apply-pegs?)))
+         (call-with-port (open-output-file output-path)
+           (lambda (port)
+             (display pegged-json port)))
+         (display "Successfully calculated ")
+         (if apply-pegs?
+             (display "and applied pegs for ")
+             (display "pegs (dry-run mode, --apply=no) for "))
+         (display input-path)
+         (display " -> ")
+         (display output-path)
+         (newline))))))
+
+;; Direct entry point
+(main (command-line))
