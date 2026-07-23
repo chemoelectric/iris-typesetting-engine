@@ -21,52 +21,55 @@
         (iris cli))
 
 (define (show-help)
-  (display "Usage: autopeg [options] [<input.json|otf|ttf|-] [<output.json|otf|ttf|-]\n")
+  (display "Usage: autopeg [OPTION]... [INPUT] [OUTPUT]\n")
+  (display "Automatically infer and place Sorts Mill Pegs in font metrics or binaries.\n\n")
   (display "Options:\n")
-  (display "  -a, --apply           Apply spacing by pegs (short flag, no required value)\n")
-  (display "  -o, --output=FILE     Specify output file path (or '-' for stdout)\n")
-  (display "  -f, --format=FORMAT   Override output format (otf, ttf, json)\n")
-  (display "  --                    Stop option flags processing\n"))
+  (display "  -a, --apply           apply spacing by pegs to metrics\n")
+  (display "  -o, --output=FILE     specify output file path (or '-' for stdout)\n")
+  (display "  -f, --format=FORMAT   override output format (otf, ttf, json)\n")
+  (display "  -h, --help            display this help message and exit\n")
+  (display "  -v, -V, --version     output version information and exit\n\n")
+  (display "Report bugs to <bugs@iris-microtypography.org>.\n"))
 
-(define (help-requested? args)
-  (let loop ((rest args))
-    (if (null? rest)
-        #f
-        (if (or (string=? (car rest) "-h")
-                (string=? (car rest) "--help"))
-            #t
-            (loop (cdr rest))))))
+(define (show-version)
+  (display "autopeg (Iris Microtypography Layout Engine) 1.0.0-experimental\n")
+  (display "Copyright (C) 2026 Iris Microtypography Project.\n")
+  (display "Experimental build of the Iris Typesetting Engine.\n"))
 
 (define (main raw-args)
   (let ((args (cdr raw-args)))
-    (if (help-requested? args)
-        (show-help)
-        (let* ((parsed (parse-cli-args args))
-               (apply-pegs? (cdr (assoc 'apply-pegs parsed)))
-               (opts-output (cdr (assoc 'output-path parsed)))
-               (fmt-override (cdr (assoc 'format parsed)))
-               (positional (cdr (assoc 'positional parsed)))
-               (input-spec (if (null? positional) #f (car positional)))
-               (output-spec (if opts-output
-                                opts-output
-                                (if (> (length positional) 1) (cadr positional) #f)))
-               (in-bytes (read-input-bytes input-spec))
-               (input-flavor (detect-font-flavor in-bytes))
-               (input-json (if (or (eq? input-flavor 'otf) (eq? input-flavor 'ttf))
-                               (serialize-metrics-to-json (extract-font-metrics in-bytes))
-                               (utf8->string in-bytes)))
-               (target-fmt (detect-output-format fmt-override output-spec 'json))
-               (pegged-json (auto-place-pegs-in-json input-json apply-pegs?))
-               (out-data (if (eq? target-fmt 'json)
-                             pegged-json
-                             (compile-json-to-opentype pegged-json)))
-               (log-msg (string-append "Successfully processed "
-                                       (if input-spec input-spec "stdin")
-                                       " -> "
-                                       (if output-spec output-spec "stdout")
-                                       " [format=" (symbol->string target-fmt)
-                                       ", apply-pegs=" (if apply-pegs? "yes" "no") "]")))
-          (write-output output-spec out-data target-fmt log-msg)))))
+    (let* ((parsed (parse-cli-args args))
+           (show-help? (cdr (assoc 'help parsed)))
+           (show-version? (cdr (assoc 'version parsed)))
+           (apply-pegs? (cdr (assoc 'apply-pegs parsed)))
+           (opts-output (cdr (assoc 'output-path parsed)))
+           (fmt-override (cdr (assoc 'format parsed)))
+           (positional (cdr (assoc 'positional parsed))))
+      (cond
+        (show-help? (show-help))
+        (show-version? (show-version))
+        (else
+         (let* ((input-spec (if (null? positional) #f (car positional)))
+                (output-spec (if opts-output
+                                 opts-output
+                                 (if (> (length positional) 1) (cadr positional) #f)))
+                (in-bytes (read-input-bytes input-spec))
+                (input-flavor (detect-font-flavor in-bytes))
+                (input-json (if (or (eq? input-flavor 'otf) (eq? input-flavor 'ttf))
+                                (serialize-metrics-to-json (extract-font-metrics in-bytes))
+                                (utf8->string in-bytes)))
+                (target-fmt (detect-output-format fmt-override output-spec 'json))
+                (pegged-json (auto-place-pegs-in-json input-json apply-pegs?))
+                (out-data (if (eq? target-fmt 'json)
+                              pegged-json
+                              (compile-json-to-opentype pegged-json)))
+                (log-msg (string-append "Successfully processed "
+                                        (if input-spec input-spec "stdin")
+                                        " -> "
+                                        (if output-spec output-spec "stdout")
+                                        " [format=" (symbol->string target-fmt)
+                                        ", apply-pegs=" (if apply-pegs? "yes" "no") "]")))
+           (write-output output-spec out-data target-fmt log-msg)))))))
 
 ;; Direct execution
 (main (command-line))
