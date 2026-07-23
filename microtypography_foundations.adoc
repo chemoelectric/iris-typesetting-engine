@@ -304,7 +304,7 @@ To avoid fragile, monolithically integrated systems, Iris mandates a strictly mo
 
 [latexmath]
 ++++
-\text{Binary Font (.otf/.ttf with } \texttt{PEGS} \text{ table)} \xrightleftharpoons[\texttt{json2font}]{\texttt{font2json}} \text{Structured JSON + Peg Specs}
+\text{Binary Font (.otf/.ttf with } \texttt{PEGS} \text{ table)} \underset{\texttt{json2font}}{\overset{\texttt{font2json}}{\rightleftharpoons}} \text{Structured JSON + Peg Specs}
 ++++
 
 ==== Axiomatic Principles

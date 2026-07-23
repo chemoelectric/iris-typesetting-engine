@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import katex from 'katex';
 import {
   BookOpen,
   Bookmark,
@@ -17,6 +18,38 @@ import {
   Cpu,
   Terminal,
 } from 'lucide-react';
+
+interface KatexMathProps {
+  math: string;
+}
+
+const KatexMathBlock: React.FC<KatexMathProps> = ({ math }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      try {
+        katex.render(math, containerRef.current, {
+          displayMode: true,
+          throwOnError: false,
+          macros: {
+            '\\xrightleftharpoons': '\\underset{#1}{\\overset{#2}{\\rightleftharpoons}}',
+          },
+        });
+      } catch (err) {
+        if (containerRef.current) {
+          containerRef.current.innerText = math;
+        }
+      }
+    }
+  }, [math]);
+
+  return (
+    <div className="w-full max-w-full overflow-x-auto overflow-y-hidden p-3.5 bg-black/90 rounded border border-amber-500/20 text-amber-200">
+      <div ref={containerRef} className="min-w-0 py-1" />
+    </div>
+  );
+};
 
 interface Chapter {
   id: string;
@@ -375,7 +408,7 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
         {
           heading: '7.3 Decoupled Modular Unix-Style Utilities (`font2json` & `json2font`) & Custom OpenType `PEGS` Table',
           text: 'To avoid fragile, monolithically integrated systems, Iris mandates a strictly modular architecture composed of small, independent CLI utilities (`font2json` and `json2font`) invoked directly by script name via `#!/usr/bin/env scheme-r7rs`. Furthermore, as permitted by the OpenType specification, Iris defines a custom 4-character OpenType table (`PEGS`) embedded directly into `.otf`/`.ttf` binaries. This allows fonts to natively carry Sorts Mill peg coordinates, composite glyph inheritance trees, contextual overrides, and auto-inference profiles inside the font file itself, perfectly parsed and compiled by R⁷RS-large Scheme tools.',
-          equation: '\\text{Binary Font (.otf/.ttf with } \\texttt{PEGS} \\text{ table)} \\xrightleftharpoons[\\texttt{json2font}]{\\texttt{font2json}} \\text{Structured JSON + Peg Specs}',
+          equation: '\\text{Binary Font (.otf/.ttf with } \\texttt{PEGS} \\text{ table)} \\underset{\\texttt{json2font}}{\\overset{\\texttt{font2json}}{\\rightleftharpoons}} \\text{Structured JSON + Peg Specs}',
           notes: [
             'Rejects monolithic integration in favor of small, stable, decoupled Unix-philosophy utilities.',
             'Direct execution: Executable scripts `font2json` and `json2font` use shebang `#!/usr/bin/env scheme-r7rs`.',
@@ -663,25 +696,29 @@ export const TextbookPanel: React.FC = () => {
                     {sec.text}
                   </p>
 
-                  {/* AsciiDoc Block & MathJax Equation */}
+                  {/* AsciiDoc Block & Formatted MathJax/KaTeX Equation */}
                   {sec.equation && (
-                    <div className="space-y-1.5">
+                    <div className="space-y-2 max-w-full overflow-hidden">
                       <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-white/40 font-mono px-1">
-                        <span>AsciiDoc MathJax Block</span>
-                        <span className="text-amber-500/80">latexmath:[...]</span>
+                        <span className="text-amber-400 font-semibold flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-amber-400 rounded-full inline-block" />
+                          Rendered Typeset Equation
+                        </span>
+                        <span className="text-white/40">latexmath:[...]</span>
                       </div>
-                      <div className="p-4 bg-black/80 rounded border border-white/10 font-mono text-sm text-amber-300 flex items-center justify-between group">
-                        <div className="flex flex-col space-y-1">
-                          <span className="text-[10px] text-white/40">
-                            [latexmath]
-                          </span>
-                          <span className="text-amber-300 font-semibold">
-                            latexmath:[{sec.equation}]
-                          </span>
+
+                      {/* KaTeX Math Box with overflow-x-auto */}
+                      <KatexMathBlock math={sec.equation} />
+
+                      {/* AsciiDoc Source snippet */}
+                      <div className="p-2.5 bg-black/60 rounded border border-white/10 font-mono text-xs text-white/70 flex items-center justify-between gap-2 max-w-full overflow-hidden">
+                        <div className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap text-[11px] text-amber-300/80 font-mono py-0.5">
+                          <span className="text-white/40 mr-1.5">[latexmath]</span>
+                          <code>latexmath:[{sec.equation}]</code>
                         </div>
                         <button
                           onClick={() => handleCopy(`latexmath:[${sec.equation}]`, `eq-${idx}`)}
-                          className="text-xs text-white/40 hover:text-amber-400 transition flex items-center gap-1 shrink-0 bg-white/5 px-2.5 py-1.5 rounded"
+                          className="text-xs text-white/40 hover:text-amber-400 transition flex items-center gap-1 shrink-0 bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded border border-white/10"
                           title="Copy latexmath macro"
                         >
                           {copiedText === `eq-${idx}` ? (
@@ -689,7 +726,7 @@ export const TextbookPanel: React.FC = () => {
                           ) : (
                             <Copy className="w-3.5 h-3.5" />
                           )}
-                          <span className="text-[9px] uppercase tracking-wider">
+                          <span className="text-[9px] uppercase tracking-wider font-mono">
                             {copiedText === `eq-${idx}` ? 'Copied' : 'latexmath'}
                           </span>
                         </button>
