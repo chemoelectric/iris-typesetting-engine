@@ -178,7 +178,7 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
           text: 'Minimizing layout energy potential under constraint expectations <C_k> = \\sum_i p_i C_k(x_i) leads tautologically to the Boltzmann-Jaynes canonical distribution:',
           equation: 'p_i = \\frac{1}{Z(\\vec{\\lambda})} e^{-\\sum_k \\lambda_k C_k(x_i)}, \\quad Z(\\vec{\\lambda}) = \\sum_{i=1}^N e^{-\\sum_k \\lambda_k C_k(x_i)}',
           notes: [
-            'λ₁ (Collision Barrier): Strictly prevents glyph overlaps.',
+            'λ₁ (Boundary / Collision Constraint): Regulates glyph contact boundaries and optical interlock (configurable to allow controlled overlap for display effects, ligatures, and logo typography).',
             'λ₂ (Kerning Tightness): Governs inter-glyph elasticity.',
             'λ₃ (Baseline Rigidity): Controls vertical alignment tolerance.',
             'T (Jaynes Temperature): Regulates thermal layout fluctuation.',
@@ -315,7 +315,7 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
     icon: Cpu,
     content: {
       summary:
-        'Iris completely abandons traditional sequential dynamic programming and character-run searching algorithms. Instead, global visual balance and layout rhythm are evaluated using 2D/3D Fourier and Wavelet Spectral Analysis on optical density fields. Solver convergence is executed via high-performance parallel digital algorithms—utilizing digital Josephson-SQUID phase-locked resonator network analogs executed across multi-core CPUs.',
+        'Iris completely abandons traditional sequential dynamic programming and character-run searching algorithms. Instead, global visual balance and layout rhythm are evaluated using 2D/3D Fourier and Wavelet Spectral Analysis on optical density fields. Solver convergence is executed via high-performance parallel digital algorithms executed across multi-core CPUs.',
       sections: [
         {
           heading: '6.1 2D/3D Fourier & Wavelet Spectral Layout Analysis',
@@ -328,8 +328,8 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
           ],
         },
         {
-          heading: '6.2 Parallel Digital Resonator Algorithms (Josephson-SQUID Analogs)',
-          text: 'Layout optimization is formulated as a system of coupled non-linear digital resonators (digital Josephson-SQUID phase-locked network analogs). Operating as deterministic parallel digital algorithms across multi-core processors, spatial phase variables φ_i converge simultaneously to global MaxEnt layout equilibrium.',
+          heading: '6.2 Parallel Digital Resonator Algorithms',
+          text: 'Layout optimization is formulated as a system of coupled non-linear digital resonators operating as deterministic parallel digital algorithms across multi-core processors, where spatial phase variables φ_i converge simultaneously to global MaxEnt layout equilibrium.',
           equation: '\\frac{d^2 \\phi_i}{dt^2} + \\gamma \\frac{d\\phi_i}{dt} + \\sin(\\phi_i - \\phi_{i-1}) = I_{\\text{MaxEnt}}(\\vec{\\lambda})',
           notes: [
             'Deterministic parallel digital algorithms running in Cl(4,1,1) absolute spatial coordinates.',
@@ -352,7 +352,7 @@ export const TEXTBOOK_CHAPTERS: Chapter[] = [
       sections: [
         {
           heading: '7.1 Headless Fortran Engine & Multilanguage ABI Wrappers',
-          text: 'For heavy batch processing on modern workstations (e.g., Zen 5 multi-core systems), the core MaxEnt solver is compiled from Modern Fortran to a standalone executable (`iris-batch`). The engine exposes an ISO C23 ABI layer with official wrappers in D and ATS2 (Applied Type System) for type-safe theorem-proven integration. It processes structured plain-text documents via parallel SQUID-phase layout relaxation across 24+ CPU cores, outputting vector PDF/SVG targets without browser runtime dependency.',
+          text: 'For heavy batch processing on modern workstations (e.g., Zen 5 multi-core systems), the core MaxEnt solver is compiled from Modern Fortran to a standalone executable (`iris-batch`). The engine exposes an ISO C23 ABI layer with official wrappers in D and ATS2 (Applied Type System) for type-safe theorem-proven integration. It processes structured plain-text documents via deterministic parallel digital layout relaxation across 24+ CPU cores, outputting vector PDF/SVG targets without browser runtime dependency.',
           equation: '\\text{Emacs Buffer} \\xrightarrow{\\text{stdin/IPC}} \\texttt{iris-batch --threads=24} \\xrightarrow{\\text{mmap}} \\text{High-Res Vector Output}',
           notes: [
             'Fortran 2023 numerical core guarantees peak hardware vectorization and FLOP throughput.',
@@ -434,7 +434,7 @@ export function generateAsciiDocTextbook(): string {
 
   adoc += `[abstract]\n`;
   adoc += `== Abstract\n`;
-  adoc += `This treatise outlines the complete mathematical foundations of the Iris Microtypography Engine. Operating strictly in an absolute 3D spatial continuum governed by unidirectional time, the system replaces coarse bounding-box TeX approximations with native OpenType metrical modeling, Counting-Iris sub-pixel coordinates, Cl(4,1,1) multivector rotors, Jaynesian Maximum Entropy potential relaxation, and parallel SQUID/Josephson phase-locked resonator solvers.\n\n`;
+  adoc += `This treatise outlines the complete mathematical foundations of the Iris Microtypography Engine. Operating strictly in an absolute 3D spatial continuum governed by unidirectional time, the system replaces coarse bounding-box TeX approximations with native OpenType metrical modeling, Counting-Iris sub-pixel coordinates, Cl(4,1,1) multivector rotors, Jaynesian Maximum Entropy potential relaxation, and deterministic parallel digital algorithms.\n\n`;
 
   TEXTBOOK_CHAPTERS.forEach((ch) => {
     adoc += `== ${ch.number}: ${ch.title}\n\n`;

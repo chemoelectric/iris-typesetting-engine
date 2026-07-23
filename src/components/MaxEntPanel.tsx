@@ -155,18 +155,21 @@ export const MaxEntPanel: React.FC<MaxEntPanelProps> = ({
         {/* Collision Weight */}
         <div className="bg-white/5 p-3 rounded border border-white/10 space-y-1">
           <div className="flex justify-between text-xs text-white/80 font-medium">
-            <span className="text-[10px] uppercase tracking-wider text-white/60">λ Collision (Overlap Barrier):</span>
+            <span className="text-[10px] uppercase tracking-wider text-white/60">λ₁ Collision / Overlap Boundary:</span>
             <span className="font-mono text-amber-400 font-bold">{weights.lambdaCollision.toFixed(1)}</span>
           </div>
           <input
             type="range"
-            min="1"
+            min="0"
             max="30"
             step="0.5"
             value={weights.lambdaCollision}
             onChange={(e) => setWeights({ ...weights, lambdaCollision: Number(e.target.value) })}
             className="w-full accent-amber-500 cursor-pointer h-1 rounded bg-white/10"
           />
+          <div className="text-[9px] text-white/40 italic">
+            Set λ₁ = 0 to permit intentional glyph overlaps for logo design, calligraphic ligatures, or display typography interlock.
+          </div>
         </div>
 
         {/* Stretch Weight */}
