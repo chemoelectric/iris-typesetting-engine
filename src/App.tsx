@@ -16,6 +16,7 @@ import { MaxEntPanel } from './components/MaxEntPanel';
 import { FontMetricsPanel } from './components/FontMetricsPanel';
 import { TextbookPanel } from './components/TextbookPanel';
 import { SpiroWorkbench } from './components/SpiroWorkbench';
+import { BernsteinSplineWorkbench } from './components/BernsteinSplineWorkbench';
 import { PunchcutterWorkbench } from './components/PunchcutterWorkbench';
 import { ExportModal } from './components/ExportModal';
 
@@ -105,6 +106,10 @@ export default function App() {
         ) : activeTab === 'spiro' ? (
           <div className="h-full overflow-hidden">
             <SpiroWorkbench />
+          </div>
+        ) : activeTab === 'bernstein' ? (
+          <div className="h-full overflow-hidden">
+            <BernsteinSplineWorkbench />
           </div>
         ) : activeTab === 'punchcutter' ? (
           <div className="h-full overflow-hidden">

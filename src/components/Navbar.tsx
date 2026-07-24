@@ -96,6 +96,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('bernstein')}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded text-[11px] uppercase tracking-[0.15em] font-medium transition-all whitespace-nowrap ${
+              activeTab === 'bernstein'
+                ? 'bg-amber-500 text-black font-semibold shadow-sm'
+                : 'text-white/40 hover:text-white/90 hover:bg-white/5'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Bernstein Curves</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('punchcutter')}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded text-[11px] uppercase tracking-[0.15em] font-medium transition-all whitespace-nowrap ${
               activeTab === 'punchcutter'
