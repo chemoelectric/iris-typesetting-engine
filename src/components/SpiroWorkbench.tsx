@@ -17,7 +17,10 @@ import {
   Info,
   Maximize2,
   RefreshCw,
-  Compass
+  Compass,
+  ChevronUp,
+  ChevronDown,
+  Copy
 } from 'lucide-react';
 
 export interface SpiroKnot {
@@ -145,53 +148,77 @@ export const SpiroWorkbench: React.FC = () => {
     setActiveDragAxis(null);
   };
 
-  const handleMouseMoveCanvas = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!draggingKnotId || !svgRef.current || !dragStartPosRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const rawX = Math.round(e.clientX - rect.left);
-    const rawY = Math.round(e.clientY - rect.top);
-    const start = dragStartPosRef.current;
+  // Window-level mouse listener for smooth, uninterruptible dragging across canvas boundaries
+  useEffect(() => {
+    if (!draggingKnotId) return;
 
-    let targetX = rawX;
-    let targetY = rawY;
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (!svgRef.current || !dragStartPosRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
 
-    // Determine orthogonal lock
-    const isShiftHeld = e.shiftKey;
-    const mode = isShiftHeld ? 'auto_ortho' : axisLock;
+      // Projection taking into account rendered container width/height vs 400x400 vector viewBox
+      const scaleX = 400 / rect.width;
+      const scaleY = 400 / rect.height;
 
-    if (mode === 'lock_x') {
-      targetY = start.y;
-      setActiveDragAxis('x');
-    } else if (mode === 'lock_y') {
-      targetX = start.x;
-      setActiveDragAxis('y');
-    } else if (mode === 'auto_ortho') {
-      const dx = Math.abs(rawX - start.x);
-      const dy = Math.abs(rawY - start.y);
-      if (dx > dy) {
+      const rawX = Math.round((e.clientX - rect.left) * scaleX);
+      const rawY = Math.round((e.clientY - rect.top) * scaleY);
+      const start = dragStartPosRef.current;
+
+      let targetX = rawX;
+      let targetY = rawY;
+
+      // Determine orthogonal lock with 3px movement hysteresis
+      const isShiftHeld = e.shiftKey;
+      const mode = isShiftHeld ? 'auto_ortho' : axisLock;
+
+      if (mode === 'lock_x') {
         targetY = start.y;
         setActiveDragAxis('x');
-      } else {
+      } else if (mode === 'lock_y') {
         targetX = start.x;
         setActiveDragAxis('y');
+      } else if (mode === 'auto_ortho') {
+        const dx = Math.abs(rawX - start.x);
+        const dy = Math.abs(rawY - start.y);
+
+        let currentAxis = activeDragAxis;
+        if (!currentAxis && (dx >= 3 || dy >= 3)) {
+          currentAxis = dx >= dy ? 'x' : 'y';
+          setActiveDragAxis(currentAxis);
+        }
+
+        if (currentAxis === 'x') {
+          targetY = start.y;
+        } else if (currentAxis === 'y') {
+          targetX = start.x;
+        }
+      } else {
+        setActiveDragAxis(null);
       }
-    } else {
+
+      const finalX = Math.max(10, Math.min(390, targetX));
+      const finalY = Math.max(10, Math.min(390, targetY));
+
+      setKnots((prev) =>
+        prev.map((k) => (k.id === draggingKnotId ? { ...k, x: finalX, y: finalY } : k))
+      );
+    };
+
+    const handleWindowMouseUp = () => {
+      setDraggingKnotId(null);
+      dragStartPosRef.current = null;
       setActiveDragAxis(null);
-    }
+    };
 
-    const finalX = Math.max(10, Math.min(390, targetX));
-    const finalY = Math.max(10, Math.min(390, targetY));
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('mouseup', handleWindowMouseUp);
 
-    setKnots((prev) =>
-      prev.map((k) => (k.id === draggingKnotId ? { ...k, x: finalX, y: finalY } : k))
-    );
-  };
-
-  const handleMouseUpCanvas = () => {
-    setDraggingKnotId(null);
-    dragStartPosRef.current = null;
-    setActiveDragAxis(null);
-  };
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, [draggingKnotId, axisLock, activeDragAxis]);
 
   // Keyboard Nudge listener for DataHand / Keyboard users (Arrow keys move active knot)
   useEffect(() => {
@@ -246,7 +273,7 @@ export const SpiroWorkbench: React.FC = () => {
     setKnots((prev) => prev.map((k) => (k.id === id ? { ...k, y: val } : k)));
   };
 
-  // Add Knot
+  // Add Knot at end
   const handleAddKnot = () => {
     const lastKnot = knots[knots.length - 1] || { x: 200, y: 200 };
     const newKnot: SpiroKnot = {
@@ -257,6 +284,41 @@ export const SpiroWorkbench: React.FC = () => {
     };
     setKnots([...knots, newKnot]);
     setSelectedKnotId(newKnot.id);
+  };
+
+  // Duplicate specific Knot
+  const handleDuplicateKnot = (index: number) => {
+    const target = knots[index];
+    if (!target) return;
+    const newKnot: SpiroKnot = {
+      id: `k_${Date.now()}`,
+      x: Math.min(390, target.x + 15),
+      y: Math.min(390, target.y + 15),
+      type: target.type,
+    };
+    const nextKnots = [...knots];
+    nextKnots.splice(index + 1, 0, newKnot);
+    setKnots(nextKnots);
+    setSelectedKnotId(newKnot.id);
+  };
+
+  // Move Knot Order Up / Down
+  const handleMoveKnotUp = (index: number) => {
+    if (index <= 0) return;
+    const nextKnots = [...knots];
+    const temp = nextKnots[index - 1];
+    nextKnots[index - 1] = nextKnots[index];
+    nextKnots[index] = temp;
+    setKnots(nextKnots);
+  };
+
+  const handleMoveKnotDown = (index: number) => {
+    if (index >= knots.length - 1) return;
+    const nextKnots = [...knots];
+    const temp = nextKnots[index + 1];
+    nextKnots[index + 1] = nextKnots[index];
+    nextKnots[index] = temp;
+    setKnots(nextKnots);
   };
 
   // Remove Knot
@@ -929,7 +991,7 @@ export const SpiroWorkbench: React.FC = () => {
             )}
 
             {/* Knot List */}
-            <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+            <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
               {knots.map((k, index) => {
                 const isSelected = k.id === selectedKnotId;
                 return (
@@ -938,7 +1000,7 @@ export const SpiroWorkbench: React.FC = () => {
                     onClick={() => setSelectedKnotId(k.id)}
                     className={`p-2 rounded border transition-all cursor-pointer flex items-center justify-between text-xs font-mono ${
                       isSelected
-                        ? 'bg-amber-500/15 border-amber-500/50 text-white'
+                        ? 'bg-amber-500/15 border-amber-500/50 text-white shadow-sm'
                         : 'bg-white/5 border-white/5 hover:bg-white/10 text-white/70'
                     }`}
                   >
@@ -953,6 +1015,42 @@ export const SpiroWorkbench: React.FC = () => {
                     </div>
 
                     <div className="flex items-center space-x-1">
+                      {/* Reorder Up / Down */}
+                      <button
+                        disabled={index === 0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveKnotUp(index);
+                        }}
+                        className="p-1 rounded text-white/30 hover:text-amber-300 disabled:opacity-20 hover:bg-white/10"
+                        title="Move Up"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        disabled={index === knots.length - 1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveKnotDown(index);
+                        }}
+                        className="p-1 rounded text-white/30 hover:text-amber-300 disabled:opacity-20 hover:bg-white/10"
+                        title="Move Down"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Duplicate Knot */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicateKnot(index);
+                        }}
+                        className="p-1 rounded text-white/30 hover:text-amber-300 hover:bg-white/10"
+                        title="Duplicate Knot"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+
                       <select
                         value={k.type}
                         onChange={(e) => handleTypeChange(k.id, e.target.value as SpiroKnot['type'])}
@@ -1135,10 +1233,7 @@ export const SpiroWorkbench: React.FC = () => {
             <svg
               ref={svgRef}
               viewBox="0 0 400 400"
-              onMouseMove={handleMouseMoveCanvas}
-              onMouseUp={handleMouseUpCanvas}
-              onMouseLeave={handleMouseUpCanvas}
-              className="w-full h-full select-none cursor-crosshair"
+              className="w-full h-full select-none cursor-crosshair touch-none"
             >
               {/* DataHand Orthogonal Guidelines for Active Knot */}
               {activeKnot && (
@@ -1237,8 +1332,26 @@ export const SpiroWorkbench: React.FC = () => {
                   <g
                     key={k.id}
                     onMouseDown={(e) => handleMouseDownKnot(e, k.id)}
+                    onTouchStart={(e) => {
+                      const touch = e.touches[0];
+                      if (touch) {
+                        handleMouseDownKnot(
+                          { stopPropagation: () => e.stopPropagation(), clientX: touch.clientX, clientY: touch.clientY } as unknown as React.MouseEvent,
+                          k.id
+                        );
+                      }
+                    }}
                     className="cursor-pointer group"
                   >
+                    {/* Generous Invisible Hit Target for Ultra-Stable Grabbing */}
+                    <circle
+                      cx={k.x}
+                      cy={k.y}
+                      r="18"
+                      fill="transparent"
+                      className="cursor-grab active:cursor-grabbing"
+                    />
+
                     {/* Outer Selection Halo */}
                     {isSelected && (
                       <circle

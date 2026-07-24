@@ -10,6 +10,7 @@ import {
   Sparkles,
   RefreshCw,
   Spline,
+  Hammer,
 } from 'lucide-react';
 import { ViewTab } from '../types';
 import { DOCUMENT_TEMPLATES } from '../data/templates';
@@ -92,6 +93,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Spline className="w-3.5 h-3.5" />
             <span>Spiro Lab</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('punchcutter')}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded text-[11px] uppercase tracking-[0.15em] font-medium transition-all whitespace-nowrap ${
+              activeTab === 'punchcutter'
+                ? 'bg-amber-500 text-black font-semibold shadow-sm'
+                : 'text-white/40 hover:text-white/90 hover:bg-white/5'
+            }`}
+          >
+            <Hammer className="w-3.5 h-3.5" />
+            <span>Punchcutter</span>
           </button>
 
           <button
