@@ -1,22 +1,30 @@
 import React, { useRef, useState } from 'react';
-import { Type, Upload, CheckCircle2, FileText, Sparkles, Search, AlertTriangle, ShieldCheck, Terminal } from 'lucide-react';
+import { Type, Upload, CheckCircle2, FileText, Sparkles, Search, AlertTriangle, ShieldCheck, Terminal, Globe, Download, RefreshCw } from 'lucide-react';
 import { FontInfo } from '../types';
 import { getGlyphPath, getKerning } from '../lib/openTypeEngine';
-import { resolveFontWithFontconfig, FontResolutionResult } from '../lib/fontconfigResolver';
+import { resolveFontWithFontconfig, FontResolutionResult, registerFontInSystemIndex } from '../lib/fontconfigResolver';
+import { POPULAR_GOOGLE_FONTS, fetchGoogleFontBinary } from '../lib/googleFontsLoader';
 
 interface FontMetricsPanelProps {
   fontInfo: FontInfo;
   onFontUploaded: (buffer: ArrayBuffer, fileName: string) => void;
+  onOpenGoogleFonts?: () => void;
 }
 
 export const FontMetricsPanel: React.FC<FontMetricsPanelProps> = ({
   fontInfo,
   onFontUploaded,
+  onOpenGoogleFonts,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [testChar1, setTestChar1] = useState<string>('F');
   const [testChar2, setTestChar2] = useState<string>('A');
   const [searchFilter, setSearchFilter] = useState<string>('');
+
+  // Quick Google Fonts state inside panel
+  const [gfInput, setGfInput] = useState<string>('');
+  const [isFetchingGf, setIsFetchingGf] = useState<boolean>(false);
+  const [gfMessage, setGfMessage] = useState<string | null>(null);
 
   // Fontconfig resolution state
   const [fcQuery, setFcQuery] = useState<string>('FreeSerif');
@@ -25,6 +33,27 @@ export const FontMetricsPanel: React.FC<FontMetricsPanelProps> = ({
   const handleFcQueryChange = (q: string) => {
     setFcQuery(q);
     setFcResult(resolveFontWithFontconfig(q));
+  };
+
+  const handleQuickGfFetch = async (fontFamily: string) => {
+    setIsFetchingGf(true);
+    setGfMessage(null);
+    try {
+      const res = await fetchGoogleFontBinary(fontFamily);
+      registerFontInSystemIndex(
+        res.info.familyName,
+        res.info.styleName,
+        `google-fonts://${fontFamily}`,
+        res.buffer.byteLength,
+        `gf_${fontFamily.toLowerCase().replace(/\s+/g, '_')}`
+      );
+      onFontUploaded(res.buffer, `${fontFamily}.ttf`);
+      setGfMessage(`Loaded Google Font '${fontFamily}' successfully!`);
+    } catch (err: any) {
+      setGfMessage(`Failed to fetch Google Font '${fontFamily}'. ${err?.message || ''}`);
+    } finally {
+      setIsFetchingGf(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,21 +95,101 @@ export const FontMetricsPanel: React.FC<FontMetricsPanelProps> = ({
           </div>
         </div>
 
-        {/* Upload Custom Font Button */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs tracking-wider uppercase transition"
+        {/* Actions: Google Fonts & Upload */}
+        <div className="flex items-center space-x-2">
+          {onOpenGoogleFonts && (
+            <button
+              onClick={onOpenGoogleFonts}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-semibold text-xs tracking-wider uppercase transition cursor-pointer"
+            >
+              <Globe className="w-3.5 h-3.5 text-amber-400" />
+              <span>Google Fonts</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs tracking-wider uppercase transition"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>Upload Font</span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".otf,.ttf,.woff,.woff2"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+        </div>
+      </div>
+
+      {/* Google Fonts Quick Fetcher Bar */}
+      <div className="bg-amber-950/20 border border-amber-500/30 p-4 rounded-lg space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-amber-400">
+            <Globe className="w-4 h-4 text-amber-400" />
+            <span className="text-[10px] uppercase tracking-wider font-semibold">
+              Automatic Google Fonts Fetcher & Vector Engine
+            </span>
+          </div>
+          <span className="text-[9px] uppercase tracking-wider text-amber-400/80 font-mono">
+            Direct TTF Download & OpenType Integration
+          </span>
+        </div>
+
+        <p className="text-xs text-white/70 leading-relaxed">
+          Type any Google Font family name below or click a quick preset to automatically fetch, extract vector glyph metrics, and load it into the Cl(4,1,1) engine.
+        </p>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (gfInput.trim()) handleQuickGfFetch(gfInput.trim());
+          }}
+          className="flex gap-2"
         >
-          <Upload className="w-3.5 h-3.5" />
-          <span>Upload Font</span>
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".otf,.ttf,.woff,.woff2"
-          onChange={handleFileChange}
-          className="hidden"
-        />
+          <input
+            type="text"
+            value={gfInput}
+            onChange={(e) => setGfInput(e.target.value)}
+            placeholder="Type any Google Font name (e.g. Sorts Mill Goudy, EB Garamond, Cinzel, Inter, Fira Code)..."
+            className="flex-1 bg-black/60 border border-amber-500/30 rounded px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-amber-400"
+          />
+          <button
+            type="submit"
+            disabled={!gfInput.trim() || isFetchingGf}
+            className="px-3.5 py-1.5 rounded bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black font-semibold text-xs uppercase tracking-wider transition flex items-center space-x-1.5"
+          >
+            {isFetchingGf ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            <span>Fetch Font</span>
+          </button>
+        </form>
+
+        {/* Preset Quick Badges */}
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          <span className="text-[9px] uppercase tracking-wider text-white/40 self-center font-mono mr-1">Presets:</span>
+          {['Sorts Mill Goudy', 'EB Garamond', 'Cormorant Garamond', 'Cinzel', 'Playfair Display', 'Inter', 'Fira Code', 'Space Grotesk'].map((f) => (
+            <button
+              key={f}
+              onClick={() => handleQuickGfFetch(f)}
+              disabled={isFetchingGf}
+              className="text-[10px] px-2 py-0.5 rounded bg-white/5 hover:bg-amber-500/20 text-white/80 hover:text-amber-300 border border-white/10 hover:border-amber-500/40 transition font-mono"
+            >
+              + {f}
+            </button>
+          ))}
+        </div>
+
+        {gfMessage && (
+          <div className="p-2 bg-black/60 rounded border border-amber-500/40 text-xs font-mono text-amber-300">
+            {gfMessage}
+          </div>
+        )}
       </div>
 
       {/* Font Metadata Grid */}

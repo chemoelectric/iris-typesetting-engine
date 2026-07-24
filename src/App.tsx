@@ -19,6 +19,7 @@ import { SpiroWorkbench } from './components/SpiroWorkbench';
 import { BernsteinSplineWorkbench } from './components/BernsteinSplineWorkbench';
 import { PunchcutterWorkbench } from './components/PunchcutterWorkbench';
 import { ExportModal } from './components/ExportModal';
+import { GoogleFontsModal } from './components/GoogleFontsModal';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ViewTab>('editor');
@@ -33,6 +34,7 @@ export default function App() {
   const [fontInfo, setFontInfo] = useState<FontInfo>(getActiveFontInfo());
   const [selectedBox, setSelectedBox] = useState<LayoutBox | null>(null);
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
+  const [isGoogleFontsOpen, setIsGoogleFontsOpen] = useState<boolean>(false);
 
   // Overlay Toggles
   const [showIrisGrid, setShowIrisGrid] = useState<boolean>(true);
@@ -95,6 +97,7 @@ export default function App() {
         onOpenExport={() => setIsExportOpen(true)}
         fontName={fontInfo.familyName}
         isCustomFont={fontInfo.isCustomFont}
+        onOpenGoogleFonts={() => setIsGoogleFontsOpen(true)}
       />
 
       {/* Main Interactive Workbench Layout */}
@@ -163,6 +166,7 @@ export default function App() {
                 <FontMetricsPanel
                   fontInfo={fontInfo}
                   onFontUploaded={handleFontUploaded}
+                  onOpenGoogleFonts={() => setIsGoogleFontsOpen(true)}
                 />
               )}
             </div>
@@ -202,6 +206,14 @@ export default function App() {
         totalHeight={layoutResult.height}
         markup={markup}
         energyState={energyState}
+      />
+
+      {/* Google Fonts Modal */}
+      <GoogleFontsModal
+        isOpen={isGoogleFontsOpen}
+        onClose={() => setIsGoogleFontsOpen(false)}
+        onFontLoaded={handleFontUploaded}
+        currentFontName={fontInfo.familyName}
       />
     </div>
   );

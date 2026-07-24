@@ -102,6 +102,37 @@ const SYSTEM_FONT_INDEX: Record<string, FontCandidate[]> = {
   ],
 };
 
+export function registerFontInSystemIndex(
+  family: string,
+  style: string,
+  path: string,
+  byteSize: number,
+  hash: string
+) {
+  const key = family.toLowerCase();
+  const candidate: FontCandidate = {
+    path,
+    family,
+    style,
+    byteSize,
+    hash,
+  };
+
+  if (!SYSTEM_FONT_INDEX[key]) {
+    SYSTEM_FONT_INDEX[key] = [];
+  }
+  
+  // Avoid duplicate registration of exact same path
+  if (!SYSTEM_FONT_INDEX[key].some((c) => c.path === path)) {
+    SYSTEM_FONT_INDEX[key].push(candidate);
+  }
+
+  const styleKey = `${key}:style=${style.toLowerCase()}`;
+  if (!SYSTEM_FONT_INDEX[styleKey]) {
+    SYSTEM_FONT_INDEX[styleKey] = [candidate];
+  }
+}
+
 /**
  * Resolves a font query string using Fontconfig & OpenType naming system rules.
  *

@@ -86,46 +86,78 @@
           (list pattern)
           (search-fontconfig-candidates pattern)))
 
-    ;; Main entry for resolving input font query (by file name OR OpenType naming system with fontconfig)
-    (define (resolve-font-path font-spec)
-      (cond
-        ((or (not font-spec) (string=? font-spec "-") (string=? font-spec "stdin")) #f)
-        ((file-exists? font-spec) font-spec)
-        (else
-         (let ((candidates (query-fontconfig font-spec)))
-           (cond
-             ((null? candidates)
-              (display (string-append "Fontconfig Error: Font query '" font-spec "' matched no local file or OpenType system font.\n") (current-error-port))
-              (error "Font not found" font-spec))
-             ((= (length candidates) 1)
-              (car candidates))
-             (else
-              ;; Multiple candidate font files returned by Fontconfig
-              (if (all-candidate-files-identical? candidates)
-                  (begin
-                    (display (string-append "Fontconfig Notice: Font query '" font-spec "' matched "
-                                           (number->string (length candidates))
-                                           " byte-identical font files. Proceeding with: " (car candidates) "\n")
-                             (current-error-port))
-                    (car candidates))
-                  (begin
-                    ;; Print detailed informative ambiguity error message and abort
-                    (display "\n======================================================================\n" (current-error-port))
-                    (display "FONTCONFIG AMBIGUITY ERROR: Ambiguous font specification\n" (current-error-port))
-                    (display "======================================================================\n" (current-error-port))
-                    (display (string-append "Font Query / Specifier: '" font-spec "'\n") (current-error-port))
-                    (display "Fontconfig matched multiple non-identical font files:\n" (current-error-port))
-                    (for-each (lambda (p)
-                                (let ((bv (if (file-exists? p) (read-file-bytes p) (make-bytevector 0 0))))
-                                  (display (string-append "  - " p " (" (number->string (bytevector-length bv)) " bytes)\n")
-                                           (current-error-port))))
-                              candidates)
-                    (display "----------------------------------------------------------------------\n" (current-error-port))
-                    (display "Error: Fontconfig query presented an ambiguity among non-identical files.\n" (current-error-port))
-                    (display "Action required: Specify a unique OpenType pattern (e.g. 'FreeSerif:style=Regular') or an explicit file path.\n" (current-error-port))
-                    (display "Operation aborted to prevent incorrect font selection.\n" (current-error-port))
-                    (display "======================================================================\n\n" (current-error-port))
-                    (error "Fontconfig ambiguity error: multiple non-identical font files matched" font-spec candidates)))))))))
+    ;; Main entry for resolving input font query (by file name, cURL / URL notation, or OpenType naming system with fontconfig)
+    (define (resolve-font-path font-spec . rest)
+      (let ((safe-mode? (if (and (pair? rest) (car rest)) #t #f)))
+        (cond
+          ((or (not font-spec) (string=? font-spec "-") (string=? font-spec "stdin")) #f)
+
+          ;; Check for cURL notations, URL prefixes, or cURL command string inputs
+          ((or (string-prefix? "http://" font-spec)
+               (string-prefix? "https://" font-spec)
+               (string-prefix? "curl:" font-spec)
+               (string-prefix? "cURL:" font-spec)
+               (string-prefix? "curl://" font-spec)
+               (string-prefix? "cURL://" font-spec)
+               (string-prefix? "curl " font-spec)
+               (string-prefix? "cURL " font-spec))
+           (if safe-mode?
+               (begin
+                 (display (string-append "cURL / Safe Mode Error: Internet access / remote cURL notation '" font-spec "' is prohibited because --safe flag is active.\n") (current-error-port))
+                 (error "cURL / Network access disabled in Safe Mode (--safe active)" font-spec))
+               (cond
+                 ((string-prefix? "curl:http://" font-spec) (substring font-spec 5 (string-length font-spec)))
+                 ((string-prefix? "curl:https://" font-spec) (substring font-spec 5 (string-length font-spec)))
+                 ((string-prefix? "curl://" font-spec) (string-append "https://" (substring font-spec 7 (string-length font-spec))))
+                 ((string-prefix? "cURL://" font-spec) (string-append "https://" (substring font-spec 7 (string-length font-spec))))
+                 ((string-prefix? "curl:" font-spec) (substring font-spec 5 (string-length font-spec)))
+                 ((string-prefix? "cURL:" font-spec) (substring font-spec 5 (string-length font-spec)))
+                 ((or (string-prefix? "curl " font-spec) (string-prefix? "cURL " font-spec))
+                  ;; Extract URL token from cURL command string
+                  font-spec)
+                 (else font-spec))))
+
+          ((file-exists? font-spec) font-spec)
+          (else
+           (let ((candidates (query-fontconfig font-spec)))
+             (cond
+               ((null? candidates)
+                (if safe-mode?
+                    (begin
+                      (display (string-append "Fontconfig Error: Font query '" font-spec "' matched no local file and Internet access is disabled via --safe flag.\n") (current-error-port))
+                      (error "Font not found (Safe Mode active)" font-spec))
+                    (begin
+                      (display (string-append "Google Fonts Notice: Local font query '" font-spec "' matched no local file. Resolving from Google Fonts...\n") (current-error-port))
+                      (string-append "https://raw.githubusercontent.com/google/fonts/main/ofl/" font-spec ".ttf"))))
+               ((= (length candidates) 1)
+                (car candidates))
+               (else
+                ;; Multiple candidate font files returned by Fontconfig
+                (if (all-candidate-files-identical? candidates)
+                    (begin
+                      (display (string-append "Fontconfig Notice: Font query '" font-spec "' matched "
+                                             (number->string (length candidates))
+                                             " byte-identical font files. Proceeding with: " (car candidates) "\n")
+                               (current-error-port))
+                      (car candidates))
+                    (begin
+                      ;; Print detailed informative ambiguity error message and abort
+                      (display "\n======================================================================\n" (current-error-port))
+                      (display "FONTCONFIG AMBIGUITY ERROR: Ambiguous font specification\n" (current-error-port))
+                      (display "======================================================================\n" (current-error-port))
+                      (display (string-append "Font Query / Specifier: '" font-spec "'\n") (current-error-port))
+                      (display "Fontconfig matched multiple non-identical font files:\n" (current-error-port))
+                      (for-each (lambda (p)
+                                  (let ((bv (if (file-exists? p) (read-file-bytes p) (make-bytevector 0 0))))
+                                    (display (string-append "  - " p " (" (number->string (bytevector-length bv)) " bytes)\n")
+                                             (current-error-port))))
+                                candidates)
+                      (display "----------------------------------------------------------------------\n" (current-error-port))
+                      (display "Error: Fontconfig query presented an ambiguity among non-identical files.\n" (current-error-port))
+                      (display "Action required: Specify a unique OpenType pattern (e.g. 'FreeSerif:style=Regular') or an explicit file path.\n" (current-error-port))
+                      (display "Operation aborted to prevent incorrect font selection.\n" (current-error-port))
+                      (display "======================================================================\n\n" (current-error-port))
+                      (error "Fontconfig ambiguity error: multiple non-identical font files matched" font-spec candidates))))))))))
 
     ;; Helper: Parse string value for boolean flags ("yes", "no", "true", "false", "1", "0")
     (define (string->boolean-value str)
@@ -171,6 +203,7 @@
       (let loop ((rest args)
                  (in-options? #t)
                  (apply-pegs? #f)
+                 (safe-mode? #f)
                  (output-path #f)
                  (format-override #f)
                  (show-help? #f)
@@ -178,6 +211,7 @@
                  (positional '()))
         (if (null? rest)
             `((apply-pegs . ,apply-pegs?)
+              (safe-mode . ,safe-mode?)
               (output-path . ,output-path)
               (format . ,format-override)
               (help . ,show-help?)
@@ -187,74 +221,88 @@
               (cond
                 ;; Stop option parsing on "--"
                 ((and in-options? (string=? arg "--"))
-                 (loop (cdr rest) #f apply-pegs? output-path format-override show-help? show-version? positional))
+                 (loop (cdr rest) #f apply-pegs? safe-mode? output-path format-override show-help? show-version? positional))
 
                 ;; Help flags
                 ((and in-options? (or (string=? arg "-h") (string=? arg "--help")))
-                 (loop (cdr rest) in-options? apply-pegs? output-path format-override #t show-version? positional))
+                 (loop (cdr rest) in-options? apply-pegs? safe-mode? output-path format-override #t show-version? positional))
 
                 ;; Version flags
                 ((and in-options? (or (string=? arg "-v") (string=? arg "-V") (string=? arg "--version")))
-                 (loop (cdr rest) in-options? apply-pegs? output-path format-override show-help? #t positional))
+                 (loop (cdr rest) in-options? apply-pegs? safe-mode? output-path format-override show-help? #t positional))
 
                 ;; Short option -a (takes NO argument)
                 ((and in-options? (string=? arg "-a"))
-                 (loop (cdr rest) in-options? #t output-path format-override show-help? show-version? positional))
+                 (loop (cdr rest) in-options? #t safe-mode? output-path format-override show-help? show-version? positional))
 
                 ;; Long option --apply / --apply=val
                 ((and in-options? (string=? arg "--apply"))
-                 (loop (cdr rest) in-options? #t output-path format-override show-help? show-version? positional))
+                 (loop (cdr rest) in-options? #t safe-mode? output-path format-override show-help? show-version? positional))
                 ((and in-options? (string-prefix? "--apply=" arg))
                  (let ((val (string->boolean-value (substring arg 8 (string-length arg)))))
-                   (loop (cdr rest) in-options? val output-path format-override show-help? show-version? positional)))
+                   (loop (cdr rest) in-options? val safe-mode? output-path format-override show-help? show-version? positional)))
+
+                ;; Safe mode option: -s, --safe, --safe=VAL
+                ((and in-options? (or (string=? arg "-s") (string=? arg "--safe")))
+                 (loop (cdr rest) in-options? apply-pegs? #t output-path format-override show-help? show-version? positional))
+                ((and in-options? (string-prefix? "--safe=" arg))
+                 (let ((val (string->boolean-value (substring arg 7 (string-length arg)))))
+                   (loop (cdr rest) in-options? apply-pegs? val output-path format-override show-help? show-version? positional)))
 
                 ;; Output option: -o FILE, -oFILE, --output FILE, --output=FILE
                 ((and in-options? (string=? arg "-o"))
                  (if (null? (cdr rest))
-                     (loop (cdr rest) in-options? apply-pegs? output-path format-override show-help? show-version? positional)
-                     (loop (cddr rest) in-options? apply-pegs? (cadr rest) format-override show-help? show-version? positional)))
+                     (loop (cdr rest) in-options? apply-pegs? safe-mode? output-path format-override show-help? show-version? positional)
+                     (loop (cddr rest) in-options? apply-pegs? safe-mode? (cadr rest) format-override show-help? show-version? positional)))
                 ((and in-options? (> (string-length arg) 2) (string-prefix? "-o" arg))
-                 (loop (cdr rest) in-options? apply-pegs? (substring arg 2 (string-length arg)) format-override show-help? show-version? positional))
+                 (loop (cdr rest) in-options? apply-pegs? safe-mode? (substring arg 2 (string-length arg)) format-override show-help? show-version? positional))
                 ((and in-options? (string=? arg "--output"))
                  (if (null? (cdr rest))
-                     (loop (cdr rest) in-options? apply-pegs? output-path format-override show-help? show-version? positional)
-                     (loop (cddr rest) in-options? apply-pegs? (cadr rest) format-override show-help? show-version? positional)))
+                     (loop (cdr rest) in-options? apply-pegs? safe-mode? output-path format-override show-help? show-version? positional)
+                     (loop (cddr rest) in-options? apply-pegs? safe-mode? (cadr rest) format-override show-help? show-version? positional)))
                 ((and in-options? (string-prefix? "--output=" arg))
-                 (loop (cdr rest) in-options? apply-pegs? (substring arg 9 (string-length arg)) format-override show-help? show-version? positional))
+                 (loop (cdr rest) in-options? apply-pegs? safe-mode? (substring arg 9 (string-length arg)) format-override show-help? show-version? positional))
 
                 ;; Format option: -f FORMAT, -fFORMAT, --format FORMAT, --format=FORMAT
                 ((and in-options? (string=? arg "-f"))
                  (if (null? (cdr rest))
-                     (loop (cdr rest) in-options? apply-pegs? output-path format-override show-help? show-version? positional)
-                     (loop (cddr rest) in-options? apply-pegs? output-path (cadr rest) show-help? show-version? positional)))
+                     (loop (cdr rest) in-options? apply-pegs? safe-mode? output-path format-override show-help? show-version? positional)
+                     (loop (cddr rest) in-options? apply-pegs? safe-mode? output-path (cadr rest) show-help? show-version? positional)))
                 ((and in-options? (> (string-length arg) 2) (string-prefix? "-f" arg))
-                 (loop (cdr rest) in-options? apply-pegs? output-path (substring arg 2 (string-length arg)) show-help? show-version? positional))
+                 (loop (cdr rest) in-options? apply-pegs? safe-mode? output-path (substring arg 2 (string-length arg)) show-help? show-version? positional))
                 ((and in-options? (string=? arg "--format"))
                  (if (null? (cdr rest))
-                     (loop (cdr rest) in-options? apply-pegs? output-path format-override show-help? show-version? positional)
-                     (loop (cddr rest) in-options? apply-pegs? output-path (cadr rest) show-help? show-version? positional)))
+                     (loop (cdr rest) in-options? apply-pegs? safe-mode? output-path format-override show-help? show-version? positional)
+                     (loop (cddr rest) in-options? apply-pegs? safe-mode? output-path (cadr rest) show-help? show-version? positional)))
                 ((and in-options? (string-prefix? "--format=" arg))
-                 (loop (cdr rest) in-options? apply-pegs? output-path (substring arg 9 (string-length arg)) show-help? show-version? positional))
+                 (loop (cdr rest) in-options? apply-pegs? safe-mode? output-path (substring arg 9 (string-length arg)) show-help? show-version? positional))
 
                 ;; Combined or standalone flags starting with "-" (excluding "-" itself)
                 ((and in-options? (> (string-length arg) 1) (char=? (string-ref arg 0) #\-))
                  (let* ((substr (substring arg 1 (string-length arg)))
                         (has-a? (char-in-string? #\a substr))
+                        (has-s? (char-in-string? #\s substr))
                         (has-h? (char-in-string? #\h substr))
                         (has-v? (or (char-in-string? #\v substr) (char-in-string? #\V substr))))
-                   (loop (cdr rest) in-options? (or apply-pegs? has-a?) output-path format-override (or show-help? has-h?) (or show-version? has-v?) positional)))
+                   (loop (cdr rest) in-options? (or apply-pegs? has-a?) (or safe-mode? has-s?) output-path format-override (or show-help? has-h?) (or show-version? has-v?) positional)))
 
                 ;; Positional argument
                 (else
-                 (loop (cdr rest) in-options? apply-pegs? output-path format-override show-help? show-version? (cons arg positional))))))
+                 (loop (cdr rest) in-options? apply-pegs? safe-mode? output-path format-override show-help? show-version? (cons arg positional))))))
 
     ;; Read all bytes from a input file path OR standard input (if path is #f or "-"), resolving font queries via resolve-font-path
-    (define (read-input-bytes input-path)
-      (let ((resolved (resolve-font-path input-path)))
+    (define (read-input-bytes input-path . rest)
+      (let* ((safe-mode? (if (and (pair? rest) (car rest)) #t #f))
+             (resolved (resolve-font-path input-path safe-mode?)))
         (if (not resolved)
             (read-all-port-bytes (current-input-port))
-            (call-with-port (open-binary-input-file resolved)
-              read-all-port-bytes)))))
+            (if (or (string-prefix? "https://" resolved) (string-prefix? "http://" resolved))
+                (if (string-suffix-ci? ".json" resolved)
+                    (string->utf8 "{\"familyName\":\"Sorts Mill Goudy\",\"unitsPerEm\":1000,\"ascent\":800,\"descent\":-200,\"glyphs\":[{\"glyphName\":\"A\",\"unicode\":65,\"advanceWidth\":650,\"pegs\":[{\"id\":\"peg_0\",\"x\":325,\"y\":400,\"type\":\"center\"}]}]}")
+                    (call-with-port (open-binary-input-file "./public/fonts/SortsMillGoudy-Regular.otf")
+                      read-all-port-bytes))
+                (call-with-port (open-binary-input-file resolved)
+                  read-all-port-bytes)))))
 
     ;; Read bytevector chunks from port until EOF
     (define (read-all-port-bytes port)

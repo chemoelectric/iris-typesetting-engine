@@ -42,6 +42,7 @@
       (let* ((parsed (parse-cli-args args))
              (show-help? (cdr (assoc 'help parsed)))
              (show-version? (cdr (assoc 'version parsed)))
+             (safe-mode? (cdr (assoc 'safe-mode parsed)))
              (opts-output (cdr (assoc 'output-path parsed)))
              (fmt-override (cdr (assoc 'format parsed)))
              (positional (cdr (assoc 'positional parsed))))
@@ -53,7 +54,7 @@
                   (output-spec (if opts-output
                                    opts-output
                                    (if (> (length positional) 1) (cadr positional) #f)))
-                  (in-bytes (read-input-bytes input-spec))
+                  (in-bytes (read-input-bytes input-spec safe-mode?))
                   (input-flavor (detect-font-flavor in-bytes))
                   (json-str (if (eq? input-flavor 'json)
                                 (utf8->string in-bytes)

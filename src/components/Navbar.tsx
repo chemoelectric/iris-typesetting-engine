@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Spline,
   Hammer,
+  Globe,
 } from 'lucide-react';
 import { ViewTab } from '../types';
 import { DOCUMENT_TEMPLATES } from '../data/templates';
@@ -23,6 +24,7 @@ interface NavbarProps {
   onOpenExport: () => void;
   fontName: string;
   isCustomFont: boolean;
+  onOpenGoogleFonts?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -33,6 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenExport,
   fontName,
   isCustomFont,
+  onOpenGoogleFonts,
 }) => {
   return (
     <header className="bg-[#0F0F10] border-b border-white/10 text-slate-100 px-6 py-3 sticky top-0 z-50 shadow-lg">
@@ -197,13 +200,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             </select>
           </div>
 
-          <div className="text-xs px-2.5 py-1 rounded bg-white/5 text-white/70 border border-white/10 flex items-center space-x-1.5">
-            <Type className="w-3 h-3 text-amber-500" />
+          <button
+            onClick={onOpenGoogleFonts}
+            className="text-xs px-2.5 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center space-x-1.5 transition cursor-pointer"
+            title="Automatically fetch and load Google Fonts"
+          >
+            <Globe className="w-3.5 h-3.5 text-amber-400" />
             <span className="font-mono text-[11px] truncate max-w-[120px]">{fontName}</span>
             {isCustomFont && (
-              <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-500/20" title="Custom OpenType loaded" />
+              <span className="w-2 h-2 rounded-full bg-amber-400 ring-2 ring-amber-400/20" title="Custom / Google Font loaded" />
             )}
-          </div>
+          </button>
 
           <button
             onClick={onOpenExport}
