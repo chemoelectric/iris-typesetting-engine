@@ -6,6 +6,7 @@ import { layoutMathAST } from './lib/layoutEngine';
 import { calculateLayoutEnergy, DEFAULT_MAXENT_WEIGHTS } from './lib/maxentSolver';
 import { createDefaultTransform } from './lib/cl411Algebra';
 import { loadCustomFont, getActiveFontInfo } from './lib/openTypeEngine';
+import { fetchGoogleFontBinary } from './lib/googleFontsLoader';
 
 import { Navbar } from './components/Navbar';
 import { TypesetCanvas } from './components/TypesetCanvas';
@@ -18,6 +19,7 @@ import { TextbookPanel } from './components/TextbookPanel';
 import { SpiroWorkbench } from './components/SpiroWorkbench';
 import { BernsteinSplineWorkbench } from './components/BernsteinSplineWorkbench';
 import { PunchcutterWorkbench } from './components/PunchcutterWorkbench';
+import { MeshTypeWorkbench } from './components/MeshTypeWorkbench';
 import { ExportModal } from './components/ExportModal';
 import { GoogleFontsModal } from './components/GoogleFontsModal';
 
@@ -27,6 +29,9 @@ export default function App() {
   const [markup, setMarkup] = useState<string>(DOCUMENT_TEMPLATES[0].markup);
 
   const [fontSize, setFontSize] = useState<number>(20);
+  const [leadingFactor, setLeadingFactor] = useState<number>(1.70);
+  const [migraineDampening, setMigraineDampening] = useState<boolean>(true);
+  const [canonMedium, setCanonMedium] = useState<boolean>(true);
   const [enableMaxEnt, setEnableMaxEnt] = useState<boolean>(true);
   const [maxEntWeights, setMaxEntWeights] = useState<MaxEntWeights>(DEFAULT_MAXENT_WEIGHTS);
   const [cl411Transform, setCl411Transform] = useState<Cl411Transform>(createDefaultTransform());
@@ -44,12 +49,25 @@ export default function App() {
   const [showBoundingBoxes, setShowBoundingBoxes] = useState<boolean>(true);
 
   // Template change handler
-  const handleSelectTemplate = (templateId: string) => {
+  const handleSelectTemplate = async (templateId: string) => {
     setSelectedTemplateId(templateId);
     const tpl = DOCUMENT_TEMPLATES.find((t) => t.id === templateId);
     if (tpl) {
       setMarkup(tpl.markup);
       setSelectedBox(null);
+    }
+    if (templateId === 'twain_wit_inspirations') {
+      try {
+        const { buffer, info } = await fetchGoogleFontBinary('Libre Baskerville');
+        await loadCustomFont(buffer, 'LibreBaskerville-Regular.ttf');
+        setFontInfo(info);
+        setFontSize(18);
+        setLeadingFactor(1.70);
+        setMigraineDampening(true);
+        setCanonMedium(true);
+      } catch (err) {
+        console.warn('Failed to auto-load Libre Baskerville:', err);
+      }
     }
   };
 
@@ -68,10 +86,13 @@ export default function App() {
     const ast = parseMathMarkup(markup);
     return layoutMathAST(ast, {
       baseFontSize: fontSize,
+      leadingFactor,
+      migraineDampening,
+      canonMedium,
       maxEntWeights,
       enableMaxEnt,
     });
-  }, [markup, fontSize, maxEntWeights, enableMaxEnt, fontInfo]);
+  }, [markup, fontSize, leadingFactor, migraineDampening, canonMedium, maxEntWeights, enableMaxEnt, fontInfo]);
 
   // Compute Jaynesian MaxEnt Energy
   const energyState = useMemo(() => {
@@ -118,6 +139,10 @@ export default function App() {
           <div className="h-full overflow-hidden">
             <PunchcutterWorkbench />
           </div>
+        ) : activeTab === 'meshtype' ? (
+          <div className="h-full overflow-y-auto">
+            <MeshTypeWorkbench />
+          </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full overflow-hidden">
             {/* Left Interactive Control Panel (5 columns) */}
@@ -128,6 +153,12 @@ export default function App() {
                   setMarkup={setMarkup}
                   fontSize={fontSize}
                   setFontSize={setFontSize}
+                  leadingFactor={leadingFactor}
+                  setLeadingFactor={setLeadingFactor}
+                  migraineDampening={migraineDampening}
+                  setMigraineDampening={setMigraineDampening}
+                  canonMedium={canonMedium}
+                  setCanonMedium={setCanonMedium}
                   enableMaxEnt={enableMaxEnt}
                   setEnableMaxEnt={setEnableMaxEnt}
                   selectedTemplateId={selectedTemplateId}
@@ -191,6 +222,10 @@ export default function App() {
                 setShowBaselineGrid={setShowBaselineGrid}
                 showBoundingBoxes={showBoundingBoxes}
                 setShowBoundingBoxes={setShowBoundingBoxes}
+                fontName={fontInfo.familyName}
+                leadingFactor={leadingFactor}
+                migraineDampening={migraineDampening}
+                canonMedium={canonMedium}
               />
             </div>
           </div>

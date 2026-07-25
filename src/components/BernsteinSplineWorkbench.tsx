@@ -878,15 +878,24 @@ export const BernsteinSplineWorkbench: React.FC = () => {
                     setSelectedKnotId(k.id);
                     setDraggingKnotId(k.id);
                   }}
-                  className="cursor-pointer"
+                  className="cursor-pointer group"
                 >
+                  {/* Invisible Hit Target to Prevent Hover Jitter */}
                   <circle
                     cx={k.x}
                     cy={k.y}
-                    r={selectedKnotId === k.id ? '8' : '6'}
+                    r={18}
+                    fill="transparent"
+                    className="cursor-grab active:cursor-grabbing"
+                  />
+                  <circle
+                    cx={k.x}
+                    cy={k.y}
+                    r={selectedKnotId === k.id ? 8 : 6}
                     fill={selectedKnotId === k.id ? '#F59E0B' : '#FFFFFF'}
                     stroke="#000000"
                     strokeWidth="2"
+                    className="transition-colors group-hover:fill-amber-400 group-hover:stroke-amber-300"
                   />
                   <text
                     x={k.x + 10}

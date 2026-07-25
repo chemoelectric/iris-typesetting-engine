@@ -1,12 +1,14 @@
 import React from 'react';
 import {
   Code,
-  Sliders,
   Type,
   Zap,
   BookOpen,
   Sparkles,
   RotateCcw,
+  Printer,
+  ShieldCheck,
+  Layers,
 } from 'lucide-react';
 import { DOCUMENT_TEMPLATES } from '../data/templates';
 import { LayoutBox } from '../types';
@@ -16,6 +18,12 @@ interface DocumentEditorProps {
   setMarkup: (val: string) => void;
   fontSize: number;
   setFontSize: (size: number) => void;
+  leadingFactor: number;
+  setLeadingFactor: (factor: number) => void;
+  migraineDampening: boolean;
+  setMigraineDampening: (enabled: boolean) => void;
+  canonMedium: boolean;
+  setCanonMedium: (enabled: boolean) => void;
   enableMaxEnt: boolean;
   setEnableMaxEnt: (enable: boolean) => void;
   selectedTemplateId: string;
@@ -28,6 +36,12 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   setMarkup,
   fontSize,
   setFontSize,
+  leadingFactor,
+  setLeadingFactor,
+  migraineDampening,
+  setMigraineDampening,
+  canonMedium,
+  setCanonMedium,
   enableMaxEnt,
   setEnableMaxEnt,
   selectedTemplateId,
@@ -107,8 +121,9 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         </div>
       </div>
 
-      {/* Font & MaxEnt Controls */}
+      {/* Font & Baskerville Grid Controls */}
       <div className="bg-white/5 p-3.5 rounded border border-white/10 space-y-3">
+        {/* Font Size */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-xs font-medium text-white/80">
             <Type className="w-3.5 h-3.5 text-amber-500" />
@@ -128,10 +143,71 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           className="w-full accent-amber-500 cursor-pointer h-1 rounded bg-white/10"
         />
 
+        {/* John Baskerville Generous Baseline Grid Pitch */}
+        <div className="flex items-center justify-between pt-2 border-t border-white/10">
+          <div className="flex items-center space-x-2 text-xs font-medium text-white/80">
+            <Layers className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-[10px] uppercase tracking-wider text-white/60">John Baskerville Grid Leading:</span>
+          </div>
+          <span className="text-xs font-mono text-amber-400 font-bold">
+            {leadingFactor.toFixed(2)}× ({Math.round(fontSize * leadingFactor)}pt)
+          </span>
+        </div>
+        <input
+          type="range"
+          min="1.30"
+          max="2.20"
+          step="0.05"
+          value={leadingFactor}
+          onChange={(e) => setLeadingFactor(Number(e.target.value))}
+          className="w-full accent-amber-500 cursor-pointer h-1 rounded bg-white/10"
+        />
+
+        {/* Chronic Migraine Harmonic Frequency Dampener */}
+        <div className="flex items-center justify-between pt-2 border-t border-white/10">
+          <div className="flex items-center space-x-2 text-xs font-medium text-white/80">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-[10px] uppercase tracking-wider text-emerald-300">Migraine Harmonic Dampener:</span>
+          </div>
+          <button
+            onClick={() => setMigraineDampening(!migraineDampening)}
+            className={`w-8 h-4 rounded-full transition-colors relative ${
+              migraineDampening ? 'bg-emerald-500' : 'bg-white/20'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-black transition-transform ${
+                migraineDampening ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Canon MF4890dw Monochrome Laser Medium Profile */}
+        <div className="flex items-center justify-between pt-2 border-t border-white/10">
+          <div className="flex items-center space-x-2 text-xs font-medium text-white/80">
+            <Printer className="w-3.5 h-3.5 text-sky-400" />
+            <span className="text-[10px] uppercase tracking-wider text-sky-300">Canon MF4890dw (600 DPI):</span>
+          </div>
+          <button
+            onClick={() => setCanonMedium(!canonMedium)}
+            className={`w-8 h-4 rounded-full transition-colors relative ${
+              canonMedium ? 'bg-sky-500' : 'bg-white/20'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-black transition-transform ${
+                canonMedium ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* MaxEnt Layout Optimization */}
         <div className="flex items-center justify-between pt-2 border-t border-white/10">
           <div className="flex items-center space-x-2 text-xs font-medium text-white/80">
             <Zap className="w-3.5 h-3.5 text-amber-500" />
-            <span className="text-[10px] uppercase tracking-wider text-white/60">Jaynesian MaxEnt Layout Optimization</span>
+            <span className="text-[10px] uppercase tracking-wider text-white/60">Jaynesian MaxEnt Energy Layout</span>
           </div>
           <button
             onClick={() => setEnableMaxEnt(!enableMaxEnt)}

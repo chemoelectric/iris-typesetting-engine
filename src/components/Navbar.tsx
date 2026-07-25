@@ -12,6 +12,7 @@ import {
   Spline,
   Hammer,
   Globe,
+  Cpu,
 } from 'lucide-react';
 import { ViewTab } from '../types';
 import { DOCUMENT_TEMPLATES } from '../data/templates';
@@ -84,6 +85,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Code className="w-3.5 h-3.5" />
             <span>Framework</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('meshtype')}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded text-[11px] uppercase tracking-[0.15em] font-medium transition-all whitespace-nowrap ${
+              activeTab === 'meshtype'
+                ? 'bg-amber-500 text-black font-semibold shadow-sm'
+                : 'text-white/40 hover:text-white/90 hover:bg-white/5'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5" />
+            <span>MeshType</span>
           </button>
 
           <button

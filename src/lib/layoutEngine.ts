@@ -19,6 +19,10 @@ function genBoxId(): string {
 
 export interface LayoutEngineOptions {
   baseFontSize: number; // in pt (e.g. 18pt)
+  leadingFactor?: number; // e.g. 1.70 (John Baskerville generous grid)
+  maxLineWidth?: number; // e.g. 480pt
+  migraineDampening?: boolean; // Harmonic frequency dampening for visual stress
+  canonMedium?: boolean; // Canon MF4890dw 600 DPI physical model
   maxEntWeights?: MaxEntWeights;
   enableMaxEnt?: boolean;
   colorScheme?: 'default' | 'unified' | 'classic';
@@ -27,7 +31,7 @@ export interface LayoutEngineOptions {
 export function layoutMathAST(
   ast: MathASTNode,
   options: LayoutEngineOptions
-): { rootBoxes: LayoutBox[]; width: number; height: number; ascent: number; descent: number } {
+): { rootBoxes: LayoutBox[]; width: number; height: number; ascent: number; descent: number; lineCount: number } {
   layoutBoxIdSeq = 0;
 
   const baseFontSize = options.baseFontSize || 18;
@@ -42,22 +46,31 @@ export function layoutMathAST(
 
   // Calculate overall layout bounding dimensions
   let maxX = 0;
+  let minY = 0;
+  let maxY = baseFontSize;
   let maxAscent = baseFontSize * 0.8;
   let maxDescent = baseFontSize * 0.2;
+  let lineCount = 1;
 
   for (const b of finalBoxes) {
     const right = b.x + b.width;
     if (right > maxX) maxX = right;
+    if (b.y - b.ascent < minY) minY = b.y - b.ascent;
+    if (b.y + b.descent > maxY) maxY = b.y + b.descent;
     if (b.ascent > maxAscent) maxAscent = b.ascent;
     if (b.descent > maxDescent) maxDescent = b.descent;
   }
 
+  const leading = baseFontSize * (options.leadingFactor || 1.70);
+  lineCount = Math.max(1, Math.round((maxY - minY) / leading) + 1);
+
   return {
     rootBoxes: finalBoxes,
-    width: Math.max(maxX, 10),
-    height: maxAscent + maxDescent,
+    width: Math.max(maxX, 20),
+    height: Math.max(maxY - minY, baseFontSize * 1.5),
     ascent: maxAscent,
     descent: maxDescent,
+    lineCount,
   };
 }
 
@@ -70,18 +83,49 @@ function buildBoxesFromAST(
 ): LayoutBox[] {
   const boxes: LayoutBox[] = [];
   let currX = startX;
+  let currY = baselineY;
+  const leading = fontSize * (options.leadingFactor || 1.70);
+  const maxLineWidth = options.maxLineWidth || 460;
+  const isMigraineDampened = options.migraineDampening !== false;
 
   if (node.type === 'group' && node.children) {
     for (let i = 0; i < node.children.length; i++) {
       const child = node.children[i];
 
-      // Optical Kerning
+      // Handle Newlines / Paragraph breaks
+      if (child.type === 'symbol' && (child.value === '\n' || child.value === '\\\\')) {
+        currX = startX;
+        currY += leading;
+        continue;
+      }
+
+      // Check for Word Line-Wrapping
+      if (child.value && child.value !== ' ' && child.value !== '\n') {
+        const charMetrics = getGlyphPath(child.value, fontSize, 0, 0);
+        if (currX + charMetrics.width > maxLineWidth && currX > startX + 20) {
+          currX = startX;
+          currY += leading;
+        }
+      }
+
+      // Optical & Harmonic Kerning
       if (i > 0 && node.children[i - 1].value && child.value) {
-        const kern = getKerning(node.children[i - 1].value!, child.value!, fontSize);
+        const prevChar = node.children[i - 1].value!;
+        const currChar = child.value!;
+        let kern = getKerning(prevChar, currChar, fontSize);
+
+        // Anti-Harmonic Kerning Adjustment for Chronic Migraine / Visual Stress:
+        // Dampens repetitive vertical stem frequencies ('m', 'n', 'u', 'i', 'l', 'r', 't')
+        if (isMigraineDampened) {
+          const verticalStems = ['m', 'n', 'u', 'i', 'l', 'r', 't', 'k', 'h', 'd', 'b'];
+          if (verticalStems.includes(prevChar.toLowerCase()) && verticalStems.includes(currChar.toLowerCase())) {
+            kern += fontSize * 0.035; // Soft anti-harmonic spatial shift
+          }
+        }
         currX += kern;
       }
 
-      const childBoxes = buildBoxesFromAST(child, currX, baselineY, fontSize, options);
+      const childBoxes = buildBoxesFromAST(child, currX, currY, fontSize, options);
       for (const cb of childBoxes) {
         boxes.push(cb);
         currX = Math.max(currX, cb.x + cb.width);
@@ -92,6 +136,33 @@ function buildBoxesFromAST(
 
   if (node.type === 'text' || node.type === 'symbol') {
     const val = node.value || '';
+    if (val === '\n' || val === '\\\\') {
+      return [];
+    }
+
+    // Space handling
+    if (val === ' ') {
+      const spaceWidth = fontSize * (isMigraineDampened ? 0.32 : 0.28);
+      const spaceBox: LayoutBox = {
+        id: genBoxId(),
+        nodeId: node.id,
+        type: node.type,
+        value: ' ',
+        x: currX,
+        y: currY,
+        width: spaceWidth,
+        height: fontSize,
+        ascent: fontSize * 0.75,
+        descent: fontSize * 0.25,
+        fontSize,
+        irisPos: ptToIris(currX, currY),
+        transform: createDefaultTransform(),
+        children: [],
+      };
+      boxes.push(spaceBox);
+      return boxes;
+    }
+
     const metrics = getGlyphPath(val, fontSize, 0, 0);
 
     const box: LayoutBox = {
@@ -100,13 +171,13 @@ function buildBoxesFromAST(
       type: node.type,
       value: val,
       x: currX,
-      y: baselineY,
+      y: currY,
       width: metrics.width,
       height: metrics.height,
       ascent: metrics.ascent,
       descent: metrics.descent,
       fontSize,
-      irisPos: ptToIris(currX, baselineY),
+      irisPos: ptToIris(currX, currY),
       transform: createDefaultTransform(),
       children: [],
       glyphPath: metrics.pathSvg,

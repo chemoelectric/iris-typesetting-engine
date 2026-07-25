@@ -139,4 +139,47 @@ export interface DocumentTemplate {
   markup: string;
 }
 
-export type ViewTab = 'editor' | 'spiro' | 'bernstein' | 'punchcutter' | 'iris' | 'cl411' | 'maxent' | 'font' | 'textbook';
+// --- MeshType 2D Surface Topology ---
+export interface MeshVertex {
+  id: number;
+  x: number;
+  y: number;
+  origX: number;
+  origY: number;
+  halfEdge: number; // Index of outgoing half-edge
+  isBoundary: boolean;
+  fixed?: boolean;
+  u: number; // Parametric width coordinate [0..1]
+  v: number; // Parametric height coordinate [0..1]
+}
+
+export interface MeshHalfEdge {
+  id: number;
+  origin: number; // Vertex ID
+  target: number; // Vertex ID
+  pair: number | null; // Opposite half-edge index
+  next: number; // Next half-edge in face loop
+  prev: number; // Prev half-edge in face loop
+  face: number | null; // Face ID or null if boundary
+  isBoundary: boolean;
+}
+
+export interface MeshFace {
+  id: number;
+  halfEdge: number;
+  vertexIds: number[];
+  restArea: number;
+  currentArea: number;
+  opticalDensity: number; // Rest Area / Current Area
+}
+
+export interface GlyphMeshTopology {
+  glyphName: string;
+  vertices: MeshVertex[];
+  halfEdges: MeshHalfEdge[];
+  faces: MeshFace[];
+  boundaryLoops: number[][]; // Ordered loops of vertex IDs
+}
+
+export type ViewTab = 'editor' | 'spiro' | 'bernstein' | 'punchcutter' | 'iris' | 'cl411' | 'maxent' | 'font' | 'textbook' | 'meshtype';
+

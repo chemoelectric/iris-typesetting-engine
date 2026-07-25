@@ -31,6 +31,10 @@ interface TypesetCanvasProps {
   setShowBaselineGrid: (show: boolean) => void;
   showBoundingBoxes: boolean;
   setShowBoundingBoxes: (show: boolean) => void;
+  fontName?: string;
+  leadingFactor?: number;
+  migraineDampening?: boolean;
+  canonMedium?: boolean;
 }
 
 export const TypesetCanvas: React.FC<TypesetCanvasProps> = ({
@@ -51,6 +55,10 @@ export const TypesetCanvas: React.FC<TypesetCanvasProps> = ({
   setShowBaselineGrid,
   showBoundingBoxes,
   setShowBoundingBoxes,
+  fontName = 'Libre Baskerville',
+  leadingFactor = 1.70,
+  migraineDampening = true,
+  canonMedium = true,
 }) => {
   const [zoom, setZoom] = useState<number>(2.5); // Default zoom level for crisp rendering
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 120, y: 160 });
@@ -212,10 +220,10 @@ export const TypesetCanvas: React.FC<TypesetCanvasProps> = ({
             {/* Paper Document Preview Plate */}
             <rect
               x="-24"
-              y={-ascent - 24}
-              width={Math.max(totalWidth + 48, 200)}
-              height={Math.max(ascent + descent + 48, 120)}
-              fill="#FFFFFF"
+              y={-ascent - 28}
+              width={Math.max(totalWidth + 48, 220)}
+              height={Math.max(totalHeight + ascent + descent + 56, 160)}
+              fill="#FAFAF8"
               rx="2"
               className="shadow-2xl"
               style={{
@@ -226,22 +234,22 @@ export const TypesetCanvas: React.FC<TypesetCanvasProps> = ({
             {/* Document Header Line on Paper */}
             <line
               x1="-16"
-              y1={-ascent - 12}
-              x2={Math.max(totalWidth + 32, 180)}
-              y2={-ascent - 12}
+              y1={-ascent - 14}
+              x2={Math.max(totalWidth + 32, 200)}
+              y2={-ascent - 14}
               stroke="#00000015"
               strokeWidth="0.5"
             />
             <text
               x="-16"
-              y={-ascent - 16}
-              fontSize="3.5"
-              fill="#00000040"
+              y={-ascent - 18}
+              fontSize="3.2"
+              fill="#78350F"
               fontFamily="sans-serif"
-              letterSpacing="0.1em"
+              letterSpacing="0.08em"
               fontWeight="bold"
             >
-              IRIS GEOMETRIC NOTATION MANIFOLD
+              CANON MF4890DW (600 DPI LASER) — LIBRE BASKERVILLE (JOHN BASKERVILLE 1.70× GRID)
             </text>
 
             {/* 1. Counting-Iris Grid Overlay */}
@@ -282,49 +290,31 @@ export const TypesetCanvas: React.FC<TypesetCanvasProps> = ({
               </g>
             )}
 
-            {/* 2. Baseline Grid */}
+            {/* 2. John Baskerville Baseline Grid Lines for All Document Lines */}
             {showBaselineGrid && (
-              <g opacity={0.6}>
-                {/* Main Baseline */}
-                <line
-                  x1="-30"
-                  y1="0"
-                  x2={totalWidth + 30}
-                  y2="0"
-                  stroke="#D97706"
-                  strokeWidth="0.6"
-                />
-                <text
-                  x="-22"
-                  y="-2"
-                  fontSize="4"
-                  fill="#D97706"
-                  fontFamily="sans-serif"
-                  fontWeight="bold"
-                >
-                  Baseline
-                </text>
-
-                {/* Ascent Line */}
-                <line
-                  x1="-30"
-                  y1={-ascent}
-                  x2={totalWidth + 30}
-                  y2={-ascent}
-                  stroke="#2563EB"
-                  strokeWidth="0.3"
-                  strokeDasharray="2,2"
-                />
-                {/* Descent Line */}
-                <line
-                  x1="-30"
-                  y1={descent}
-                  x2={totalWidth + 30}
-                  y2={descent}
-                  stroke="#DC2626"
-                  strokeWidth="0.3"
-                  strokeDasharray="2,2"
-                />
+              <g opacity={0.65}>
+                {Array.from(new Set(layoutBoxes.map((b) => b.y))).sort((a: number, b: number) => a - b).map((lineY: number, idx: number) => (
+                  <g key={`base_grid_${lineY}_${idx}`}>
+                    <line
+                      x1="-30"
+                      y1={lineY}
+                      x2={Math.max(totalWidth + 30, 210)}
+                      y2={lineY}
+                      stroke="#D97706"
+                      strokeWidth="0.4"
+                    />
+                    <text
+                      x="-22"
+                      y={lineY - 2}
+                      fontSize="3.2"
+                      fill="#D97706"
+                      fontFamily="sans-serif"
+                      fontWeight="bold"
+                    >
+                      Line {idx + 1}
+                    </text>
+                  </g>
+                ))}
               </g>
             )}
 

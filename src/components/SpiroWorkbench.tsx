@@ -1374,7 +1374,7 @@ export const SpiroWorkbench: React.FC = () => {
                       fill={knotColor}
                       stroke="#FFFFFF"
                       strokeWidth="1.5"
-                      className="transition-all hover:scale-125"
+                      className="transition-colors group-hover:stroke-amber-300 group-hover:stroke-2"
                     />
 
                     {/* Knot Label */}

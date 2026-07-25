@@ -20,6 +20,14 @@ export interface GoogleFontMetadata {
 
 export const POPULAR_GOOGLE_FONTS: GoogleFontMetadata[] = [
   {
+    family: 'Libre Baskerville',
+    category: 'serif',
+    weights: ['400', '400i', '700'],
+    description: 'Web-optimized revival of John Baskerville 1757 transitional serif by Impallari Type.',
+    popularFor: 'Classical literary typesetting, generous baseline grid & high-legibility print',
+    ttfUrl: 'https://raw.githubusercontent.com/google/fonts/main/ofl/librebaskerville/LibreBaskerville-Regular.ttf',
+  },
+  {
     family: 'Sorts Mill Goudy',
     category: 'serif',
     weights: ['400', '400i'],
