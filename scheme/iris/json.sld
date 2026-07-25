@@ -1,11 +1,11 @@
 ;;; ============================================================================
-;;; Scheme Library: (json-api)
+;;; Scheme Library: (iris json)
 ;;; Standard: R7RS (ISO/IEC 30179) / Gauche Scheme (R7RS Mode)
 ;;; Domain: Isomorphic JSON AST Data Structures & Serializer/Parser Duality
 ;;; Exemptions: R7RS Scheme functional code is exempt from single-exit rules.
 ;;; ============================================================================
 
-(define-library (json-api)
+(define-library (iris json)
   (export
     make-json-object
     make-json-array

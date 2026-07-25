@@ -1,11 +1,11 @@
 !===============================================================================
-! Module: json_module
+! Module: iris_json
 ! Standard: Fortran 2008 (ISO/IEC 1539-1:2010)
 ! Architecture: Imperative Procedural Memory-Tree AST API for JSON RFC 8259
 ! Rules: Single-entry/single-exit control constructs, no goto.
 !        McCabe Cyclomatic Complexity <= 10 per procedure.
 !===============================================================================
-module json_module
+module iris_json
   use, intrinsic :: iso_fortran_env, only: int32, real64
   implicit none
   private
@@ -354,4 +354,4 @@ contains
     val%value_type = JSON_NULL_TYPE
   end subroutine json_free
 
-end module json_module
+end module iris_json

@@ -1,15 +1,15 @@
-# Fortran 2008 JSON Engine (`json_module`)
+# Fortran 2008 JSON Engine (`iris_json`)
 
 ## 1. Executive Summary
-The `json_module` is a standard Fortran 2008 (ISO/IEC 1539-1:2010) procedural API for RFC 8259 JSON serialization and AST object manipulation.
+The `iris_json` module is a standard Fortran 2008 (ISO/IEC 1539-1:2010) procedural API for RFC 8259 JSON serialization and AST object manipulation.
 
-This module is designed in **structural isomorphism** with the R7RS Scheme `(json-api)` library.
+This module is designed in **structural isomorphism** with the R7RS Scheme `(iris json)` library.
 
 ---
 
 ## 2. API Architecture & Symmetrical Procedure Mapping
 
-| API Functionality | Fortran 2008 (`json_module`) | R7RS Scheme (`(json-api)`) |
+| API Functionality | Fortran 2008 (`iris_json`) | R7RS Scheme (`(iris json)`) |
 | :--- | :--- | :--- |
 | **Object Constructor** | `call json_create_object(obj)` | `(make-json-object)` |
 | **Array Constructor** | `call json_create_array(arr)` | `(make-json-array)` |
@@ -31,7 +31,7 @@ This module is designed in **structural isomorphism** with the R7RS Scheme `(jso
 
 ```fortran
 program test_json_builder
-  use json_module
+  use iris_json
   implicit none
 
   type(json_value_type) :: root_obj, author_str, pages_num, active_bool

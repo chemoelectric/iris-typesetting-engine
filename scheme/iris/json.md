@@ -1,15 +1,15 @@
-# Scheme R7RS JSON Engine (`(json-api)`)
+# Scheme R7RS JSON Engine (`(iris json)`)
 
 ## 1. Executive Summary
-The `(json-api)` R7RS-large Scheme library provides a functional data-structure interface for RFC 8259 JSON serialization, AST representation, and string conversion.
+The `(iris json)` R7RS-large Scheme library provides a functional data-structure interface for RFC 8259 JSON serialization, AST representation, and string conversion.
 
-This library is designed in **structural isomorphism** with the Fortran 2008 `json_module`.
+This library is designed in **structural isomorphism** with the Fortran 2008 `iris_json` module.
 
 ---
 
 ## 2. API Architecture & Symmetrical Procedure Mapping
 
-| API Functionality | R7RS Scheme (`(json-api)`) | Fortran 2008 (`json_module`) |
+| API Functionality | R7RS Scheme (`(iris json)`) | Fortran 2008 (`iris_json`) |
 | :--- | :--- | :--- |
 | **Object Constructor** | `(make-json-object)` | `call json_create_object(obj)` |
 | **Array Constructor** | `(make-json-array)` | `call json_create_array(arr)` |
@@ -34,7 +34,7 @@ This library is designed in **structural isomorphism** with the Fortran 2008 `js
 
 (import (scheme base)
         (scheme write)
-        (json-api))
+        (iris json))
 
 (let ((root (make-json-object)))
   ;; 1. Attach Fields to Object
@@ -53,5 +53,5 @@ This library is designed in **structural isomorphism** with the Fortran 2008 `js
 ---
 
 ## 4. R7RS Conformance & Functional Exemption
-- **R7RS Standard**: Standard Scheme library structure using `(define-library (json-api) ...)` with explicit exports.
+- **R7RS Standard**: Standard Scheme library structure using `(define-library (iris json) ...)` with explicit exports.
 - **Functional Exemption**: In accordance with system design rules, Scheme functional code is exempt from imperative single-exit structured programming constraints.
