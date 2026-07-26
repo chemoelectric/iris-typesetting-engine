@@ -1,0 +1,32 @@
+# ==============================================================================
+# Configure Script Generator for Iris Typographic Engine
+# Standard: GNU Autoconf 2.69+ / Automake 1.15+
+# Domain: Fortran 2008 & R7RS Scheme Dual Engine
+# ==============================================================================
+
+AC_PREREQ([2.69])
+AC_INIT([iris], [1.0.0], [support@iris.org])
+AC_CONFIG_SRCDIR([fortran/iris_batch_engine.f90])
+AC_CONFIG_AUX_DIR([build-aux])
+AC_CONFIG_MACRO_DIR([m4])
+
+AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Werror dist-xz])
+AM_SILENT_RULES([yes])
+
+# Check for Fortran 2008 compiler
+AC_PROG_FC
+AC_FC_SRCEXT([f90])
+AC_FC_FREEFORM
+
+# Enforce Fortran 2008 standard flag when available
+AS_IF([test "x$FC" != "x"], [
+  FCFLAGS="$FCFLAGS -std=f2008 -ffree-line-length-none"
+])
+
+# Check for Gauche Scheme interpreter (R7RS) for Scheme test harness
+AC_CHECK_PROGS([GOSH], [gosh], [none])
+AM_CONDITIONAL([HAVE_GOSH], [test "x$GOSH" != "xnone"])
+
+# Output files
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT
