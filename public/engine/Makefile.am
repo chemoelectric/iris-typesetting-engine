@@ -8,6 +8,14 @@
 AUTOMAKE_OPTIONS = foreign subdir-objects
 
 # ------------------------------------------------------------------------------
+# Executable Binaries
+# ------------------------------------------------------------------------------
+bin_PROGRAMS = iris
+
+iris_SOURCES = fortran/iris_main.f90
+iris_LDADD = libiris.a
+
+# ------------------------------------------------------------------------------
 # Fortran Convenience Library
 # ------------------------------------------------------------------------------
 noinst_LIBRARIES = libiris.a
@@ -38,6 +46,7 @@ fortran/iris_evaluate_pegs.$(OBJEXT): fortran/iris_opentype.$(OBJEXT) fortran/ir
 fortran/iris_pdf.$(OBJEXT): fortran/iris_evaluate_pegs.$(OBJEXT)
 fortran/iris_markup_parser.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_batch_engine.$(OBJEXT): fortran/iris_markup_parser.$(OBJEXT) fortran/iris_pdf.$(OBJEXT)
+fortran/iris_main.$(OBJEXT): fortran/iris_batch_engine.$(OBJEXT) fortran/iris_cli_args.$(OBJEXT)
 
 # ------------------------------------------------------------------------------
 # R7RS Scheme Library Distribution
@@ -71,6 +80,7 @@ nobase_dist_doc_DATA = \
 	fortran/iris_pdf.md \
 	fortran/iris_markup_parser.md \
 	fortran/iris_batch_engine.md \
+	fortran/iris_main.md \
 	scheme/iris/json.md \
 	scheme/iris/cli-args.md \
 	scheme/iris/bezier-intersect.md \
