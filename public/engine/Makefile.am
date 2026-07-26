@@ -1,5 +1,6 @@
 # ==============================================================================
 # Automake File for Iris Batch Typographic System
+# Standard: Automake 1.15+ / Autoconf 2.69+ (Compatible with 1.18.1 / 2.72+)
 # Guarantees full out-of-source (VPATH) build and 100% 'make distcheck' pass.
 # Requires GNU Make for pattern rules & VPATH support.
 # ==============================================================================

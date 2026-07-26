@@ -1,6 +1,6 @@
 # ==============================================================================
 # Configure Script Generator for Iris Typographic Engine
-# Standard: GNU Autoconf 2.69+ / Automake 1.15+
+# Standard: GNU Autoconf 2.69+ / Automake 1.15+ (Compatible with 2.72 / 1.18.1+)
 # Domain: Fortran 2008 & R7RS Scheme Dual Engine
 # ==============================================================================
 
@@ -12,6 +12,10 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall -Werror dist-xz])
 AM_SILENT_RULES([yes])
+
+# Archive & Ranlib tools for static libraries (libiris.a)
+AM_PROG_AR
+AC_PROG_RANLIB
 
 # Check for Fortran 2008 compiler
 AC_PROG_FC
@@ -27,6 +31,6 @@ AS_IF([test "x$FC" != "x"], [
 AC_CHECK_PROGS([GOSH], [gosh], [none])
 AM_CONDITIONAL([HAVE_GOSH], [test "x$GOSH" != "xnone"])
 
-# Output files
+# Output configuration files
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

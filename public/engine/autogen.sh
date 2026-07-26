@@ -4,7 +4,7 @@
 # ==============================================================================
 set -e
 
-echo "Bootstrapping Iris build system using GNU Autotools..."
+echo "Bootstrapping Iris build system using GNU Autotools (Autoconf 2.69+ / Automake 1.15+)..."
 mkdir -p build-aux m4
 autoreconf --install --force --verbose
 
