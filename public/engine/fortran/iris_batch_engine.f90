@@ -11,7 +11,7 @@ module iris_batch_engine
   use iris_markup_parser, only: parse_result_type, parse_mixed_markup_text, &
                                  DIALECT_NATURAL_PROSE, DIALECT_TROFF_GROFF
   use iris_pdf, only: pdf_document_type, pdf_init, pdf_add_page, &
-                      pdf_add_text, pdf_write_file, PDF_OK
+                      pdf_write_text, pdf_close
   implicit none
   private
 
@@ -91,21 +91,24 @@ contains
     end if
 
     ! Step 2: Initialize PDF Engine & create page
-    call pdf_init(pdf_doc)
-    call pdf_add_page(pdf_doc, p_stat)
+    call pdf_init(pdf_doc, trim(output_pdf_filename), pdf_stat)
 
-    if (p_stat /= PDF_OK) then
+    if (pdf_stat /= 0) then
       report%status = BATCH_ERR_PDF_FAIL
-      report%status_msg = "Error initializing PDF page layout."
+      report%status_msg = "Error initializing PDF document."
     else
+      call pdf_add_page(pdf_doc, 595.0_real64, 842.0_real64)
+
       ! Step 3: Layout text content using MaxEnt peg metrics
-      call pdf_add_text(pdf_doc, cfg%margin_left, cfg%margin_top, &
-                        trim(parse_ast%tokens(1)%content), cfg%font_size)
+      if (parse_ast%token_count > 0) then
+        call pdf_write_text(pdf_doc, cfg%margin_left, cfg%margin_top, &
+                          cfg%font_size, trim(parse_ast%tokens(1)%content))
+      end if
 
       ! Step 4: Write CUPS-compliant PDF output file
-      call pdf_write_file(pdf_doc, trim(output_pdf_filename), pdf_stat)
+      call pdf_close(pdf_doc, p_stat)
 
-      if (pdf_stat /= PDF_OK) then
+      if (p_stat /= 0) then
         report%status = BATCH_ERR_PDF_FAIL
         report%status_msg = "Error writing compiled PDF file to disk."
       else
