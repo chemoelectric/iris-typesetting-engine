@@ -511,10 +511,10 @@ contains
     out_bytes(8 : 7 + in_len) = in_bytes(1:in_len)
 
     adler = compute_adler32(in_bytes, in_len)
-    out_bytes(8 + in_len : 8 + in_len) = char(iand(ishft(adler, -24), 255))
-    out_bytes(9 + in_len : 9 + in_len) = char(iand(ishft(adler, -16), 255))
-    out_bytes(10 + in_len : 10 + in_len) = char(iand(ishft(adler, -8), 255))
-    out_bytes(11 + in_len : 11 + in_len) = char(iand(adler, 255))
+    out_bytes(8 + in_len : 8 + in_len) = char(iand(ishft(adler, -24), 255_int64))
+    out_bytes(9 + in_len : 9 + in_len) = char(iand(ishft(adler, -16), 255_int64))
+    out_bytes(10 + in_len : 10 + in_len) = char(iand(ishft(adler, -8), 255_int64))
+    out_bytes(11 + in_len : 11 + in_len) = char(iand(adler, 255_int64))
 
     out_len = 11 + in_len
 
