@@ -261,7 +261,7 @@ contains
   ! Serializer
   ! Single-entry / single-exit loop traversal without goto
   !-----------------------------------------------------------------------------
-  subroutine json_serialize(val, out_str)
+  recursive subroutine json_serialize(val, out_str)
     type(json_value_type), intent(in) :: val
     character(len=*), intent(out) :: out_str
 
@@ -319,7 +319,7 @@ contains
   !-----------------------------------------------------------------------------
   ! Memory Cleanup
   !-----------------------------------------------------------------------------
-  subroutine json_free(val)
+  recursive subroutine json_free(val)
     type(json_value_type), intent(inout) :: val
 
     type(json_field_node), pointer :: f_curr, f_next
