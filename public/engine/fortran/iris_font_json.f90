@@ -27,45 +27,82 @@ contains
     type(otf_font_type), intent(in)   :: font
     type(json_value_type), intent(out):: json_obj
 
-    type(json_value_type) :: head_obj, hhea_obj, name_obj, pegs_arr, peg_item
+    type(json_value_type) :: head_obj, hhea_obj, name_obj, pegs_arr, peg_item, tmp_val
     integer(kind=int32)   :: i
 
     call json_create_object(json_obj)
 
     ! Convert head table
     call json_create_object(head_obj)
-    call json_set_field(head_obj, "unitsPerEm", json_create_number(real(font%head%units_per_em, real64)))
-    call json_set_field(head_obj, "xMin", json_create_number(real(font%head%x_min, real64)))
-    call json_set_field(head_obj, "yMin", json_create_number(real(font%head%y_min, real64)))
-    call json_set_field(head_obj, "xMax", json_create_number(real(font%head%x_max, real64)))
-    call json_set_field(head_obj, "yMax", json_create_number(real(font%head%y_max, real64)))
+    call json_create_number(tmp_val, real(font%head%units_per_em, real64))
+    call json_set_field(head_obj, "unitsPerEm", tmp_val)
+
+    call json_create_number(tmp_val, real(font%head%x_min, real64))
+    call json_set_field(head_obj, "xMin", tmp_val)
+
+    call json_create_number(tmp_val, real(font%head%y_min, real64))
+    call json_set_field(head_obj, "yMin", tmp_val)
+
+    call json_create_number(tmp_val, real(font%head%x_max, real64))
+    call json_set_field(head_obj, "xMax", tmp_val)
+
+    call json_create_number(tmp_val, real(font%head%y_max, real64))
+    call json_set_field(head_obj, "yMax", tmp_val)
+
     call json_set_field(json_obj, "head", head_obj)
 
     ! Convert hhea table
     call json_create_object(hhea_obj)
-    call json_set_field(hhea_obj, "ascender", json_create_number(real(font%hhea%ascender, real64)))
-    call json_set_field(hhea_obj, "descender", json_create_number(real(font%hhea%descender, real64)))
-    call json_set_field(hhea_obj, "lineGap", json_create_number(real(font%hhea%line_gap, real64)))
+    call json_create_number(tmp_val, real(font%hhea%ascender, real64))
+    call json_set_field(hhea_obj, "ascender", tmp_val)
+
+    call json_create_number(tmp_val, real(font%hhea%descender, real64))
+    call json_set_field(hhea_obj, "descender", tmp_val)
+
+    call json_create_number(tmp_val, real(font%hhea%line_gap, real64))
+    call json_set_field(hhea_obj, "lineGap", tmp_val)
+
     call json_set_field(json_obj, "hhea", hhea_obj)
 
     ! Convert Naming table
     call json_create_object(name_obj)
-    call json_set_field(name_obj, "familyName", json_create_string(trim(font%family_name)))
-    call json_set_field(name_obj, "subfamilyName", json_create_string(trim(font%subfamily_name)))
-    call json_set_field(name_obj, "fullName", json_create_string(trim(font%full_name)))
-    call json_set_field(name_obj, "postscriptName", json_create_string(trim(font%postscript_name)))
+    call json_create_string(tmp_val, trim(font%family_name))
+    call json_set_field(name_obj, "familyName", tmp_val)
+
+    call json_create_string(tmp_val, trim(font%subfamily_name))
+    call json_set_field(name_obj, "subfamilyName", tmp_val)
+
+    call json_create_string(tmp_val, trim(font%full_name))
+    call json_set_field(name_obj, "fullName", tmp_val)
+
+    call json_create_string(tmp_val, trim(font%postscript_name))
+    call json_set_field(name_obj, "postscriptName", tmp_val)
+
     call json_set_field(json_obj, "name", name_obj)
 
     ! Convert PEGS table
     call json_create_array(pegs_arr)
     do i = 1, font%num_pegs
       call json_create_object(peg_item)
-      call json_set_field(peg_item, "glyphId", json_create_number(real(font%pegs(i)%glyph_id, real64)))
-      call json_set_field(peg_item, "leftPegX", json_create_number(real(font%pegs(i)%left_peg_x, real64)))
-      call json_set_field(peg_item, "leftPegY", json_create_number(real(font%pegs(i)%left_peg_y, real64)))
-      call json_set_field(peg_item, "rightPegX", json_create_number(real(font%pegs(i)%right_peg_x, real64)))
-      call json_set_field(peg_item, "rightPegY", json_create_number(real(font%pegs(i)%right_peg_y, real64)))
-      call json_set_field(peg_item, "opticalCenterX", json_create_number(real(font%pegs(i)%optical_center_x, real64)))
+
+      call json_create_number(tmp_val, real(font%pegs(i)%glyph_id, real64))
+      call json_set_field(peg_item, "glyphId", tmp_val)
+
+      call json_create_number(tmp_val, real(font%pegs(i)%left_peg_x, real64))
+      call json_set_field(peg_item, "leftPegX", tmp_val)
+
+      call json_create_number(tmp_val, real(font%pegs(i)%left_peg_y, real64))
+      call json_set_field(peg_item, "leftPegY", tmp_val)
+
+      call json_create_number(tmp_val, real(font%pegs(i)%right_peg_x, real64))
+      call json_set_field(peg_item, "rightPegX", tmp_val)
+
+      call json_create_number(tmp_val, real(font%pegs(i)%right_peg_y, real64))
+      call json_set_field(peg_item, "rightPegY", tmp_val)
+
+      call json_create_number(tmp_val, real(font%pegs(i)%optical_center_x, real64))
+      call json_set_field(peg_item, "opticalCenterX", tmp_val)
+
       call json_add_element(pegs_arr, peg_item)
     end do
     call json_set_field(json_obj, "pegs", pegs_arr)
@@ -79,22 +116,23 @@ contains
     type(json_value_type), intent(in) :: json_obj
     type(otf_font_type), intent(out)  :: font
 
-    type(json_value_type), pointer :: name_ptr, val_ptr
-    character(len=256) :: str_buf
+    type(json_value_type) :: name_obj, val_item
+    integer(kind=int32)   :: status
+    character(len=256)    :: str_buf
 
     call otf_init_font(font, "ParsedFont")
 
-    call json_get_field(json_obj, "name", name_ptr)
-    if (associated(name_ptr)) then
-      call json_get_field(name_ptr, "familyName", val_ptr)
-      if (associated(val_ptr)) then
-        call json_get_string(val_ptr, str_buf)
-        font%family_name = trim(str_buf)
+    call json_get_field(json_obj, "name", name_obj, status)
+    if (status == 0) then
+      call json_get_field(name_obj, "familyName", val_item, status)
+      if (status == 0) then
+        call json_get_string(val_item, str_buf, status)
+        if (status == 0) font%family_name = trim(str_buf)
       end if
-      call json_get_field(name_ptr, "subfamilyName", val_ptr)
-      if (associated(val_ptr)) then
-        call json_get_string(val_ptr, str_buf)
-        font%subfamily_name = trim(str_buf)
+      call json_get_field(name_obj, "subfamilyName", val_item, status)
+      if (status == 0) then
+        call json_get_string(val_item, str_buf, status)
+        if (status == 0) font%subfamily_name = trim(str_buf)
       end if
     end if
   end subroutine json_to_otf
