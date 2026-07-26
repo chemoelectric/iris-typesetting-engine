@@ -1,0 +1,75 @@
+#!/usr/bin/env scheme-r7rs
+;;; ==============================================================================
+;;; IRIS MICROTYPOGRAPHY LAYOUT ENGINE
+;;; Executable Script: font2json
+;;; Language: R7RS-large Scheme
+;;; Shebang: #!/usr/bin/env scheme-r7rs
+;;; Usage: font2json [options] [<input.otf|ttf|-] [<output.json|-]
+;;; Options:
+;;;   -o, --output=FILE     Specify output file path (or '-' for stdout)
+;;;   -f, --format=FORMAT   Override output format (json, otf, ttf)
+;;;   --                    Stop option parsing
+;;; ==============================================================================
+
+(import (scheme base)
+        (scheme write)
+        (scheme process-context)
+        (iris font2json)
+        (iris json2font)
+        (iris cli))
+
+(define (show-help)
+  (display "Usage: font2json [OPTION]... [INPUT] [OUTPUT]\n")
+  (display "Extract and convert OpenType/TrueType binary font metrics into JSON format.\n\n")
+  (display "Options:\n")
+  (display "  -o, --output=FILE     specify output file path (or '-' for stdout)\n")
+  (display "  -f, --format=FORMAT   override output format (json, otf, ttf)\n")
+  (display "  -h, --help            display this help message and exit\n")
+  (display "  -v, -V, --version     output version information and exit\n\n")
+  (display "Report bugs to <bugs@iris-microtypography.org>.\n"))
+
+(define (show-version)
+  (display "font2json (Iris Microtypography Layout Engine) 1.0.0-experimental\n")
+  (display "Copyright (C) 2026 Iris Microtypography Project.\n")
+  (display "Experimental build of the Iris Typesetting Engine.\n"))
+
+(define *main-executed* #f)
+
+(define (main raw-args)
+  (unless *main-executed*
+    (set! *main-executed* #t)
+    (let ((args (if (and (pair? raw-args) (not (null? (cdr raw-args)))) (cdr raw-args) '())))
+      (let* ((parsed (parse-cli-args args))
+             (show-help? (cdr (assoc 'help parsed)))
+             (show-version? (cdr (assoc 'version parsed)))
+             (safe-mode? (cdr (assoc 'safe-mode parsed)))
+             (opts-output (cdr (assoc 'output-path parsed)))
+             (fmt-override (cdr (assoc 'format parsed)))
+             (positional (cdr (assoc 'positional parsed))))
+        (cond
+          (show-help? (show-help))
+          (show-version? (show-version))
+          (else
+           (let* ((input-spec (if (null? positional) #f (car positional)))
+                  (output-spec (if opts-output
+                                   opts-output
+                                   (if (> (length positional) 1) (cadr positional) #f)))
+                  (in-bytes (read-input-bytes input-spec safe-mode?))
+                  (input-flavor (detect-font-flavor in-bytes))
+                  (json-str (if (or (eq? input-flavor 'otf) (eq? input-flavor 'ttf))
+                                (serialize-metrics-to-json (extract-font-metrics in-bytes))
+                                (utf8->string in-bytes)))
+                  (target-fmt (detect-output-format fmt-override output-spec 'json))
+                  (out-data (if (eq? target-fmt 'json)
+                                json-str
+                                (compile-json-to-opentype json-str)))
+                  (log-msg (string-append "Successfully converted "
+                                          (if input-spec input-spec "stdin")
+                                          " -> "
+                                          (if output-spec output-spec "stdout")
+                                          " [format=" (symbol->string target-fmt) "]")))
+             (write-output output-spec out-data target-fmt log-msg))))))))
+
+;; Direct execution fallback (guarded against duplicate invocation by Scheme runtime driver)
+(when (not *main-executed*)
+  (main (command-line)))
