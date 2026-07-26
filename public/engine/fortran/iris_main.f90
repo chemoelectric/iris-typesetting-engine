@@ -6,13 +6,13 @@
 !        McCabe Cyclomatic Complexity <= 10 per procedure.
 !===============================================================================
 program iris_main
-  use, intrinsic :: iso_fortran_env, only: int32, real64, input_unit
+  use, intrinsic :: iso_fortran_env, only: int32, real64, input_unit, output_unit
   use iris_cli_args, only: cli_parser_type, cli_result_type, &
                            CLI_NO_ARG, CLI_REQ_ARG, &
                            cli_init_parser, cli_add_option, cli_parse, &
                            cli_has_option, cli_get_option, &
                            cli_positional_count, cli_get_positional, &
-                           cli_print_help
+                           cli_print_help, cli_free
   use iris_batch_engine, only: batch_config_type, batch_run_report_type, &
                                batch_init_config, batch_process_document, BATCH_OK
   implicit none
@@ -27,9 +27,10 @@ program iris_main
   character(len=65536)        :: doc_buffer
   character(len=512)          :: line_buf
   character(len=64)           :: font_size_str
-  integer(kind=int32)         :: file_unit, io_stat, exit_code
+  integer(kind=int32)         :: file_unit, io_stat, exit_code, cli_stat, pos_cnt
   integer(kind=int32)         :: buf_len
   real(kind=real64)           :: val_size
+  logical                     :: is_present
 
   exit_code = 0
   out_filename = "output.pdf"
@@ -48,33 +49,54 @@ program iris_main
 
   if (cli_res%status /= 0) then
     write(*, '(A)') "iris: argument parsing error: " // trim(cli_res%error_message)
-    call cli_print_help(parser)
+    call cli_print_help(parser, output_unit)
     exit_code = 1
-  else if (cli_has_option(cli_res, "help")) then
-    call cli_print_help(parser)
-    exit_code = 0
   else
-    if (cli_has_option(cli_res, "output")) then
-      call cli_get_option(cli_res, "output", out_filename)
-    end if
-
-    if (cli_has_option(cli_res, "font-size")) then
-      call cli_get_option(cli_res, "font-size", font_size_str)
-      read(font_size_str, *, iostat=io_stat) val_size
-      if (io_stat == 0 .and. val_size > 0.0_real64) then
-        cfg%font_size = val_size
+    call cli_has_option(parser, cli_res, "help", is_present)
+    if (is_present) then
+      call cli_print_help(parser, output_unit)
+      exit_code = 0
+    else
+      call cli_has_option(parser, cli_res, "output", is_present)
+      if (is_present) then
+        call cli_get_option(parser, cli_res, "output", out_filename, cli_stat)
       end if
-    end if
 
-    if (cli_positional_count(cli_res) > 0) then
-      call cli_get_positional(cli_res, 1, in_filename)
-      open(newunit=file_unit, file=trim(in_filename), status='old', action='read', iostat=io_stat)
-      if (io_stat /= 0) then
-        write(*, '(A)') "iris: cannot open input file: " // trim(in_filename)
-        exit_code = 2
+      call cli_has_option(parser, cli_res, "font-size", is_present)
+      if (is_present) then
+        call cli_get_option(parser, cli_res, "font-size", font_size_str, cli_stat)
+        read(font_size_str, *, iostat=io_stat) val_size
+        if (io_stat == 0 .and. val_size > 0.0_real64) then
+          cfg%font_size = val_size
+        end if
+      end if
+
+      call cli_positional_count(cli_res, pos_cnt)
+      if (pos_cnt > 0) then
+        call cli_get_positional(cli_res, 1, in_filename, cli_stat)
+        open(newunit=file_unit, file=trim(in_filename), status='old', action='read', iostat=io_stat)
+        if (io_stat /= 0) then
+          write(*, '(A)') "iris: cannot open input file: " // trim(in_filename)
+          exit_code = 2
+        else
+          do
+            read(file_unit, '(A)', iostat=io_stat) line_buf
+            if (io_stat /= 0) exit
+            if (len_trim(line_buf) > 0) then
+              if (buf_len > 0) then
+                doc_buffer = trim(doc_buffer) // char(10) // trim(line_buf)
+              else
+                doc_buffer = trim(line_buf)
+              end if
+              buf_len = len_trim(doc_buffer)
+            end if
+          end do
+          close(file_unit)
+        end if
       else
+        ! Read from standard input if no file positional argument provided
         do
-          read(file_unit, '(A)', iostat=io_stat) line_buf
+          read(input_unit, '(A)', iostat=io_stat) line_buf
           if (io_stat /= 0) exit
           if (len_trim(line_buf) > 0) then
             if (buf_len > 0) then
@@ -85,39 +107,26 @@ program iris_main
             buf_len = len_trim(doc_buffer)
           end if
         end do
-        close(file_unit)
       end if
-    else
-      ! Read from standard input if no file positional argument provided
-      do
-        read(input_unit, '(A)', iostat=io_stat) line_buf
-        if (io_stat /= 0) exit
-        if (len_trim(line_buf) > 0) then
-          if (buf_len > 0) then
-            doc_buffer = trim(doc_buffer) // char(10) // trim(line_buf)
-          else
-            doc_buffer = trim(line_buf)
-          end if
-          buf_len = len_trim(doc_buffer)
+
+      if (exit_code == 0) then
+        if (buf_len == 0) then
+          doc_buffer = "[markup: prose] Empty document."
         end if
-      end do
-    end if
 
-    if (exit_code == 0) then
-      if (buf_len == 0) then
-        doc_buffer = "[markup: prose] Empty document."
-      end if
+        call batch_process_document(doc_buffer, out_filename, cfg, report)
 
-      call batch_process_document(doc_buffer, out_filename, cfg, report)
-
-      if (report%status /= BATCH_OK .and. report%status /= 1) then
-        write(*, '(A, A)') "iris: compilation error: ", trim(report%status_msg)
-        exit_code = 3
-      else
-        write(*, '(A, A)') "Iris Batch Engine: Successfully compiled document to ", trim(out_filename)
+        if (report%status /= BATCH_OK .and. report%status /= 1) then
+          write(*, '(A, A)') "iris: compilation error: ", trim(report%status_msg)
+          exit_code = 3
+        else
+          write(*, '(A, A)') "Iris Batch Engine: Successfully compiled document to ", trim(out_filename)
+        end if
       end if
     end if
   end if
+
+  call cli_free(parser, cli_res)
 
   if (exit_code /= 0) stop 1
 end program iris_main
