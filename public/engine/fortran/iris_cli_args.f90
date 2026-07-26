@@ -408,7 +408,11 @@ contains
         opt_str = trim(opt_str) // ' <' // trim(parser%specs(i)%value_name) // '>'
       end if
 
-      write(unit_no, '(A-28, A)') opt_str, trim(parser%specs(i)%help_text)
+      if (len_trim(opt_str) < 28) then
+        write(unit_no, '(A, A)') opt_str(1:28), trim(parser%specs(i)%help_text)
+      else
+        write(unit_no, '(A, 2X, A)') trim(opt_str), trim(parser%specs(i)%help_text)
+      end if
     end do
   end subroutine cli_print_help
 
