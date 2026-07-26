@@ -18,23 +18,22 @@ libiris_a_SOURCES = \
 	fortran/iris_bezier_intersect.f90 \
 	fortran/iris_spline.f90 \
 	fortran/iris_spline_collection.f90 \
-	fortran/iris_font_json.f90 \
 	fortran/iris_opentype.f90 \
+	fortran/iris_font_json.f90 \
 	fortran/iris_evaluate_pegs.f90 \
 	fortran/iris_pdf.f90 \
 	fortran/iris_markup_parser.f90 \
 	fortran/iris_batch_engine.f90
 
-# AM_FCFLAGS for include paths in build directory
-AM_FCFLAGS = -I. -I$(srcdir)
+# AM_FCFLAGS for include paths in build directory and source directory (VPATH support)
+AM_FCFLAGS = -I. -I$(srcdir) -Ifortran -I$(srcdir)/fortran
 
 # Explicit Fortran Module Dependencies for Parallel / VPATH Builds
 fortran/iris_cli_args.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_bezier_intersect.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_spline.$(OBJEXT): fortran/iris_bezier_intersect.$(OBJEXT)
 fortran/iris_spline_collection.$(OBJEXT): fortran/iris_spline.$(OBJEXT)
-fortran/iris_font_json.$(OBJEXT): fortran/iris_json.$(OBJEXT)
-fortran/iris_opentype.$(OBJEXT): fortran/iris_font_json.$(OBJEXT)
+fortran/iris_font_json.$(OBJEXT): fortran/iris_opentype.$(OBJEXT) fortran/iris_json.$(OBJEXT)
 fortran/iris_evaluate_pegs.$(OBJEXT): fortran/iris_opentype.$(OBJEXT) fortran/iris_spline_collection.$(OBJEXT)
 fortran/iris_pdf.$(OBJEXT): fortran/iris_evaluate_pegs.$(OBJEXT)
 fortran/iris_markup_parser.$(OBJEXT): fortran/iris_json.$(OBJEXT)
