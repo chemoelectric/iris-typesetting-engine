@@ -35,6 +35,10 @@ libiris_a_SOURCES = \
 	fortran/iris_pdf.f90 \
 	fortran/iris_markup_parser.f90 \
 	fortran/iris_kpsewhich.f90 \
+	fortran/iris_tex_lexer.f90 \
+	fortran/iris_tex_parser.f90 \
+	fortran/iris_tex_math.f90 \
+	fortran/iris_tex_trip.f90 \
 	fortran/iris_tex.f90 \
 	fortran/iris_batch_engine.f90
 
@@ -51,7 +55,11 @@ fortran/iris_evaluate_pegs.$(OBJEXT): fortran/iris_opentype.$(OBJEXT) fortran/ir
 fortran/iris_pdf.$(OBJEXT): fortran/iris_evaluate_pegs.$(OBJEXT)
 fortran/iris_markup_parser.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_kpsewhich.$(OBJEXT): fortran/iris_json.$(OBJEXT)
-fortran/iris_tex.$(OBJEXT): fortran/iris_kpsewhich.$(OBJEXT) fortran/iris_json.$(OBJEXT)
+fortran/iris_tex_lexer.$(OBJEXT): fortran/iris_json.$(OBJEXT)
+fortran/iris_tex_parser.$(OBJEXT): fortran/iris_tex_lexer.$(OBJEXT) fortran/iris_json.$(OBJEXT)
+fortran/iris_tex_math.$(OBJEXT): fortran/iris_json.$(OBJEXT)
+fortran/iris_tex_trip.$(OBJEXT): fortran/iris_json.$(OBJEXT)
+fortran/iris_tex.$(OBJEXT): fortran/iris_tex_lexer.$(OBJEXT) fortran/iris_tex_parser.$(OBJEXT) fortran/iris_tex_math.$(OBJEXT) fortran/iris_tex_trip.$(OBJEXT) fortran/iris_kpsewhich.$(OBJEXT) fortran/iris_json.$(OBJEXT)
 fortran/iris_batch_engine.$(OBJEXT): fortran/iris_markup_parser.$(OBJEXT) fortran/iris_pdf.$(OBJEXT)
 fortran/iris_main.$(OBJEXT): fortran/iris_batch_engine.$(OBJEXT) fortran/iris_cli_args.$(OBJEXT) fortran/iris_kpsewhich.$(OBJEXT) fortran/iris_tex.$(OBJEXT)
 
@@ -71,6 +79,10 @@ nobase_dist_scheme_DATA = \
 	scheme/iris/pdf.sld \
 	scheme/iris/markup-parser.sld \
 	scheme/iris/kpsewhich.sld \
+	scheme/iris/tex-lexer.sld \
+	scheme/iris/tex-parser.sld \
+	scheme/iris/tex-math.sld \
+	scheme/iris/tex-trip.sld \
 	scheme/iris/tex.sld \
 	scheme/iris/batch-engine.sld
 
@@ -89,6 +101,10 @@ nobase_dist_doc_DATA = \
 	fortran/iris_pdf.md \
 	fortran/iris_markup_parser.md \
 	fortran/iris_kpsewhich.md \
+	fortran/iris_tex_lexer.md \
+	fortran/iris_tex_parser.md \
+	fortran/iris_tex_math.md \
+	fortran/iris_tex_trip.md \
 	fortran/iris_tex.md \
 	fortran/iris_batch_engine.md \
 	fortran/iris_main.md \
@@ -103,6 +119,10 @@ nobase_dist_doc_DATA = \
 	scheme/iris/pdf.md \
 	scheme/iris/markup-parser.md \
 	scheme/iris/kpsewhich.md \
+	scheme/iris/tex-lexer.md \
+	scheme/iris/tex-parser.md \
+	scheme/iris/tex-math.md \
+	scheme/iris/tex-trip.md \
 	scheme/iris/tex.md \
 	scheme/iris/batch-engine.md
 
