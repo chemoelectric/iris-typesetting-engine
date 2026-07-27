@@ -32,5 +32,5 @@ AC_CHECK_PROGS([GOSH], [gosh], [none])
 AM_CONDITIONAL([HAVE_GOSH], [test "x$GOSH" != "xnone"])
 
 # Output configuration files
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile kpsewhich/Makefile])
 AC_OUTPUT
