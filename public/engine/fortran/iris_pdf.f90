@@ -128,14 +128,65 @@ contains
     real(kind=real64), intent(in) :: font_size
     character(len=*), intent(in) :: text_content
 
-    character(len=512) :: buffer
-    integer(kind=int32) :: buf_len
+    character(len=2048) :: line_buf, escaped_buf, op_buf
+    integer(kind=int32) :: content_len, pos, next_nl, line_len, i, esc_pos, op_len
+    real(kind=real64)   :: cur_y, line_height
+    character(1)        :: ch
 
-    write(buffer, '(A,F8.2,A,F8.2,A,F6.2,A,A,A)') &
-      "BT /F1 ", font_size, " Tf ", x, " ", y, " Td (", trim(text_content), ") Tj ET" // new_line('a')
-    
-    buf_len = len_trim(buffer)
-    call append_to_stream(pdf, buffer(1:buf_len))
+    content_len = len(text_content)
+    cur_y = y
+    line_height = font_size * 1.35_real64
+    pos = 1
+
+    do while (pos <= content_len)
+      next_nl = index(text_content(pos:content_len), char(10))
+      if (next_nl == 0) then
+        line_buf = text_content(pos:content_len)
+        pos = content_len + 1
+      else
+        line_buf = text_content(pos : pos + next_nl - 2)
+        pos = pos + next_nl
+      end if
+
+      line_len = len_trim(line_buf)
+      if (line_len > 0) then
+        if (line_buf(line_len:line_len) == char(13)) then
+          line_buf(line_len:line_len) = ' '
+          line_len = len_trim(line_buf)
+        end if
+      end if
+
+      ! Escape PDF special characters: (, ), \
+      escaped_buf = ""
+      esc_pos = 1
+      do i = 1, line_len
+        ch = line_buf(i:i)
+        if (ch == '(' .or. ch == ')' .or. ch == '\') then
+          if (esc_pos < 2047) then
+            escaped_buf(esc_pos:esc_pos) = '\'
+            esc_pos = esc_pos + 1
+          end if
+        end if
+        if (esc_pos <= 2048) then
+          escaped_buf(esc_pos:esc_pos) = ch
+          esc_pos = esc_pos + 1
+        end if
+      end do
+
+      if (cur_y < 50.0_real64) then
+        call pdf_add_page(pdf, pdf%current_page_width, pdf%current_page_height)
+        cur_y = pdf%current_page_height - 72.0_real64
+      end if
+
+      if (esc_pos > 1) then
+        write(op_buf, '(A,F6.2,A,F8.2,A,F8.2,A,A,A)') &
+          "BT /F1 ", font_size, " Tf ", x, " ", cur_y, " Td (", escaped_buf(1:esc_pos-1), ") Tj ET" // new_line('a')
+        op_len = len_trim(op_buf)
+        call append_to_stream(pdf, op_buf(1:op_len))
+      end if
+
+      cur_y = cur_y - line_height
+    end do
 
   end subroutine pdf_write_text
 

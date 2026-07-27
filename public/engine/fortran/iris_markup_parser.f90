@@ -39,7 +39,7 @@ module iris_markup_parser
     integer(kind=int32) :: dialect = DIALECT_NATURAL_PROSE
     integer(kind=int32) :: node_type = NODE_TYPE_TEXT
     integer(kind=int32) :: heading_level = 0
-    character(len=256)  :: content = ""
+    character(len=65536) :: content = ""
     character(len=128)  :: parameter = ""
   end type markup_token_type
 
