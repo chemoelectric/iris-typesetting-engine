@@ -39,12 +39,12 @@ module iris_markup_parser
     integer(kind=int32) :: dialect = DIALECT_NATURAL_PROSE
     integer(kind=int32) :: node_type = NODE_TYPE_TEXT
     integer(kind=int32) :: heading_level = 0
-    character(len=65536) :: content = ""
+    character(len=2048) :: content = ""
     character(len=128)  :: parameter = ""
   end type markup_token_type
 
   type :: parse_result_type
-    type(markup_token_type) :: tokens(128)
+    type(markup_token_type) :: tokens(16)
     integer(kind=int32)     :: token_count = 0
     integer(kind=int32)     :: detected_dialect = DIALECT_NATURAL_PROSE
     logical                 :: ambiguity_detected = .false.

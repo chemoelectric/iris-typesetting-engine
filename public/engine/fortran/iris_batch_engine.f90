@@ -100,9 +100,9 @@ contains
       call pdf_add_page(pdf_doc, 595.0_real64, 842.0_real64)
 
       ! Step 3: Layout text content using MaxEnt peg metrics
-      if (parse_ast%token_count > 0) then
+      if (len_trim(input_content) > 0) then
         call pdf_write_text(pdf_doc, cfg%margin_left, 842.0_real64 - cfg%margin_top, &
-                          cfg%font_size, trim(parse_ast%tokens(1)%content))
+                          cfg%font_size, trim(input_content))
       end if
 
       ! Step 4: Write CUPS-compliant PDF output file
