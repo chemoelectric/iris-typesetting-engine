@@ -159,8 +159,99 @@ contains
     result_ast%token_count = 1
     result_ast%tokens(1)%dialect = result_ast%detected_dialect
     result_ast%tokens(1)%node_type = NODE_TYPE_PARAGRAPH
-    result_ast%tokens(1)%content = trim(input_text)
     result_ast%tokens(1)%parameter = ""
+
+    if (result_ast%detected_dialect == DIALECT_CONTEXT .or. &
+        result_ast%detected_dialect == DIALECT_TEX_LATEX) then
+      call clean_context_markup(input_text, result_ast%tokens(1)%content)
+      if (len_trim(result_ast%tokens(1)%content) == 0) then
+        result_ast%tokens(1)%content = trim(input_text)
+      end if
+    else
+      result_ast%tokens(1)%content = trim(input_text)
+    end if
   end subroutine parse_mixed_markup_text
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: clean_context_markup
+  ! Purpose: Removes ConTeXt/TeX comments, preamble commands, and extracts text/titles
+  ! Single-entry / single-exit implementation
+  !-----------------------------------------------------------------------------
+  subroutine clean_context_markup(raw_in, cleaned_out)
+    character(len=*), intent(in)  :: raw_in
+    character(len=*), intent(out) :: cleaned_out
+
+    character(len=2048) :: line_buf
+    integer(kind=int32) :: raw_len, pos, next_nl, out_pos, i, p1, p2
+
+    raw_len = len_trim(raw_in)
+    cleaned_out = ""
+    out_pos = 1
+    pos = 1
+
+    do while (pos <= raw_len)
+      next_nl = index(raw_in(pos:raw_len), char(10))
+      if (next_nl == 0) then
+        line_buf = raw_in(pos:raw_len)
+        pos = raw_len + 1
+      else
+        line_buf = raw_in(pos : pos + next_nl - 1)
+        pos = pos + next_nl
+      end if
+
+      i = len_trim(line_buf)
+      if (i > 0) then
+        if (line_buf(i:i) == char(13)) line_buf(i:i) = ' '
+      end if
+
+      p1 = index(line_buf, "%")
+      if (p1 > 0) then
+        if (p1 == 1 .or. line_buf(p1-1:p1-1) /= "\") then
+          line_buf = line_buf(1 : p1 - 1)
+        end if
+      end if
+
+      if (index(line_buf, "\starttext") > 0 .or. index(line_buf, "\stoptext") > 0 .or. &
+          index(line_buf, "\setup") > 0 .or. index(line_buf, "\usemodule") > 0 .or. &
+          index(line_buf, "\documentclass") > 0 .or. index(line_buf, "\usepackage") > 0 .or. &
+          index(line_buf, "\begin{document}") > 0 .or. index(line_buf, "\end{document}") > 0 .or. &
+          index(line_buf, "\stopchapter") > 0 .or. index(line_buf, "\stopsection") > 0) then
+        line_buf = ""
+      end if
+
+      if (index(line_buf, "title={") > 0) then
+        p1 = index(line_buf, "title={") + 7
+        p2 = index(line_buf(p1:), "}")
+        if (p2 > 0) then
+          line_buf = line_buf(p1 : p1 + p2 - 2) // new_line('a')
+        end if
+      else if (index(line_buf, "\chapter{") > 0) then
+        p1 = index(line_buf, "\chapter{") + 9
+        p2 = index(line_buf(p1:), "}")
+        if (p2 > 0) then
+          line_buf = line_buf(p1 : p1 + p2 - 2) // new_line('a')
+        end if
+      else if (index(line_buf, "\section{") > 0) then
+        p1 = index(line_buf, "\section{") + 9
+        p2 = index(line_buf(p1:), "}")
+        if (p2 > 0) then
+          line_buf = line_buf(p1 : p1 + p2 - 2) // new_line('a')
+        end if
+      end if
+
+      if (len_trim(line_buf) > 0) then
+        if (out_pos > 1) then
+          cleaned_out(out_pos:out_pos) = char(10)
+          out_pos = out_pos + 1
+        end if
+        p2 = len_trim(line_buf)
+        if (out_pos + p2 <= len(cleaned_out)) then
+          cleaned_out(out_pos : out_pos + p2 - 1) = line_buf(1:p2)
+          out_pos = out_pos + p2
+        end if
+      end if
+    end do
+
+  end subroutine clean_context_markup
 
 end module iris_markup_parser

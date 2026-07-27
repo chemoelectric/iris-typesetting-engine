@@ -66,7 +66,7 @@ contains
 
     pdf%filename = trim(out_filename)
     pdf%unit_num = 99
-    pdf%object_count = 0
+    pdf%object_count = 3  ! Reserve 1: Catalog, 2: Pages, 3: Font
     pdf%byte_offset = 0_int64
     pdf%xref_offsets = 0_int64
     pdf%page_count = 0
@@ -249,15 +249,15 @@ contains
         call flush_current_page_objects(pdf)
       end if
 
-      catalog_id = next_object_id(pdf)
+      catalog_id = 1
       call record_object_offset(pdf, catalog_id)
       call write_raw_string(pdf, "1 0 obj" // new_line('a') // "<< /Type /Catalog /Pages 2 0 R >>" // new_line('a') // "endobj" // new_line('a'))
 
-      pages_id = next_object_id(pdf)
+      pages_id = 2
       call record_object_offset(pdf, pages_id)
       call write_pages_tree_object(pdf)
 
-      font_id = next_object_id(pdf)
+      font_id = 3
       call record_object_offset(pdf, font_id)
       call write_raw_string(pdf, "3 0 obj" // new_line('a') // &
         "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>" // new_line('a') // "endobj" // new_line('a'))
@@ -659,7 +659,7 @@ contains
 
     do i = 1, pdf%object_count
       write(entry_buf, '(I10.10,A)') pdf%xref_offsets(i), " 00000 n "
-      call write_raw_string(pdf, trim(entry_buf) // new_line('a'))
+      call write_raw_string(pdf, entry_buf(1:19) // new_line('a'))
     end do
 
   end subroutine write_xref_table
