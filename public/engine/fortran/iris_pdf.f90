@@ -335,8 +335,9 @@ contains
     integer(kind=int32), intent(out) :: status
 
     integer(kind=int64) :: offset
-    character(len=4096) :: chunk
-    integer(kind=int32) :: strm_pos, end_pos
+    character(len=MAX_STREAM_LEN) :: chunk, decomp_buf
+    integer(kind=int32) :: strm_pos, end_pos, raw_len, decomp_len, z_stat
+    logical :: is_flate
 
     status = 0
     out_stream = ""
@@ -347,6 +348,7 @@ contains
       if (offset > 0_int64) then
         read(unit=pdf%unit_num, pos=offset, iostat=status) chunk
         if (status == 0) then
+          is_flate = (index(chunk, "/FlateDecode") > 0)
           strm_pos = index(chunk, "stream")
           end_pos = index(chunk, "endstream")
           if (strm_pos > 0 .and. end_pos > strm_pos) then
@@ -357,9 +359,25 @@ contains
             if (chunk(strm_pos:strm_pos) == new_line('a')) then
               strm_pos = strm_pos + 1
             end if
-            stream_len = end_pos - strm_pos
-            if (stream_len > 0 .and. stream_len <= len(out_stream)) then
-              out_stream(1:stream_len) = chunk(strm_pos : end_pos - 1)
+            raw_len = end_pos - strm_pos
+            if (raw_len > 0) then
+              if (is_flate) then
+                call zlib_decompress_stream(chunk(strm_pos : end_pos - 1), raw_len, decomp_buf, decomp_len, z_stat)
+                if (z_stat == 0 .and. decomp_len > 0 .and. decomp_len <= len(out_stream)) then
+                  out_stream(1:decomp_len) = decomp_buf(1:decomp_len)
+                  stream_len = decomp_len
+                else
+                  if (raw_len <= len(out_stream)) then
+                    out_stream(1:raw_len) = chunk(strm_pos : end_pos - 1)
+                    stream_len = raw_len
+                  end if
+                end if
+              else
+                if (raw_len <= len(out_stream)) then
+                  out_stream(1:raw_len) = chunk(strm_pos : end_pos - 1)
+                  stream_len = raw_len
+                end if
+              end if
             end if
           end if
         end if
@@ -532,55 +550,85 @@ contains
 
   end subroutine append_to_stream
 
-  function compute_adler32(raw_bytes, raw_len) result(checksum)
-    character(len=*), intent(in) :: raw_bytes
-    integer(kind=int32), intent(in) :: raw_len
-    integer(kind=int64) :: checksum
-    integer(kind=int64) :: s1, s2
-    integer(kind=int32) :: i, b
-    integer(kind=int64), parameter :: BASE = 65521_int64
-
-    s1 = 1_int64
-    s2 = 0_int64
-    do i = 1, raw_len
-      b = ichar(raw_bytes(i:i))
-      s1 = mod(s1 + int(b, kind=int64), BASE)
-      s2 = mod(s2 + s1, BASE)
-    end do
-
-    checksum = ior(ishft(s2, 16), s1)
-  end function compute_adler32
-
   subroutine zlib_compress_stream(in_bytes, in_len, out_bytes, out_len)
+    use, intrinsic :: iso_c_binding, only: c_char, c_ulong, c_int
     character(len=*), intent(in) :: in_bytes
     integer(kind=int32), intent(in) :: in_len
     character(len=*), intent(out) :: out_bytes
     integer(kind=int32), intent(out) :: out_len
 
-    integer(kind=int64) :: adler
-    integer(kind=int32) :: nlen_val
+    interface
+      function c_zlib_compress(dest, dest_len, source, source_len) &
+          bind(c, name="compress") result(res)
+        use, intrinsic :: iso_c_binding, only: c_char, c_ulong, c_int
+        implicit none
+        character(kind=c_char), intent(out)   :: dest(*)
+        integer(kind=c_ulong), intent(inout)  :: dest_len
+        character(kind=c_char), intent(in)    :: source(*)
+        integer(kind=c_ulong), value, intent(in) :: source_len
+        integer(kind=c_int) :: res
+      end function c_zlib_compress
+    end interface
 
-    out_bytes(1:1) = char(120) ! CMF = 0x78
-    out_bytes(2:2) = char(1)   ! FLG = 0x01
-    out_bytes(3:3) = char(1)   ! BFINAL=1, BTYPE=00
-    out_bytes(4:4) = char(iand(in_len, 255))
-    out_bytes(5:5) = char(iand(ishft(in_len, -8), 255))
+    integer(kind=c_ulong) :: d_len, s_len
+    integer(kind=c_int)   :: z_res
 
-    nlen_val = not(in_len)
-    out_bytes(6:6) = char(iand(nlen_val, 255))
-    out_bytes(7:7) = char(iand(ishft(nlen_val, -8), 255))
-
-    out_bytes(8 : 7 + in_len) = in_bytes(1:in_len)
-
-    adler = compute_adler32(in_bytes, in_len)
-    out_bytes(8 + in_len : 8 + in_len) = char(iand(ishft(adler, -24), 255_int64))
-    out_bytes(9 + in_len : 9 + in_len) = char(iand(ishft(adler, -16), 255_int64))
-    out_bytes(10 + in_len : 10 + in_len) = char(iand(ishft(adler, -8), 255_int64))
-    out_bytes(11 + in_len : 11 + in_len) = char(iand(adler, 255_int64))
-
-    out_len = 11 + in_len
+    if (in_len > 0) then
+      s_len = int(in_len, kind=c_ulong)
+      d_len = int(len(out_bytes), kind=c_ulong)
+      z_res = c_zlib_compress(out_bytes, d_len, in_bytes, s_len)
+      if (z_res == 0) then
+        out_len = int(d_len, kind=int32)
+      else
+        out_bytes(1:in_len) = in_bytes(1:in_len)
+        out_len = in_len
+      end if
+    else
+      out_len = 0
+    end if
 
   end subroutine zlib_compress_stream
+
+  subroutine zlib_decompress_stream(in_bytes, in_len, out_bytes, out_len, status)
+    use, intrinsic :: iso_c_binding, only: c_char, c_ulong, c_int
+    character(len=*), intent(in) :: in_bytes
+    integer(kind=int32), intent(in) :: in_len
+    character(len=*), intent(out) :: out_bytes
+    integer(kind=int32), intent(out) :: out_len
+    integer(kind=int32), intent(out) :: status
+
+    interface
+      function c_zlib_uncompress(dest, dest_len, source, source_len) &
+          bind(c, name="uncompress") result(res)
+        use, intrinsic :: iso_c_binding, only: c_char, c_ulong, c_int
+        implicit none
+        character(kind=c_char), intent(out)   :: dest(*)
+        integer(kind=c_ulong), intent(inout)  :: dest_len
+        character(kind=c_char), intent(in)    :: source(*)
+        integer(kind=c_ulong), value, intent(in) :: source_len
+        integer(kind=c_int) :: res
+      end function c_zlib_uncompress
+    end interface
+
+    integer(kind=c_ulong) :: d_len, s_len
+    integer(kind=c_int)   :: z_res
+
+    if (in_len > 0) then
+      s_len = int(in_len, kind=c_ulong)
+      d_len = int(len(out_bytes), kind=c_ulong)
+      z_res = c_zlib_uncompress(out_bytes, d_len, in_bytes, s_len)
+      status = int(z_res, kind=int32)
+      if (z_res == 0) then
+        out_len = int(d_len, kind=int32)
+      else
+        out_len = 0
+      end if
+    else
+      status = 0
+      out_len = 0
+    end if
+
+  end subroutine zlib_decompress_stream
 
   subroutine flush_current_page_objects(pdf)
     type(pdf_document_type), intent(inout) :: pdf

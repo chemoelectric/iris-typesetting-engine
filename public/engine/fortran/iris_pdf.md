@@ -2,8 +2,8 @@
 
 ## 1. Overview
 The `iris_pdf` module is a standard Fortran 2008 (ISO/IEC 1539-1:2010) imperative module providing a native interface for:
-1. **PDF 1.7 File Generation**: Direct stream and object table output with optional pure Fortran zlib/DEFLATE compression (`/Filter /FlateDecode`).
-2. **PDF 1.7 File Parsing & Reading**: Reading `startxref` offsets, parsing cross-reference tables (`xref`), extracting raw object streams, and extracting plain text content operators.
+1. **PDF 1.7 File Generation**: Direct stream and object table output with C zlib (`ISO_C_BINDING` `compress`) FlateDecode stream compression (`/Filter /FlateDecode`).
+2. **PDF 1.7 File Parsing & Reading**: Reading `startxref` offsets, parsing cross-reference tables (`xref`), extracting raw object streams, automatically decompressing `/FlateDecode` streams with C zlib (`ISO_C_BINDING` `uncompress`), and extracting plain text content operators.
 
 The module enforces strict structured programming paradigms:
 - **Control Flow**: Single-entry / single-exit routines across all subprograms.

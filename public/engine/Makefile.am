@@ -16,7 +16,7 @@ SUBDIRS = kpsewhich
 bin_PROGRAMS = iris
 
 iris_SOURCES = fortran/iris_main.f90
-iris_LDADD = libiris.a
+iris_LDADD = libiris.a -lz
 
 # ------------------------------------------------------------------------------
 # Fortran Convenience Library

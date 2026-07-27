@@ -27,6 +27,9 @@ AS_IF([test "x$FC" != "x"], [
   FCFLAGS="$FCFLAGS -std=f2008 -ffree-line-length-none"
 ])
 
+# Check for zlib library
+AC_CHECK_LIB([z], [compress], [], [AC_MSG_ERROR([zlib library is required])])
+
 # Check for Gauche Scheme interpreter (R7RS) for Scheme test harness
 AC_CHECK_PROGS([GOSH], [gosh], [none])
 AM_CONDITIONAL([HAVE_GOSH], [test "x$GOSH" != "xnone"])
