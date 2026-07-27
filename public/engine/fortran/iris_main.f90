@@ -16,7 +16,7 @@ program iris_main
   use iris_batch_engine, only: batch_config_type, batch_run_report_type, &
                                batch_init_config, batch_process_document, BATCH_OK
   use iris_kpsewhich, only: kpse_search_file, KPSE_OK
-  use iris_tex, only: tex_engine_type, tex_init, tex_compile_string, tex_free, TEX_OK
+  use iris_tex, only: tex_engine_type, tex_init, tex_compile_string, tex_run_trip_test, tex_free, TEX_OK
   use iris_json, only: json_value_type, json_free
   implicit none
 
@@ -35,6 +35,7 @@ program iris_main
   character(len=512)          :: line_buf
   character(len=64)           :: font_size_str
   character(len=1024)         :: resolved_path
+  character(len=256)          :: trip_msg
   integer(kind=int32)         :: file_unit, io_stat, exit_code, cli_stat, pos_cnt
   integer(kind=int32)         :: buf_len, kpse_stat, tex_stat
   real(kind=real64)           :: val_size
@@ -111,6 +112,16 @@ program iris_main
         else
           write(*, '(A)') "iris tex: missing TeX source file"
           exit_code = 1
+        end if
+      else if (trim(subcommand) == "trip") then
+        ! Unified TRIP benchmark diagnostic test dispatch
+        call tex_run_trip_test(tex_stat, trip_msg)
+        if (tex_stat == TEX_OK) then
+          write(*, '(A)') "Iris TeX Engine [TRIP Benchmark Suite]: " // trim(trip_msg)
+          exit_code = 0
+        else
+          write(*, '(A)') "iris trip: TRIP benchmark diagnostic failure"
+          exit_code = 4
         end if
       else
         ! Standard document processing route

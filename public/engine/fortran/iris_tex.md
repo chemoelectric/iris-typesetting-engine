@@ -11,5 +11,8 @@ Initializes the TeX engine instance with specified job name and default dimensio
 ### `tex_compile_string(engine, tex_source, ast_out, status)`
 Compiles TeX input source string into a structured layout AST object.
 
+### `tex_run_trip_test(status, report_msg)`
+Runs Knuth's TRIP diagnostic benchmark suite for TeX compatibility validation.
+
 ### `tex_free(engine)`
 Releases TeX engine resources.

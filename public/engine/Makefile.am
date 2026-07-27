@@ -122,6 +122,7 @@ check_PROGRAMS = \
 	test_iris_markup_parser \
 	test_iris_kpsewhich \
 	test_iris_tex \
+	test_iris_trip \
 	test_iris_batch
 
 test_iris_json_SOURCES = tests/test_iris_json.f90
@@ -171,6 +172,10 @@ tests/test_iris_kpsewhich.$(OBJEXT): fortran/iris_kpsewhich.$(OBJEXT)
 test_iris_tex_SOURCES = tests/test_iris_tex.f90
 test_iris_tex_LDADD = libiris.a
 tests/test_iris_tex.$(OBJEXT): fortran/iris_tex.$(OBJEXT)
+
+test_iris_trip_SOURCES = tests/test_iris_trip.f90
+test_iris_trip_LDADD = libiris.a
+tests/test_iris_trip.$(OBJEXT): fortran/iris_tex.$(OBJEXT)
 
 test_iris_batch_SOURCES = tests/test_iris_batch.f90
 test_iris_batch_LDADD = libiris.a
