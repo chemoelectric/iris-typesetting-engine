@@ -208,4 +208,4 @@ TESTS = $(check_PROGRAMS)
 # ------------------------------------------------------------------------------
 CLEANFILES = *.mod fortran/*.mod tests/*.mod *.pdf test_output.pdf test_pdf_out.pdf
 
-EXTRA_DIST = autogen.sh
+EXTRA_DIST = autogen.sh LICENSE COPYING vendor/README.md

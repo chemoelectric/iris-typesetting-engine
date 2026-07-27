@@ -30,6 +30,18 @@ AS_IF([test "x$FC" != "x"], [
 # Check for zlib library
 AC_CHECK_LIB([z], [compress], [], [AC_MSG_ERROR([zlib library is required])])
 
+# Check for libkpathsea library (with fallback notice referencing vendor tarball)
+AC_CHECK_LIB([kpathsea], [kpse_find_file],
+  [AC_DEFINE([HAVE_LIBKPATHSEA], [1], [Define if libkpathsea is available])],
+  [AC_MSG_NOTICE([
+----------------------------------------------------------------------
+NOTE: libkpathsea was not found on your system.
+If you require native kpathsea file searching capabilities, please install
+libkpathsea-dev or compile the included source tarball located at:
+  vendor/libkpathsea.tar.xz
+Iris will fall back to its internal Fortran search engine for kpsewhich.
+----------------------------------------------------------------------])])
+
 # Check for Gauche Scheme interpreter (R7RS) for Scheme test harness
 AC_CHECK_PROGS([GOSH], [gosh], [none])
 AM_CONDITIONAL([HAVE_GOSH], [test "x$GOSH" != "xnone"])
