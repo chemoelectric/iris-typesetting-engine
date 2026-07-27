@@ -101,7 +101,7 @@ contains
 
       ! Step 3: Layout text content using MaxEnt peg metrics
       if (parse_ast%token_count > 0) then
-        call pdf_write_text(pdf_doc, cfg%margin_left, cfg%margin_top, &
+        call pdf_write_text(pdf_doc, cfg%margin_left, 842.0_real64 - cfg%margin_top, &
                           cfg%font_size, trim(parse_ast%tokens(1)%content))
       end if
 

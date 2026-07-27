@@ -104,6 +104,8 @@ contains
     real(kind=real64), intent(in) :: width
     real(kind=real64), intent(in) :: height
 
+    if (pdf%page_count >= MAX_PAGES) return
+
     if (pdf%page_count > 0) then
       call flush_current_page_objects(pdf)
     end if
@@ -129,6 +131,7 @@ contains
     character(len=*), intent(in) :: text_content
 
     character(len=2048) :: line_buf, escaped_buf, op_buf
+    character(len=32)   :: f_str, x_str, y_str
     integer(kind=int32) :: content_len, pos, next_nl, line_len, i, esc_pos, op_len
     real(kind=real64)   :: cur_y, line_height
     character(1)        :: ch
@@ -143,6 +146,9 @@ contains
       if (next_nl == 0) then
         line_buf = text_content(pos:content_len)
         pos = content_len + 1
+      else if (next_nl == 1) then
+        line_buf = ""
+        pos = pos + 1
       else
         line_buf = text_content(pos : pos + next_nl - 2)
         pos = pos + next_nl
@@ -174,13 +180,18 @@ contains
       end do
 
       if (cur_y < 50.0_real64) then
-        call pdf_add_page(pdf, pdf%current_page_width, pdf%current_page_height)
-        cur_y = pdf%current_page_height - 72.0_real64
+        if (pdf%page_count < MAX_PAGES) then
+          call pdf_add_page(pdf, pdf%current_page_width, pdf%current_page_height)
+          cur_y = pdf%current_page_height - 72.0_real64
+        end if
       end if
 
       if (esc_pos > 1) then
-        write(op_buf, '(A,F6.2,A,F8.2,A,F8.2,A,A,A)') &
-          "BT /F1 ", font_size, " Tf ", x, " ", cur_y, " Td (", escaped_buf(1:esc_pos-1), ") Tj ET" // new_line('a')
+        write(f_str, '(F6.2)') font_size
+        write(x_str, '(F8.2)') x
+        write(y_str, '(F8.2)') cur_y
+        op_buf = "BT /F1 " // adjustl(f_str) // " Tf " // adjustl(x_str) // " " // &
+                 adjustl(y_str) // " Td (" // escaped_buf(1:esc_pos-1) // ") Tj ET" // new_line('a')
         op_len = len_trim(op_buf)
         call append_to_stream(pdf, op_buf(1:op_len))
       end if
