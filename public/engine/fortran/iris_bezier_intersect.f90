@@ -33,6 +33,11 @@ module iris_bezier_intersect
   public :: bezier_intersect
   public :: bezier_free_result
 
+  interface bezier_split
+    module procedure bezier_split_subdivide
+    module procedure bezier_split_at_t
+  end interface bezier_split
+
   type :: point_2d_type
     real(kind=real64) :: x = 0.0_real64
     real(kind=real64) :: y = 0.0_real64
@@ -123,26 +128,41 @@ contains
   ! De Casteljau subdivision at t = 0.5 into left and right sub-curves
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  subroutine bezier_split(curve, left, right)
+  subroutine bezier_split_subdivide(curve, left, right)
     type(bezier_cubic_type), intent(in)  :: curve
     type(bezier_cubic_type), intent(out) :: left, right
 
+    call bezier_split_at_t(curve, 0.5_real64, left, right)
+  end subroutine bezier_split_subdivide
+
+  !-----------------------------------------------------------------------------
+  ! De Casteljau subdivision at arbitrary parameter t in [0, 1]
+  ! Single-entry / single-exit implementation
+  !-----------------------------------------------------------------------------
+  subroutine bezier_split_at_t(curve, t, left, right)
+    type(bezier_cubic_type), intent(in)  :: curve
+    real(kind=real64), intent(in)        :: t
+    type(bezier_cubic_type), intent(out) :: left, right
+
     type(point_2d_type) :: m01, m12, m23, m012, m123, mid
+    real(kind=real64)   :: u
 
-    m01%x  = 0.5_real64 * (curve%p0%x + curve%p1%x)
-    m01%y  = 0.5_real64 * (curve%p0%y + curve%p1%y)
-    m12%x  = 0.5_real64 * (curve%p1%x + curve%p2%x)
-    m12%y  = 0.5_real64 * (curve%p1%y + curve%p2%y)
-    m23%x  = 0.5_real64 * (curve%p2%x + curve%p3%x)
-    m23%y  = 0.5_real64 * (curve%p2%y + curve%p3%y)
+    u = 1.0_real64 - t
 
-    m012%x = 0.5_real64 * (m01%x + m12%x)
-    m012%y = 0.5_real64 * (m01%y + m12%y)
-    m123%x = 0.5_real64 * (m12%x + m23%x)
-    m123%y = 0.5_real64 * (m12%y + m23%y)
+    m01%x  = u * curve%p0%x + t * curve%p1%x
+    m01%y  = u * curve%p0%y + t * curve%p1%y
+    m12%x  = u * curve%p1%x + t * curve%p2%x
+    m12%y  = u * curve%p1%y + t * curve%p2%y
+    m23%x  = u * curve%p2%x + t * curve%p3%x
+    m23%y  = u * curve%p2%y + t * curve%p3%y
 
-    mid%x  = 0.5_real64 * (m012%x + m123%x)
-    mid%y  = 0.5_real64 * (m012%y + m123%y)
+    m012%x = u * m01%x + t * m12%x
+    m012%y = u * m01%y + t * m12%y
+    m123%x = u * m12%x + t * m23%x
+    m123%y = u * m12%y + t * m23%y
+
+    mid%x  = u * m012%x + t * m123%x
+    mid%y  = u * m012%y + t * m123%y
 
     left%p0  = curve%p0
     left%p1  = m01
@@ -153,7 +173,7 @@ contains
     right%p1 = m123
     right%p2 = m23
     right%p3 = curve%p3
-  end subroutine bezier_split
+  end subroutine bezier_split_at_t
 
   !-----------------------------------------------------------------------------
   ! Fast SIMD Axis-Aligned Bounding Box Overlap Test
@@ -184,9 +204,9 @@ contains
   ! Convert Bernstein-Bézier basis to S-Power (Monomial Power) basis
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  function bezier_to_spower(curve) result(sp)
-    type(bezier_cubic_type), intent(in) :: curve
-    type(spower_cubic_type)             :: sp
+  subroutine bezier_to_spower(curve, sp)
+    type(bezier_cubic_type), intent(in)  :: curve
+    type(spower_cubic_type), intent(out) :: sp
 
     sp%c0%x = curve%p0%x
     sp%c0%y = curve%p0%y
@@ -199,7 +219,7 @@ contains
 
     sp%c3%x = curve%p3%x - 3.0_real64 * curve%p2%x + 3.0_real64 * curve%p1%x - curve%p0%x
     sp%c3%y = curve%p3%y - 3.0_real64 * curve%p2%y + 3.0_real64 * curve%p1%y - curve%p0%y
-  end function bezier_to_spower
+  end subroutine bezier_to_spower
 
   !-----------------------------------------------------------------------------
   ! Recursive Bézier Clipping with S-power acceleration
