@@ -33,6 +33,12 @@ module iris_cli_args
   public :: cli_get_positional
   public :: cli_print_help
   public :: cli_print_mode_help
+
+  interface cli_free
+    module procedure cli_free_parser
+    module procedure cli_free_result
+    module procedure cli_free_both
+  end interface cli_free
   public :: cli_free
 
   integer(kind=int32), parameter :: MAX_OPTS  = 64
@@ -588,16 +594,28 @@ contains
   ! Free / reset parser and result structures
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  subroutine cli_free(parser, res)
+  subroutine cli_free_parser(parser)
     type(cli_parser_type), intent(inout) :: parser
-    type(cli_result_type), intent(inout) :: res
 
     parser%spec_count = 0
     parser%mode_count = 0
+  end subroutine cli_free_parser
+
+  subroutine cli_free_result(res)
+    type(cli_result_type), intent(inout) :: res
+
     res%parsed_opt_count = 0
     res%positional_count = 0
     res%status = 0
     res%error_message = ''
-  end subroutine cli_free
+  end subroutine cli_free_result
+
+  subroutine cli_free_both(parser, res)
+    type(cli_parser_type), intent(inout) :: parser
+    type(cli_result_type), intent(inout) :: res
+
+    call cli_free_parser(parser)
+    call cli_free_result(res)
+  end subroutine cli_free_both
 
 end module iris_cli_args
