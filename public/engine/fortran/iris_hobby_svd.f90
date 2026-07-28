@@ -137,8 +137,8 @@ contains
   ! Single-entry / single-exit implementation (M <= 7)
   !-----------------------------------------------------------------------------
   subroutine hobby_compute_spline_svd(knots, n, is_closed, cfg, controls, status)
-    type(hobby_knot_type), intent(in)           :: knots(n)
     integer(kind=int32), intent(in)             :: n
+    type(hobby_knot_type), intent(in)           :: knots(n)
     logical, intent(in)                         :: is_closed
     type(hobby_config_type), intent(in)         :: cfg
     type(hobby_control_point_type), intent(out) :: controls(n)
