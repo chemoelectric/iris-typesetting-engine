@@ -10,10 +10,22 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 # ------------------------------------------------------------------------------
 # Executable Binaries
 # ------------------------------------------------------------------------------
-bin_PROGRAMS = iris
+bin_PROGRAMS = iris iris-tex iris-kpsewhich iris-trip iris-compile
 
 iris_SOURCES = fortran/iris_main.f90
 iris_LDADD = libiris.a -lz
+
+iris_tex_SOURCES = fortran/iris_cmd_tex.f90
+iris_tex_LDADD = libiris.a -lz
+
+iris_kpsewhich_SOURCES = fortran/iris_cmd_kpsewhich.f90
+iris_kpsewhich_LDADD = libiris.a -lz
+
+iris_trip_SOURCES = fortran/iris_cmd_trip.f90
+iris_trip_LDADD = libiris.a -lz
+
+iris_compile_SOURCES = fortran/iris_cmd_compile.f90
+iris_compile_LDADD = libiris.a -lz
 
 # ------------------------------------------------------------------------------
 # Fortran Convenience Library
@@ -61,7 +73,11 @@ fortran/iris_tex_math.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_tex_trip.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_tex.$(OBJEXT): fortran/iris_tex_lexer.$(OBJEXT) fortran/iris_tex_parser.$(OBJEXT) fortran/iris_tex_math.$(OBJEXT) fortran/iris_tex_trip.$(OBJEXT) fortran/iris_kpsewhich.$(OBJEXT) fortran/iris_json.$(OBJEXT)
 fortran/iris_batch_engine.$(OBJEXT): fortran/iris_markup_parser.$(OBJEXT) fortran/iris_pdf.$(OBJEXT)
-fortran/iris_main.$(OBJEXT): fortran/iris_batch_engine.$(OBJEXT) fortran/iris_cli_args.$(OBJEXT) fortran/iris_kpsewhich.$(OBJEXT) fortran/iris_tex.$(OBJEXT) fortran/iris_dynamic_string.$(OBJEXT)
+fortran/iris_cmd_tex.$(OBJEXT): fortran/iris_tex.$(OBJEXT) fortran/iris_cli_args.$(OBJEXT) fortran/iris_json.$(OBJEXT)
+fortran/iris_cmd_kpsewhich.$(OBJEXT): fortran/iris_kpsewhich.$(OBJEXT) fortran/iris_cli_args.$(OBJEXT)
+fortran/iris_cmd_trip.$(OBJEXT): fortran/iris_tex.$(OBJEXT) fortran/iris_cli_args.$(OBJEXT)
+fortran/iris_cmd_compile.$(OBJEXT): fortran/iris_batch_engine.$(OBJEXT) fortran/iris_cli_args.$(OBJEXT) fortran/iris_dynamic_string.$(OBJEXT)
+fortran/iris_main.$(OBJEXT): fortran/iris_cli_args.$(OBJEXT)
 
 # ------------------------------------------------------------------------------
 # R7RS Scheme Library Distribution
@@ -109,6 +125,10 @@ nobase_dist_doc_DATA = \
 	fortran/iris_tex_trip.md \
 	fortran/iris_tex.md \
 	fortran/iris_batch_engine.md \
+	fortran/iris_cmd_tex.md \
+	fortran/iris_cmd_kpsewhich.md \
+	fortran/iris_cmd_trip.md \
+	fortran/iris_cmd_compile.md \
 	fortran/iris_main.md \
 	scheme/iris/json.md \
 	scheme/iris/cli-args.md \

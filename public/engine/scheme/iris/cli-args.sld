@@ -19,7 +19,9 @@
     cli-get-positional
     cli-positionals
     cli-format-help
-    cli-print-help)
+    cli-print-help
+    cli-format-mode-help
+    cli-print-mode-help)
 
   (import (scheme base)
           (scheme write)
@@ -41,11 +43,12 @@
       (help-text spec-help))
 
     (define-record-type <cli-mode-spec>
-      (make-mode-spec name args help)
+      (make-mode-spec name args help detailed)
       mode-spec?
       (name mode-name)
       (args mode-args)
-      (help mode-help))
+      (help mode-help)
+      (detailed mode-detailed))
 
     (define-record-type <cli-parser>
       (make-parser prog-name desc specs modes)
@@ -89,11 +92,13 @@
                     (if (string? help-text) help-text ""))))
         (parser-specs-set! parser (append (parser-specs parser) (list spec)))))
 
-    (define (cli-add-mode! parser mode-name mode-args help-text)
-      (let ((spec (make-mode-spec
+    (define (cli-add-mode! parser mode-name mode-args help-text . rest)
+      (let ((detailed (if (and (pair? rest) (string? (car rest))) (car rest) ""))
+            (spec (make-mode-spec
                     (if (string? mode-name) mode-name "")
                     (if (string? mode-args) mode-args "")
-                    (if (string? help-text) help-text ""))))
+                    (if (string? help-text) help-text "")
+                    (if (and (pair? rest) (string? (car rest))) (car rest) ""))))
         (parser-modes-set! parser (append (parser-modes parser) (list spec)))))
 
     ;; -------------------------------------------------------------------------
@@ -284,4 +289,51 @@
         (get-output-string out)))
 
     (define (cli-print-help parser)
-      (display (cli-format-help parser)))))
+      (display (cli-format-help parser)))
+
+    (define (cli-format-mode-help parser mode-name-str)
+      (let ((found #f)
+            (modes (parser-modes parser)))
+        (for-each
+         (lambda (m)
+           (if (string=? (mode-name m) mode-name-str)
+               (set! found m)))
+         modes)
+        (if found
+            (let ((out (open-output-string)))
+              (display "Usage: " out)
+              (display (parser-prog-name parser) out)
+              (display " " out)
+              (display (mode-name found) out)
+              (if (not (string=? (mode-args found) ""))
+                  (begin (display " " out) (display (mode-args found) out)))
+              (display "\n\n" out)
+              (display (mode-help found) out)
+              (display "\n" out)
+              (if (not (string=? (mode-detailed found) ""))
+                  (begin
+                    (display "\n" out)
+                    (display (mode-detailed found) out)
+                    (display "\n" out)))
+              (display "\nOptions:\n" out)
+              (for-each
+               (lambda (sp)
+                 (let ((flag-str
+                        (string-append
+                         "  "
+                         (if (spec-short sp) (string-append "-" (spec-short sp)) "    ")
+                         (if (and (spec-short sp) (spec-long sp)) ", " "  ")
+                         (if (spec-long sp) (string-append "--" (spec-long sp)) "")
+                         (if (not (string=? (spec-val-name sp) ""))
+                             (string-append " <" (spec-val-name sp) ">")
+                             ""))))
+                   (display flag-str out)
+                   (display "    " out)
+                   (display (spec-help sp) out)
+                   (newline out)))
+               (parser-specs parser))
+              (get-output-string out))
+            (cli-format-help parser))))
+
+    (define (cli-print-mode-help parser mode-name-str)
+      (display (cli-format-mode-help parser mode-name-str)))))

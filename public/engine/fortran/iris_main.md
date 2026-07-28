@@ -1,27 +1,24 @@
-# Iris Main Command-Line Compiler (`iris_main`)
+# Iris Unified Command Dispatcher (`iris_main`)
 
 ## Overview
-The `iris_main` program serves as the primary command-line executable interface for the Iris Typographic Engine. It compiles natural prose and troff/groff formatted input text into high-performance CUPS-compliant PDF documents using Jaynesian MaxEnt optimization and Sorts Mill peg coordinate layout metrics.
+The `iris_main` program serves as the unified dispatcher executable (`iris`) for the Iris Typographic Suite. Each mode operates as its own dedicated standalone program (`iris-tex`, `iris-kpsewhich`, `iris-trip`, `iris-compile`), while the `iris` command acts as a dispatcher forwarding arguments to the appropriate executable command.
 
 ## Usage
 ```bash
-iris [OPTIONS] [MODE] [ARGUMENTS]
+iris [subcommand] [options] [arguments]
 ```
 
-## Execution Modes / Subcommands
-- `tex <file>`: Compile TeX document using Iris TeX Engine.
-- `kpsewhich <file>`: Search TeX path or format specification for file location.
-- `trip`: Run TRIP benchmark diagnostic test suite.
-- `[file]`: Compile Iris markup or prose file directly to PDF (default mode). If omitted, reads from standard input.
+## Subcommands
+- `tex`: Dispatch to `iris-tex` to compile TeX documents.
+- `kpsewhich`: Dispatch to `iris-kpsewhich` to resolve TeX path locations.
+- `trip`: Dispatch to `iris-trip` to run the TRIP benchmark suite.
+- `compile`: Dispatch to `iris-compile` to compile Iris markup/prose to PDF.
+- `[file]`: Default mode dispatches to `iris-compile`.
 
-## Command-Line Options
-- `-o, --output FILE`: Specify the target output PDF file path (default: `output.pdf`).
-- `-f, --font-size POINTS`: Set the baseline document font size in points (default: `11.0`).
-- `-m, --format FMT`: Format specification for `kpsewhich` or `tex` search mode.
-- `-h, --help`: Display command-line options and execution modes, then exit.
+## Help Commands
+- `iris --help`: Display dispatcher subcommands and options.
+- `iris tex --help`: Display help for `iris-tex`.
+- `iris kpsewhich --help`: Display help for `iris-kpsewhich`.
+- `iris trip --help`: Display help for `iris-trip`.
+- `iris compile --help`: Display help for `iris-compile`.
 
-## Error Codes
-- `0`: Successful document compilation.
-- `1`: Invalid command-line argument syntax or flag specification.
-- `2`: Unable to locate or open specified input file.
-- `3`: Document compilation or PDF generation error.

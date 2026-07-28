@@ -13,7 +13,7 @@ This library is designed in **structural isomorphism** with the Fortran 2008 `ir
 | :--- | :--- | :--- |
 | **Parser Constructor** | `(make-cli-parser prog desc)` | `call cli_init_parser(parser, prog, desc)` |
 | **Option Registration** | `(cli-add-option! parser short long mode val-name help)` | `call cli_add_option(parser, short, long, mode, val_name, help)` |
-| **Mode/Subcommand Registration** | `(cli-add-mode! parser mode-name mode-args help)` | `call cli_add_mode(parser, mode_name, mode_args, help)` |
+| **Mode/Subcommand Registration** | `(cli-add-mode! parser mode-name mode-args help [detailed_help])` | `call cli_add_mode(parser, mode_name, mode_args, help [, detailed_help])` |
 | **Parse Execution** | `(cli-parse parser [args])` | `call cli_parse(parser, res)` |
 | **Option Query (Boolean)** | `(cli-has-option? res flag)` | `call cli_has_option(parser, res, flag, present)` |
 | **Option Value Retrieval** | `(cli-get-option res flag)` | `call cli_get_option(parser, res, flag, val, status)` |
@@ -21,6 +21,7 @@ This library is designed in **structural isomorphism** with the Fortran 2008 `ir
 | **Positional Count** | `(cli-positional-count res)` | `call cli_positional_count(res, count)` |
 | **Positional Value** | `(cli-get-positional res idx)` | `call cli_get_positional(res, idx, val, status)` |
 | **Help Generation** | `(cli-print-help parser)` | `call cli_print_help(parser, unit)` |
+| **Mode Help Generation** | `(cli-print-mode-help parser mode-name)` | `call cli_print_mode_help(parser, mode_name, unit)` |
 
 ---
 

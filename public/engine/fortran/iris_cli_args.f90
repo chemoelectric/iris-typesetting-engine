@@ -32,6 +32,7 @@ module iris_cli_args
   public :: cli_positional_count
   public :: cli_get_positional
   public :: cli_print_help
+  public :: cli_print_mode_help
   public :: cli_free
 
   integer(kind=int32), parameter :: MAX_OPTS  = 64
@@ -48,9 +49,10 @@ module iris_cli_args
   end type cli_option_spec_type
 
   type :: cli_mode_spec_type
-    character(len=64)      :: mode_name  = ''
-    character(len=STR_LEN) :: mode_args  = ''
-    character(len=STR_LEN) :: help_text  = ''
+    character(len=64)      :: mode_name     = ''
+    character(len=STR_LEN) :: mode_args     = ''
+    character(len=STR_LEN) :: help_text     = ''
+    character(len=1024)    :: detailed_help = ''
   end type cli_mode_spec_type
 
   type :: cli_parsed_opt_node
@@ -122,11 +124,12 @@ contains
   ! Register a mode / subcommand specification in the parser
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  subroutine cli_add_mode(parser, mode_name, mode_args, help_text)
-    type(cli_parser_type), intent(inout) :: parser
-    character(len=*), intent(in)         :: mode_name
-    character(len=*), intent(in)         :: mode_args
-    character(len=*), intent(in)         :: help_text
+  subroutine cli_add_mode(parser, mode_name, mode_args, help_text, detailed_help)
+    type(cli_parser_type), intent(inout)   :: parser
+    character(len=*), intent(in)           :: mode_name
+    character(len=*), intent(in)           :: mode_args
+    character(len=*), intent(in)           :: help_text
+    character(len=*), intent(in), optional :: detailed_help
 
     integer(kind=int32) :: idx
 
@@ -136,6 +139,11 @@ contains
       parser%modes(idx)%mode_name = trim(adjustl(mode_name))
       parser%modes(idx)%mode_args = trim(adjustl(mode_args))
       parser%modes(idx)%help_text = trim(adjustl(help_text))
+      if (present(detailed_help)) then
+        parser%modes(idx)%detailed_help = trim(adjustl(detailed_help))
+      else
+        parser%modes(idx)%detailed_help = ''
+      end if
     end if
   end subroutine cli_add_mode
 
@@ -471,6 +479,70 @@ contains
       end if
     end do
   end subroutine cli_print_help
+
+  !-----------------------------------------------------------------------------
+  ! Format and output mode-specific help documentation
+  ! Single-entry / single-exit implementation
+  !-----------------------------------------------------------------------------
+  subroutine cli_print_mode_help(parser, mode_name, unit_no)
+    type(cli_parser_type), intent(in) :: parser
+    character(len=*), intent(in)      :: mode_name
+    integer(kind=int32), intent(in)   :: unit_no
+
+    integer(kind=int32)    :: i, mode_idx
+    character(len=STR_LEN) :: opt_str, norm_mode
+
+    norm_mode = trim(adjustl(mode_name))
+    mode_idx = 0
+    do i = 1, parser%mode_count
+      if (trim(parser%modes(i)%mode_name) == norm_mode) then
+        mode_idx = i
+        exit
+      end if
+    end do
+
+    if (mode_idx > 0) then
+      write(unit_no, '(A)') 'Usage: ' // trim(parser%program_name) // ' ' // &
+                            trim(parser%modes(mode_idx)%mode_name) // ' ' // &
+                            trim(parser%modes(mode_idx)%mode_args)
+      write(unit_no, '(A)') ''
+      write(unit_no, '(A)') trim(parser%modes(mode_idx)%help_text)
+      if (len_trim(parser%modes(mode_idx)%detailed_help) > 0) then
+        write(unit_no, '(A)') ''
+        write(unit_no, '(A)') trim(parser%modes(mode_idx)%detailed_help)
+      end if
+      write(unit_no, '(A)') ''
+      write(unit_no, '(A)') 'Options:'
+
+      do i = 1, parser%spec_count
+        opt_str = '  '
+        if (parser%specs(i)%short_flag /= ' ') then
+          opt_str = trim(opt_str) // '-' // parser%specs(i)%short_flag
+          if (len_trim(parser%specs(i)%long_flag) > 0) then
+            opt_str = trim(opt_str) // ', '
+          end if
+        else
+          opt_str = trim(opt_str) // '    '
+        end if
+
+        if (len_trim(parser%specs(i)%long_flag) > 0) then
+          opt_str = trim(opt_str) // '--' // trim(parser%specs(i)%long_flag)
+        end if
+
+        if (len_trim(parser%specs(i)%value_name) > 0) then
+          opt_str = trim(opt_str) // ' <' // trim(parser%specs(i)%value_name) // '>'
+        end if
+
+        if (len_trim(opt_str) < 28) then
+          write(unit_no, '(A, A)') opt_str(1:28), trim(parser%specs(i)%help_text)
+        else
+          write(unit_no, '(A, 2X, A)') trim(opt_str), trim(parser%specs(i)%help_text)
+        end if
+      end do
+    else
+      call cli_print_help(parser, unit_no)
+    end if
+  end subroutine cli_print_mode_help
 
   !-----------------------------------------------------------------------------
   ! Free / reset parser and result structures

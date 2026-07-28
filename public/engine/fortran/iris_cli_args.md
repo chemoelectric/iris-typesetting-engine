@@ -13,7 +13,7 @@ This module is designed in **structural isomorphism** with the R7RS Scheme `(iri
 | :--- | :--- | :--- |
 | **Parser Constructor** | `call cli_init_parser(parser, prog, desc)` | `(make-cli-parser prog desc)` |
 | **Option Registration** | `call cli_add_option(parser, short, long, mode, val_name, help)` | `(cli-add-option! parser short long mode val-name help)` |
-| **Mode/Subcommand Registration** | `call cli_add_mode(parser, mode_name, mode_args, help)` | `(cli-add-mode! parser mode_name mode_args help)` |
+| **Mode/Subcommand Registration** | `call cli_add_mode(parser, mode_name, mode_args, help [, detailed_help])` | `(cli-add-mode! parser mode_name mode_args help [detailed_help])` |
 | **Parse Execution** | `call cli_parse(parser, res)` | `(cli-parse parser [args])` |
 | **Option Query (Boolean)** | `call cli_has_option(parser, res, flag, present)` | `(cli-has-option? res flag)` |
 | **Option Value Retrieval** | `call cli_get_option(parser, res, flag, val, status)` | `(cli-get-option res flag)` |
@@ -21,6 +21,7 @@ This module is designed in **structural isomorphism** with the R7RS Scheme `(iri
 | **Positional Count** | `call cli_positional_count(res, count)` | `(cli-positional-count res)` |
 | **Positional Value** | `call cli_get_positional(res, idx, val, status)` | `(cli-get-positional res idx)` |
 | **Help Generation** | `call cli_print_help(parser, unit)` | `(cli-print-help parser)` |
+| **Mode Help Generation** | `call cli_print_mode_help(parser, mode_name, unit)` | `(cli-print-mode-help parser mode_name)` |
 | **Cleanup** | `call cli_free(parser, res)` | N/A (Garbage Collected) |
 
 ---
