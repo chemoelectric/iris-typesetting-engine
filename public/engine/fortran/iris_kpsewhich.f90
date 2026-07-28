@@ -44,7 +44,9 @@ contains
     integer(kind=int32), intent(out) :: status
 
     logical :: file_exists
-    character(len=512) :: test_path
+    character(len=512) :: test_path, cmd_str, tmp_outfile
+    integer(kind=int32) :: exit_stat, io_stat, unit_num
+    character(len=1024) :: line_buf
 
     status = KPSE_NOT_FOUND
     resolved_path = ""
@@ -54,22 +56,44 @@ contains
     if (file_exists) then
       resolved_path = trim(filename)
       status = KPSE_OK
-    else
-      ! Check with format extension if omitted
-      if (index(filename, ".") == 0 .and. len_trim(fmt) > 0) then
-        test_path = trim(filename) // "." // trim(fmt)
-        inquire(file=trim(test_path), exist=file_exists)
-        if (file_exists) then
-          resolved_path = trim(test_path)
-          status = KPSE_OK
-        end if
-      end if
-
-      ! Fallback path resolution
-      if (status /= KPSE_OK) then
-        resolved_path = trim(filename)
+    else if (index(filename, ".") == 0 .and. len_trim(fmt) > 0) then
+      test_path = trim(filename) // "." // trim(fmt)
+      inquire(file=trim(test_path), exist=file_exists)
+      if (file_exists) then
+        resolved_path = trim(test_path)
         status = KPSE_OK
       end if
+    end if
+
+    ! Invoke system kpsewhich if local lookup did not find the file
+    if (status /= KPSE_OK) then
+      tmp_outfile = ".iris_kpse_tmp.txt"
+      if (len_trim(fmt) > 0) then
+        cmd_str = "kpsewhich --format=" // trim(fmt) // " " // trim(filename) // " > " // trim(tmp_outfile) // " 2>/dev/null"
+      else
+        cmd_str = "kpsewhich " // trim(filename) // " > " // trim(tmp_outfile) // " 2>/dev/null"
+      end if
+
+      call execute_command_line(cmd_str, exitstat=exit_stat)
+      if (exit_stat == 0) then
+        open(newunit=unit_num, file=trim(tmp_outfile), status='old', action='read', iostat=io_stat)
+        if (io_stat == 0) then
+          read(unit_num, '(A)', iostat=io_stat) line_buf
+          close(unit_num)
+          open(newunit=unit_num, file=trim(tmp_outfile), status='old')
+          close(unit_num, status='delete')
+          if (io_stat == 0 .and. len_trim(line_buf) > 0) then
+            resolved_path = trim(line_buf)
+            status = KPSE_OK
+          end if
+        end if
+      end if
+    end if
+
+    ! Fallback path resolution if system kpsewhich was not present or failed
+    if (status /= KPSE_OK) then
+      resolved_path = trim(filename)
+      status = KPSE_OK
     end if
   end subroutine kpse_search_file
 
