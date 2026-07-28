@@ -413,6 +413,42 @@ contains
   end subroutine cli_get_positional
 
   !-----------------------------------------------------------------------------
+  ! Helper: Output multi-line string handling \n and linefeeds
+  ! Single-entry / single-exit implementation
+  !-----------------------------------------------------------------------------
+  subroutine print_multiline_str(str_in, unit_no)
+    character(len=*), intent(in)    :: str_in
+    integer(kind=int32), intent(in) :: unit_no
+
+    character(len=STR_LEN) :: work_str, line_buf
+    integer(kind=int32)    :: pos, nlen
+
+    work_str = trim(adjustl(str_in))
+    nlen = len_trim(work_str)
+    line_buf = ""
+    pos = 1
+
+    do while (pos <= nlen)
+      if (pos < nlen .and. work_str(pos:pos+1) == '\n') then
+        write(unit_no, '(A)') trim(line_buf)
+        line_buf = ""
+        pos = pos + 2
+      else if (work_str(pos:pos) == achar(10) .or. work_str(pos:pos) == achar(13)) then
+        write(unit_no, '(A)') trim(line_buf)
+        line_buf = ""
+        pos = pos + 1
+      else
+        line_buf = trim(line_buf) // work_str(pos:pos)
+        pos = pos + 1
+      end if
+    end do
+
+    if (len_trim(line_buf) > 0) then
+      write(unit_no, '(A)') trim(line_buf)
+    end if
+  end subroutine print_multiline_str
+
+  !-----------------------------------------------------------------------------
   ! Format and output auto-generated help documentation
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
@@ -430,7 +466,7 @@ contains
     end if
 
     if (len_trim(parser%description) > 0) then
-      write(unit_no, '(A)') trim(parser%description)
+      call print_multiline_str(parser%description, unit_no)
     end if
 
     if (parser%mode_count > 0) then
@@ -506,10 +542,10 @@ contains
                             trim(parser%modes(mode_idx)%mode_name) // ' ' // &
                             trim(parser%modes(mode_idx)%mode_args)
       write(unit_no, '(A)') ''
-      write(unit_no, '(A)') trim(parser%modes(mode_idx)%help_text)
+      call print_multiline_str(parser%modes(mode_idx)%help_text, unit_no)
       if (len_trim(parser%modes(mode_idx)%detailed_help) > 0) then
         write(unit_no, '(A)') ''
-        write(unit_no, '(A)') trim(parser%modes(mode_idx)%detailed_help)
+        call print_multiline_str(parser%modes(mode_idx)%detailed_help, unit_no)
       end if
       write(unit_no, '(A)') ''
       write(unit_no, '(A)') 'Options:'
