@@ -10,6 +10,7 @@
   (export
     make-cli-parser
     cli-add-option!
+    cli-add-mode!
     cli-parse
     cli-has-option?
     cli-get-option
@@ -39,12 +40,20 @@
       (value-name spec-val-name)
       (help-text spec-help))
 
+    (define-record-type <cli-mode-spec>
+      (make-mode-spec name args help)
+      mode-spec?
+      (name mode-name)
+      (args mode-args)
+      (help mode-help))
+
     (define-record-type <cli-parser>
-      (make-parser prog-name desc specs)
+      (make-parser prog-name desc specs modes)
       cli-parser?
       (prog-name parser-prog-name)
       (desc parser-desc)
-      (specs parser-specs parser-specs-set!))
+      (specs parser-specs parser-specs-set!)
+      (modes parser-modes parser-modes-set!))
 
     (define-record-type <cli-result>
       (make-result parsed-opts positionals status error-msg)
@@ -60,6 +69,7 @@
     (define (make-cli-parser prog-name desc)
       (make-parser (if (string? prog-name) prog-name "")
                    (if (string? desc) desc "")
+                   '()
                    '()))
 
     ;; -------------------------------------------------------------------------
@@ -78,6 +88,13 @@
                     (if (string? value-name) value-name "")
                     (if (string? help-text) help-text ""))))
         (parser-specs-set! parser (append (parser-specs parser) (list spec)))))
+
+    (define (cli-add-mode! parser mode-name mode-args help-text)
+      (let ((spec (make-mode-spec
+                    (if (string? mode-name) mode-name "")
+                    (if (string? mode-args) mode-args "")
+                    (if (string? help-text) help-text ""))))
+        (parser-modes-set! parser (append (parser-modes parser) (list spec)))))
 
     ;; -------------------------------------------------------------------------
     ;; Internal Helpers
@@ -226,11 +243,27 @@
       (let ((out (open-output-string)))
         (display "Usage: " out)
         (display (parser-prog-name parser) out)
-        (display " [OPTIONS] [ARGUMENTS]\n" out)
+        (if (null? (parser-modes parser))
+            (display " [OPTIONS] [ARGUMENTS]\n" out)
+            (display " [OPTIONS] [MODE] [ARGUMENTS]\n" out))
         (if (not (string=? (parser-desc parser) ""))
             (begin
               (display (parser-desc parser) out)
               (display "\n" out)))
+        (if (not (null? (parser-modes parser)))
+            (begin
+              (display "\nModes / Subcommands:\n" out)
+              (for-each
+               (lambda (m)
+                 (let ((m-str (string-append "  " (mode-name m)
+                                             (if (not (string=? (mode-args m) ""))
+                                                 (string-append " " (mode-args m))
+                                                 ""))))
+                   (display m-str out)
+                   (display "    " out)
+                   (display (mode-help m) out)
+                   (newline out)))
+               (parser-modes parser))))
         (display "\nOptions:\n" out)
         (for-each
          (lambda (sp)

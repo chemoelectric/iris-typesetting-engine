@@ -9,7 +9,7 @@ program iris_main
   use, intrinsic :: iso_fortran_env, only: int32, real64, input_unit, output_unit
   use iris_cli_args, only: cli_parser_type, cli_result_type, &
                            CLI_NO_ARG, CLI_REQ_ARG, &
-                           cli_init_parser, cli_add_option, cli_parse, &
+                           cli_init_parser, cli_add_option, cli_add_mode, cli_parse, &
                            cli_has_option, cli_get_option, &
                            cli_positional_count, cli_get_positional, &
                            cli_print_help, cli_free
@@ -52,6 +52,11 @@ program iris_main
 
   call batch_init_config(cfg)
   call cli_init_parser(parser, "iris", "Iris Typographic Engine - Unified Command System")
+
+  call cli_add_mode(parser, "tex", "<file>", "Compile TeX document using Iris TeX Engine")
+  call cli_add_mode(parser, "kpsewhich", "<file>", "Search TeX path or format for file location")
+  call cli_add_mode(parser, "trip", "", "Run TRIP benchmark diagnostic suite")
+  call cli_add_mode(parser, "[file]", "", "Compile Iris markup or prose file to PDF (default mode)")
 
   call cli_add_option(parser, 'o', "output", CLI_REQ_ARG, "FILE", "Output PDF document filename (default: output.pdf)")
   call cli_add_option(parser, 'f', "font-size", CLI_REQ_ARG, "POINTS", "Base font size in points (default: 11.0)")

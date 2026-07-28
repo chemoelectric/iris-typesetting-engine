@@ -13,6 +13,7 @@ This module is designed in **structural isomorphism** with the R7RS Scheme `(iri
 | :--- | :--- | :--- |
 | **Parser Constructor** | `call cli_init_parser(parser, prog, desc)` | `(make-cli-parser prog desc)` |
 | **Option Registration** | `call cli_add_option(parser, short, long, mode, val_name, help)` | `(cli-add-option! parser short long mode val-name help)` |
+| **Mode/Subcommand Registration** | `call cli_add_mode(parser, mode_name, mode_args, help)` | `(cli-add-mode! parser mode_name mode_args help)` |
 | **Parse Execution** | `call cli_parse(parser, res)` | `(cli-parse parser [args])` |
 | **Option Query (Boolean)** | `call cli_has_option(parser, res, flag, present)` | `(cli-has-option? res flag)` |
 | **Option Value Retrieval** | `call cli_get_option(parser, res, flag, val, status)` | `(cli-get-option res flag)` |

@@ -5,15 +5,20 @@ The `iris_main` program serves as the primary command-line executable interface 
 
 ## Usage
 ```bash
-iris [OPTIONS] [INPUT_FILE]
+iris [OPTIONS] [MODE] [ARGUMENTS]
 ```
 
-If `INPUT_FILE` is omitted, `iris` reads markup text directly from standard input.
+## Execution Modes / Subcommands
+- `tex <file>`: Compile TeX document using Iris TeX Engine.
+- `kpsewhich <file>`: Search TeX path or format specification for file location.
+- `trip`: Run TRIP benchmark diagnostic test suite.
+- `[file]`: Compile Iris markup or prose file directly to PDF (default mode). If omitted, reads from standard input.
 
 ## Command-Line Options
 - `-o, --output FILE`: Specify the target output PDF file path (default: `output.pdf`).
 - `-f, --font-size POINTS`: Set the baseline document font size in points (default: `11.0`).
-- `-h, --help`: Display command-line option specifications and exit.
+- `-m, --format FMT`: Format specification for `kpsewhich` or `tex` search mode.
+- `-h, --help`: Display command-line options and execution modes, then exit.
 
 ## Error Codes
 - `0`: Successful document compilation.

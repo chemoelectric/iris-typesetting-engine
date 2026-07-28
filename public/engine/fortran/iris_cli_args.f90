@@ -17,12 +17,14 @@ module iris_cli_args
 
   ! Public Derived Types
   public :: cli_option_spec_type
+  public :: cli_mode_spec_type
   public :: cli_parser_type
   public :: cli_result_type
 
   ! Public API Procedures
   public :: cli_init_parser
   public :: cli_add_option
+  public :: cli_add_mode
   public :: cli_parse
   public :: cli_has_option
   public :: cli_get_option
@@ -32,9 +34,10 @@ module iris_cli_args
   public :: cli_print_help
   public :: cli_free
 
-  integer(kind=int32), parameter :: MAX_OPTS = 64
-  integer(kind=int32), parameter :: MAX_ARGS = 256
-  integer(kind=int32), parameter :: STR_LEN  = 256
+  integer(kind=int32), parameter :: MAX_OPTS  = 64
+  integer(kind=int32), parameter :: MAX_MODES = 16
+  integer(kind=int32), parameter :: MAX_ARGS  = 256
+  integer(kind=int32), parameter :: STR_LEN   = 256
 
   type :: cli_option_spec_type
     character(len=1)       :: short_flag = ' '
@@ -44,6 +47,12 @@ module iris_cli_args
     character(len=64)      :: value_name = ''
   end type cli_option_spec_type
 
+  type :: cli_mode_spec_type
+    character(len=64)      :: mode_name  = ''
+    character(len=STR_LEN) :: mode_args  = ''
+    character(len=STR_LEN) :: help_text  = ''
+  end type cli_mode_spec_type
+
   type :: cli_parsed_opt_node
     integer(kind=int32)    :: spec_index = 0
     character(len=STR_LEN) :: value      = ''
@@ -52,6 +61,8 @@ module iris_cli_args
   type :: cli_parser_type
     type(cli_option_spec_type) :: specs(MAX_OPTS)
     integer(kind=int32)        :: spec_count = 0
+    type(cli_mode_spec_type)   :: modes(MAX_MODES)
+    integer(kind=int32)        :: mode_count = 0
     character(len=STR_LEN)     :: program_name = ''
     character(len=STR_LEN)     :: description = ''
   end type cli_parser_type
@@ -77,6 +88,7 @@ contains
     character(len=*), intent(in)       :: description
 
     parser%spec_count = 0
+    parser%mode_count = 0
     parser%program_name = trim(adjustl(program_name))
     parser%description = trim(adjustl(description))
   end subroutine cli_init_parser
@@ -105,6 +117,27 @@ contains
       parser%specs(idx)%help_text  = trim(adjustl(help_text))
     end if
   end subroutine cli_add_option
+
+  !-----------------------------------------------------------------------------
+  ! Register a mode / subcommand specification in the parser
+  ! Single-entry / single-exit implementation
+  !-----------------------------------------------------------------------------
+  subroutine cli_add_mode(parser, mode_name, mode_args, help_text)
+    type(cli_parser_type), intent(inout) :: parser
+    character(len=*), intent(in)         :: mode_name
+    character(len=*), intent(in)         :: mode_args
+    character(len=*), intent(in)         :: help_text
+
+    integer(kind=int32) :: idx
+
+    if (parser%mode_count < MAX_MODES) then
+      parser%mode_count = parser%mode_count + 1
+      idx = parser%mode_count
+      parser%modes(idx)%mode_name = trim(adjustl(mode_name))
+      parser%modes(idx)%mode_args = trim(adjustl(mode_args))
+      parser%modes(idx)%help_text = trim(adjustl(help_text))
+    end if
+  end subroutine cli_add_mode
 
   !-----------------------------------------------------------------------------
   ! Helper: Match long flag name to spec index
@@ -380,12 +413,35 @@ contains
     integer(kind=int32), intent(in)   :: unit_no
 
     integer(kind=int32)    :: i
-    character(len=STR_LEN) :: opt_fmt, opt_str
+    character(len=STR_LEN) :: opt_str, mode_str
 
-    write(unit_no, '(A)') 'Usage: ' // trim(parser%program_name) // ' [OPTIONS] [ARGUMENTS]'
+    if (parser%mode_count > 0) then
+      write(unit_no, '(A)') 'Usage: ' // trim(parser%program_name) // ' [OPTIONS] [MODE] [ARGUMENTS]'
+    else
+      write(unit_no, '(A)') 'Usage: ' // trim(parser%program_name) // ' [OPTIONS] [ARGUMENTS]'
+    end if
+
     if (len_trim(parser%description) > 0) then
       write(unit_no, '(A)') trim(parser%description)
     end if
+
+    if (parser%mode_count > 0) then
+      write(unit_no, '(A)') ''
+      write(unit_no, '(A)') 'Modes / Subcommands:'
+      do i = 1, parser%mode_count
+        mode_str = '  ' // trim(parser%modes(i)%mode_name)
+        if (len_trim(parser%modes(i)%mode_args) > 0) then
+          mode_str = trim(mode_str) // ' ' // trim(parser%modes(i)%mode_args)
+        end if
+
+        if (len_trim(mode_str) < 28) then
+          write(unit_no, '(A, A)') mode_str(1:28), trim(parser%modes(i)%help_text)
+        else
+          write(unit_no, '(A, 2X, A)') trim(mode_str), trim(parser%modes(i)%help_text)
+        end if
+      end do
+    end if
+
     write(unit_no, '(A)') ''
     write(unit_no, '(A)') 'Options:'
 
@@ -425,6 +481,7 @@ contains
     type(cli_result_type), intent(inout) :: res
 
     parser%spec_count = 0
+    parser%mode_count = 0
     res%parsed_opt_count = 0
     res%positional_count = 0
     res%status = 0
