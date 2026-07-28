@@ -341,13 +341,18 @@ contains
     integer(kind=int32), intent(out) :: status
 
     integer(kind=int64) :: offset
-    character(len=MAX_STREAM_LEN) :: chunk, decomp_buf
+    character(len=:), allocatable :: chunk, decomp_buf
     integer(kind=int32) :: strm_pos, end_pos, raw_len, decomp_len, z_stat
     logical :: is_flate
 
     status = 0
     out_stream = ""
     stream_len = 0
+
+    allocate(character(len=65536) :: chunk)
+    allocate(character(len=65536) :: decomp_buf)
+    chunk = ""
+    decomp_buf = ""
 
     if (obj_id >= 1 .and. obj_id <= pdf%object_count) then
       offset = pdf%xref_offsets(obj_id)
@@ -392,6 +397,9 @@ contains
       status = -2
     end if
 
+    if (allocated(chunk)) deallocate(chunk)
+    if (allocated(decomp_buf)) deallocate(decomp_buf)
+
   end subroutine pdf_extract_stream
 
   !-----------------------------------------------------------------------------
@@ -407,12 +415,15 @@ contains
     integer(kind=int32), intent(out) :: status
 
     integer(kind=int32) :: strm_obj_id
-    character(len=MAX_STREAM_LEN) :: raw_strm
+    character(len=:), allocatable :: raw_strm
     integer(kind=int32) :: raw_len, p1, p2, cur_pos
 
     status = 0
     out_text = ""
     out_len = 0
+
+    allocate(character(len=65536) :: raw_strm)
+    raw_strm = ""
 
     if (page_num >= 1 .and. page_num <= pdf%page_count) then
       strm_obj_id = pdf%stream_object_ids(page_num)
@@ -444,6 +455,8 @@ contains
     else
       status = -1
     end if
+
+    if (allocated(raw_strm)) deallocate(raw_strm)
 
   end subroutine pdf_read_page_text
 
@@ -564,7 +577,7 @@ contains
   end subroutine append_to_stream
 
   subroutine zlib_compress_stream(in_bytes, in_len, out_bytes, out_len)
-    use, intrinsic :: iso_c_binding, only: c_char, c_ulong, c_int
+    use, intrinsic :: iso_c_binding, only: c_char, c_long, c_int
     character(len=*), intent(in) :: in_bytes
     integer(kind=int32), intent(in) :: in_len
     character(len=*), intent(out) :: out_bytes
@@ -573,22 +586,22 @@ contains
     interface
       function c_zlib_compress(dest, dest_len, source, source_len) &
           bind(c, name="compress") result(res)
-        use, intrinsic :: iso_c_binding, only: c_char, c_ulong, c_int
+        use, intrinsic :: iso_c_binding, only: c_char, c_long, c_int
         implicit none
         character(kind=c_char), intent(out)   :: dest(*)
-        integer(kind=c_ulong), intent(inout)  :: dest_len
+        integer(kind=c_long), intent(inout)   :: dest_len
         character(kind=c_char), intent(in)    :: source(*)
-        integer(kind=c_ulong), value, intent(in) :: source_len
+        integer(kind=c_long), value, intent(in) :: source_len
         integer(kind=c_int) :: res
       end function c_zlib_compress
     end interface
 
-    integer(kind=c_ulong) :: d_len, s_len
-    integer(kind=c_int)   :: z_res
+    integer(kind=c_long) :: d_len, s_len
+    integer(kind=c_int)  :: z_res
 
     if (in_len > 0) then
-      s_len = int(in_len, kind=c_ulong)
-      d_len = int(len(out_bytes), kind=c_ulong)
+      s_len = int(in_len, kind=c_long)
+      d_len = int(len(out_bytes), kind=c_long)
       z_res = c_zlib_compress(out_bytes, d_len, in_bytes, s_len)
       if (z_res == 0) then
         out_len = int(d_len, kind=int32)
@@ -603,7 +616,7 @@ contains
   end subroutine zlib_compress_stream
 
   subroutine zlib_decompress_stream(in_bytes, in_len, out_bytes, out_len, status)
-    use, intrinsic :: iso_c_binding, only: c_char, c_ulong, c_int
+    use, intrinsic :: iso_c_binding, only: c_char, c_long, c_int
     character(len=*), intent(in) :: in_bytes
     integer(kind=int32), intent(in) :: in_len
     character(len=*), intent(out) :: out_bytes
@@ -613,22 +626,22 @@ contains
     interface
       function c_zlib_uncompress(dest, dest_len, source, source_len) &
           bind(c, name="uncompress") result(res)
-        use, intrinsic :: iso_c_binding, only: c_char, c_ulong, c_int
+        use, intrinsic :: iso_c_binding, only: c_char, c_long, c_int
         implicit none
         character(kind=c_char), intent(out)   :: dest(*)
-        integer(kind=c_ulong), intent(inout)  :: dest_len
+        integer(kind=c_long), intent(inout)   :: dest_len
         character(kind=c_char), intent(in)    :: source(*)
-        integer(kind=c_ulong), value, intent(in) :: source_len
+        integer(kind=c_long), value, intent(in) :: source_len
         integer(kind=c_int) :: res
       end function c_zlib_uncompress
     end interface
 
-    integer(kind=c_ulong) :: d_len, s_len
-    integer(kind=c_int)   :: z_res
+    integer(kind=c_long) :: d_len, s_len
+    integer(kind=c_int)  :: z_res
 
     if (in_len > 0) then
-      s_len = int(in_len, kind=c_ulong)
-      d_len = int(len(out_bytes), kind=c_ulong)
+      s_len = int(in_len, kind=c_long)
+      d_len = int(len(out_bytes), kind=c_long)
       z_res = c_zlib_uncompress(out_bytes, d_len, in_bytes, s_len)
       status = int(z_res, kind=int32)
       if (z_res == 0) then
