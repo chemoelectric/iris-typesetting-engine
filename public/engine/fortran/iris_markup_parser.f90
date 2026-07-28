@@ -216,11 +216,20 @@ contains
           index(line_buf, "\setup") > 0 .or. index(line_buf, "\usemodule") > 0 .or. &
           index(line_buf, "\documentclass") > 0 .or. index(line_buf, "\usepackage") > 0 .or. &
           index(line_buf, "\begin{document}") > 0 .or. index(line_buf, "\end{document}") > 0 .or. &
-          index(line_buf, "\stopchapter") > 0 .or. index(line_buf, "\stopsection") > 0) then
+          index(line_buf, "\stopchapter") > 0 .or. index(line_buf, "\stopsection") > 0 .or. &
+          index(line_buf, "\hsize=") > 0 .or. index(line_buf, "\vsize=") > 0 .or. &
+          trim(line_buf) == "\bigskip" .or. trim(line_buf) == "\bye" .or. &
+          trim(line_buf) == "\par") then
         line_buf = ""
       end if
 
-      if (index(line_buf, "title={") > 0) then
+      if (index(line_buf, "\centerline{") > 0) then
+        p1 = index(line_buf, "\centerline{") + 12
+        p2 = index(line_buf(p1:), "}")
+        if (p2 > 0) then
+          line_buf = line_buf(p1 : p1 + p2 - 2)
+        end if
+      else if (index(line_buf, "title={") > 0) then
         p1 = index(line_buf, "title={") + 7
         p2 = index(line_buf(p1:), "}")
         if (p2 > 0) then
@@ -237,6 +246,29 @@ contains
         p2 = index(line_buf(p1:), "}")
         if (p2 > 0) then
           line_buf = line_buf(p1 : p1 + p2 - 2) // new_line('a')
+        end if
+      end if
+
+      p1 = index(line_buf, "\bf ")
+      if (p1 > 0) then
+        line_buf = line_buf(1:p1-1) // line_buf(p1+4:)
+      end if
+
+      p1 = index(line_buf, "{\tt ")
+      if (p1 > 0) then
+        line_buf = line_buf(1:p1-1) // line_buf(p1+5:)
+        p2 = index(line_buf(p1:), "}")
+        if (p2 > 0) then
+          line_buf = line_buf(1:p1+p2-2) // line_buf(p1+p2:)
+        end if
+      end if
+
+      p1 = index(line_buf, "{\bf ")
+      if (p1 > 0) then
+        line_buf = line_buf(1:p1-1) // line_buf(p1+5:)
+        p2 = index(line_buf(p1:), "}")
+        if (p2 > 0) then
+          line_buf = line_buf(1:p1+p2-2) // line_buf(p1+p2:)
         end if
       end if
 

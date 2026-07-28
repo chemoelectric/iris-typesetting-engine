@@ -266,7 +266,7 @@ contains
       font_id = 3
       call record_object_offset(pdf, font_id)
       call write_raw_string(pdf, "3 0 obj" // new_line('a') // &
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>" // new_line('a') // "endobj" // new_line('a'))
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>" // new_line('a') // "endobj" // new_line('a'))
 
       xref_start_offset = pdf%byte_offset
       call write_xref_table(pdf)
@@ -712,11 +712,11 @@ contains
     kids_buf = trim(kids_buf) // trim(single_ref) // " /Kids ["
 
     do idx = 1, pdf%page_count
-      write(single_ref, '(I0,A)') pdf%page_object_ids(idx), " 0 R "
-      kids_buf = trim(kids_buf) // trim(single_ref)
+      write(single_ref, '(I0,A)') pdf%page_object_ids(idx), " 0 R"
+      kids_buf = trim(kids_buf) // " " // trim(single_ref)
     end do
 
-    kids_buf = trim(kids_buf) // "] >>" // new_line('a') // "endobj" // new_line('a')
+    kids_buf = trim(kids_buf) // " ] >>" // new_line('a') // "endobj" // new_line('a')
     call write_raw_string(pdf, trim(kids_buf))
 
   end subroutine write_pages_tree_object
@@ -731,11 +731,11 @@ contains
     write(entry_buf, '(A,I0)') "0 ", pdf%object_count + 1
     call write_raw_string(pdf, trim(entry_buf) // new_line('a'))
 
-    call write_raw_string(pdf, "0000000000 65535 f " // new_line('a'))
+    call write_raw_string(pdf, "0000000000 65535 f" // char(13) // char(10))
 
     do i = 1, pdf%object_count
-      write(entry_buf, '(I10.10,A)') pdf%xref_offsets(i), " 00000 n "
-      call write_raw_string(pdf, entry_buf(1:19) // new_line('a'))
+      write(entry_buf, '(I10.10,A,A)') pdf%xref_offsets(i), " 00000 n", char(13) // char(10)
+      call write_raw_string(pdf, entry_buf(1:20))
     end do
 
   end subroutine write_xref_table

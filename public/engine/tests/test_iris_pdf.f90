@@ -10,14 +10,14 @@ program test_iris_pdf
   use iris_pdf
   implicit none
 
-  type(pdf_doc_type)  :: pdf
-  integer(kind=int32) :: exit_code
-  logical             :: file_exists
+  type(pdf_document_type) :: pdf
+  integer(kind=int32)     :: exit_code, status
+  logical                 :: file_exists
 
   exit_code = 0
 
   ! 1. Initialize PDF Document
-  call pdf_init_document(pdf, "test_pdf_out.pdf", 595.0_real64, 842.0_real64)
+  call pdf_init(pdf, "test_pdf_out.pdf", status)
 
   ! 2. Add Page
   call pdf_add_page(pdf, 595.0_real64, 842.0_real64)
@@ -31,7 +31,7 @@ program test_iris_pdf
                       "Iris Microtypography Engine PDF Regression Test")
 
   ! 4. Finalize & Flush Output PDF File
-  call pdf_finalize_document(pdf)
+  call pdf_close(pdf, status)
 
   ! 5. Verify PDF File Creation
   inquire(file="test_pdf_out.pdf", exist=file_exists)
