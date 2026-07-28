@@ -16,4 +16,4 @@ iris-tex <file> [options]
 
 ## Synchronization
 - **Fortran Entry**: `fortran/iris_cmd_tex.f90`
-- **Module Dependency**: `iris_tex`, `iris_cli_args`, `iris_json`
+- **Module Dependency**: `iris_tex`, `iris_batch_engine`, `iris_dynamic_string`, `iris_cli_args`, `iris_json`

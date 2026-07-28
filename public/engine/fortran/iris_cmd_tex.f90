@@ -6,7 +6,7 @@
 !        McCabe Cyclomatic Complexity <= 10 per procedure.
 !===============================================================================
 program iris_cmd_tex
-  use, intrinsic :: iso_fortran_env, only: int32, output_unit
+  use, intrinsic :: iso_fortran_env, only: int32, input_unit, output_unit
   use iris_cli_args, only: cli_parser_type, cli_result_type, &
                            CLI_NO_ARG, CLI_REQ_ARG, &
                            cli_init_parser, cli_add_option, cli_parse, &
@@ -14,22 +14,35 @@ program iris_cmd_tex
                            cli_positional_count, cli_get_positional, &
                            cli_print_help, cli_free
   use iris_tex, only: tex_engine_type, tex_init, tex_compile_string, tex_free, TEX_OK
+  use iris_batch_engine, only: batch_config_type, batch_run_report_type, &
+                               batch_init_config, batch_process_document, BATCH_OK
+  use iris_dynamic_string, only: append_string_buffer
   use iris_json, only: json_value_type, json_free
   implicit none
 
-  type(cli_parser_type) :: parser
-  type(cli_result_type) :: cli_res
-  type(tex_engine_type) :: tex_eng
-  type(json_value_type) :: tex_ast
+  type(cli_parser_type)         :: parser
+  type(cli_result_type)         :: cli_res
+  type(tex_engine_type)         :: tex_eng
+  type(json_value_type)         :: tex_ast
+  type(batch_config_type)       :: batch_cfg
+  type(batch_run_report_type)   :: batch_report
 
-  character(len=512)    :: out_filename, in_filename, fmt_opt
-  integer(kind=int32)   :: exit_code, cli_stat, pos_cnt, tex_stat
-  logical               :: is_present
+  character(len=512)            :: out_filename, in_filename, fmt_opt
+  character(len=:), allocatable :: doc_buffer
+  character(len=2048)           :: line_buf
+  integer(kind=int32)           :: exit_code, cli_stat, pos_cnt, tex_stat
+  integer(kind=int32)           :: file_unit, io_stat, buf_len
+  logical                       :: is_present
 
   exit_code = 0
   out_filename = "output.pdf"
   in_filename = ""
   fmt_opt = ""
+  allocate(character(len=4096) :: doc_buffer)
+  doc_buffer = ""
+  buf_len = 0
+
+  call batch_init_config(batch_cfg)
 
   call cli_init_parser(parser, "iris-tex", &
     "Iris TeX Engine - TeX Document Compiler\n" // &
@@ -52,35 +65,76 @@ program iris_cmd_tex
       call cli_print_help(parser, output_unit)
       exit_code = 0
     else
+      call cli_has_option(parser, cli_res, "output", is_present)
+      if (is_present) then
+        call cli_get_option(parser, cli_res, "output", out_filename, cli_stat)
+      end if
+
+      call cli_has_option(parser, cli_res, "format", is_present)
+      if (is_present) then
+        call cli_get_option(parser, cli_res, "format", fmt_opt, cli_stat)
+      end if
+
       call cli_positional_count(cli_res, pos_cnt)
       if (pos_cnt > 0) then
         call cli_get_positional(cli_res, 1, in_filename, cli_stat)
-
-        call cli_has_option(parser, cli_res, "output", is_present)
-        if (is_present) then
-          call cli_get_option(parser, cli_res, "output", out_filename, cli_stat)
+        open(newunit=file_unit, file=trim(in_filename), status='old', action='read', iostat=io_stat)
+        if (io_stat /= 0) then
+          write(*, '(A)') "iris-tex: cannot open input file: " // trim(in_filename)
+          exit_code = 2
+        else
+          do
+            read(file_unit, '(A)', iostat=io_stat) line_buf
+            if (io_stat /= 0) exit
+            if (len_trim(line_buf) > 0) then
+              if (buf_len > 0) then
+                call append_string_buffer(doc_buffer, buf_len, char(10) // trim(line_buf))
+              else
+                call append_string_buffer(doc_buffer, buf_len, trim(line_buf))
+              end if
+            end if
+          end do
+          close(file_unit)
         end if
+      else
+        ! Read standard input
+        do
+          read(input_unit, '(A)', iostat=io_stat) line_buf
+          if (io_stat /= 0) exit
+          if (len_trim(line_buf) > 0) then
+            if (buf_len > 0) then
+              call append_string_buffer(doc_buffer, buf_len, char(10) // trim(line_buf))
+            else
+              call append_string_buffer(doc_buffer, buf_len, trim(line_buf))
+            end if
+          end if
+        end do
+      end if
 
-        call cli_has_option(parser, cli_res, "format", is_present)
-        if (is_present) then
-          call cli_get_option(parser, cli_res, "format", fmt_opt, cli_stat)
+      if (exit_code == 0) then
+        if (buf_len == 0) then
+          doc_buffer = "\hello world"
         end if
 
         call tex_init(tex_eng, in_filename)
-        call tex_compile_string(tex_eng, trim(in_filename), tex_ast, tex_stat)
-        if (tex_stat == TEX_OK) then
-          write(*, '(A, A)') "Iris TeX Engine: compiled ", trim(in_filename)
+        call tex_compile_string(tex_eng, doc_buffer, tex_ast, tex_stat)
+
+        call batch_process_document(doc_buffer, out_filename, batch_cfg, batch_report)
+
+        if (tex_stat == TEX_OK .and. (batch_report%status == BATCH_OK .or. batch_report%status == 1)) then
+          if (len_trim(in_filename) > 0) then
+            write(*, '(A, A, A, A)') "Iris TeX Engine: Successfully compiled ", trim(in_filename), " -> ", trim(out_filename)
+          else
+            write(*, '(A, A)') "Iris TeX Engine: Successfully compiled stdin -> ", trim(out_filename)
+          end if
           exit_code = 0
         else
           write(*, '(A)') "iris-tex: compilation error"
           exit_code = 3
         end if
+
         call json_free(tex_ast)
         call tex_free(tex_eng)
-      else
-        write(*, '(A)') "iris-tex: missing TeX source file"
-        call cli_print_help(parser, output_unit)
-        exit_code = 1
       end if
     end if
   end if
