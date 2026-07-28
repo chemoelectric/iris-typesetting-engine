@@ -38,8 +38,6 @@ program iris_cmd_tex
   out_filename = "output.pdf"
   in_filename = ""
   fmt_opt = ""
-  allocate(character(len=4096) :: doc_buffer)
-  doc_buffer = ""
   buf_len = 0
 
   call batch_init_config(batch_cfg)
@@ -112,7 +110,9 @@ program iris_cmd_tex
       end if
 
       if (exit_code == 0) then
-        if (buf_len == 0) then
+        if (buf_len > 0) then
+          doc_buffer = doc_buffer(1:buf_len)
+        else
           doc_buffer = "\hello world"
         end if
 

@@ -36,8 +36,6 @@ program iris_cmd_compile
   exit_code = 0
   out_filename = "output.pdf"
   in_filename = ""
-  allocate(character(len=4096) :: doc_buffer)
-  doc_buffer = ""
   buf_len = 0
 
   call batch_init_config(cfg)
@@ -113,7 +111,9 @@ program iris_cmd_compile
       end if
 
       if (exit_code == 0) then
-        if (buf_len == 0) then
+        if (buf_len > 0) then
+          doc_buffer = doc_buffer(1:buf_len)
+        else
           doc_buffer = "[markup: prose] Empty document."
         end if
 

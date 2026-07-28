@@ -18,17 +18,17 @@ contains
     if (.not. allocated(buf)) then
       new_cap = max(4096_int32, req_len * 2_int32)
       allocate(character(len=new_cap) :: buf)
-      buf = ""
+      buf(:) = ' '
     else
       curr_cap = len(buf)
       if (req_len > curr_cap) then
         new_cap = max(curr_cap * 2_int32, req_len * 2_int32)
         allocate(character(len=new_cap) :: tmp)
-        tmp = ""
+        tmp(:) = ' '
         if (curr_cap > 0) then
           tmp(1:curr_cap) = buf(1:curr_cap)
         end if
-        call move_alloc(tmp, buf)
+        call move_alloc(from=tmp, to=buf)
       end if
     end if
   end subroutine ensure_string_capacity

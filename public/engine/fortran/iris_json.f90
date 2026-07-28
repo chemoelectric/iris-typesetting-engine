@@ -37,6 +37,7 @@ module iris_json
   public :: json_get_number
   public :: json_get_bool
   public :: json_serialize
+  public :: json_clone
   public :: json_free
 
   ! Linked list node for JSON object member fields
@@ -115,6 +116,42 @@ contains
   end function json_get_type
 
   !-----------------------------------------------------------------------------
+  ! Deep Clone
+  !-----------------------------------------------------------------------------
+  recursive subroutine json_clone(src, dest)
+    type(json_value_type), intent(in) :: src
+    type(json_value_type), intent(out) :: dest
+
+    type(json_field_node), pointer :: f_curr
+    type(json_element_node), pointer :: e_curr
+
+    dest%value_type = src%value_type
+    dest%bool_val = src%bool_val
+    dest%num_val = src%num_val
+    dest%str_val = src%str_val
+    dest%first_field => null()
+    dest%first_element => null()
+
+    if (src%value_type == JSON_OBJ_TYPE) then
+      f_curr => src%first_field
+      do while (associated(f_curr))
+        if (associated(f_curr%val)) then
+          call json_set_field(dest, f_curr%key, f_curr%val)
+        end if
+        f_curr => f_curr%next
+      end do
+    else if (src%value_type == JSON_ARR_TYPE) then
+      e_curr => src%first_element
+      do while (associated(e_curr))
+        if (associated(e_curr%val)) then
+          call json_add_element(dest, e_curr%val)
+        end if
+        e_curr => e_curr%next
+      end do
+    end if
+  end subroutine json_clone
+
+  !-----------------------------------------------------------------------------
   ! Object Mutators & Accessors
   !-----------------------------------------------------------------------------
   subroutine json_set_field(obj, key, child)
@@ -128,7 +165,7 @@ contains
       allocate(new_node)
       new_node%key = trim(key)
       allocate(new_node%val)
-      new_node%val = child
+      call json_clone(child, new_node%val)
       new_node%next => obj%first_field
       obj%first_field => new_node
     end if
@@ -149,7 +186,9 @@ contains
       curr => obj%first_field
       do while (associated(curr))
         if (trim(curr%key) == trim(key)) then
-          child = curr%val
+          if (associated(curr%val)) then
+            call json_clone(curr%val, child)
+          end if
           status = 0
           exit
         end if
@@ -170,7 +209,7 @@ contains
     if (arr%value_type == JSON_ARR_TYPE) then
       allocate(new_node)
       allocate(new_node%val)
-      new_node%val = child
+      call json_clone(child, new_node%val)
       new_node%next => null()
 
       if (.not. associated(arr%first_element)) then
@@ -202,7 +241,9 @@ contains
       count = 1
       do while (associated(curr))
         if (count == idx) then
-          child = curr%val
+          if (associated(curr%val)) then
+            call json_clone(curr%val, child)
+          end if
           status = 0
           exit
         end if
