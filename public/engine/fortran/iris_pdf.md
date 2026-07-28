@@ -24,11 +24,11 @@ type :: pdf_document_type
   integer(kind=int32) :: unit_num
   integer(kind=int32) :: object_count
   integer(kind=int64) :: byte_offset
-  integer(kind=int64), dimension(1000) :: xref_offsets
+  integer(kind=int64), allocatable, dimension(:) :: xref_offsets
   integer(kind=int32) :: page_count
-  integer(kind=int32), dimension(100) :: page_object_ids
-  integer(kind=int32), dimension(100) :: stream_object_ids
-  character(len=65536) :: current_stream
+  integer(kind=int32), allocatable, dimension(:) :: page_object_ids
+  integer(kind=int32), allocatable, dimension(:) :: stream_object_ids
+  character(len=:), allocatable :: current_stream
   integer(kind=int32) :: stream_len
   real(kind=real64) :: current_page_width
   real(kind=real64) :: current_page_height

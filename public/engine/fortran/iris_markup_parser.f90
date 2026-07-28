@@ -44,7 +44,7 @@ module iris_markup_parser
   end type markup_token_type
 
   type :: parse_result_type
-    type(markup_token_type) :: tokens(16)
+    type(markup_token_type), allocatable, dimension(:) :: tokens
     integer(kind=int32)     :: token_count = 0
     integer(kind=int32)     :: detected_dialect = DIALECT_NATURAL_PROSE
     logical                 :: ambiguity_detected = .false.
@@ -156,6 +156,7 @@ contains
     end if
 
     ! Step 2: Tokenize text into single root paragraph IIR AST
+    allocate(result_ast%tokens(16))
     result_ast%token_count = 1
     result_ast%tokens(1)%dialect = result_ast%detected_dialect
     result_ast%tokens(1)%node_type = NODE_TYPE_PARAGRAPH

@@ -18,6 +18,7 @@ program iris_main
   use iris_kpsewhich, only: kpse_search_file, KPSE_OK
   use iris_tex, only: tex_engine_type, tex_init, tex_compile_string, tex_run_trip_test, tex_free, TEX_OK
   use iris_json, only: json_value_type, json_free
+  use iris_dynamic_string, only: append_string_buffer
   implicit none
 
   type(cli_parser_type)       :: parser
@@ -31,8 +32,8 @@ program iris_main
   character(len=512)          :: in_filename
   character(len=512)          :: subcommand
   character(len=512)          :: fmt_opt
-  character(len=65536)        :: doc_buffer
-  character(len=512)          :: line_buf
+  character(len=:), allocatable :: doc_buffer
+  character(len=2048)         :: line_buf
   character(len=64)           :: font_size_str
   character(len=1024)         :: resolved_path
   character(len=256)          :: trip_msg
@@ -45,6 +46,7 @@ program iris_main
   out_filename = "output.pdf"
   in_filename = ""
   subcommand = ""
+  allocate(character(len=4096) :: doc_buffer)
   doc_buffer = ""
   buf_len = 0
 
@@ -151,11 +153,10 @@ program iris_main
               if (io_stat /= 0) exit
               if (len_trim(line_buf) > 0) then
                 if (buf_len > 0) then
-                  doc_buffer = trim(doc_buffer) // char(10) // trim(line_buf)
+                  call append_string_buffer(doc_buffer, buf_len, char(10) // trim(line_buf))
                 else
-                  doc_buffer = trim(line_buf)
+                  call append_string_buffer(doc_buffer, buf_len, trim(line_buf))
                 end if
-                buf_len = len_trim(doc_buffer)
               end if
             end do
             close(file_unit)
@@ -167,11 +168,10 @@ program iris_main
             if (io_stat /= 0) exit
             if (len_trim(line_buf) > 0) then
               if (buf_len > 0) then
-                doc_buffer = trim(doc_buffer) // char(10) // trim(line_buf)
+                call append_string_buffer(doc_buffer, buf_len, char(10) // trim(line_buf))
               else
-                doc_buffer = trim(line_buf)
+                call append_string_buffer(doc_buffer, buf_len, trim(line_buf))
               end if
-              buf_len = len_trim(doc_buffer)
             end if
           end do
         end if

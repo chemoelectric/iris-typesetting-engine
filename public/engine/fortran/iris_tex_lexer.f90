@@ -22,10 +22,11 @@ module iris_tex_lexer
 
   type :: tex_token_type
     integer(kind=int32) :: cat_code = CAT_OTHER
-    character(len=64)   :: name = ""
+    character(len=256)  :: name = ""
   end type tex_token_type
 
   type :: tex_lexer_type
+    type(tex_token_type), allocatable, dimension(:) :: tokens
     integer(kind=int32) :: token_count = 0
   end type tex_lexer_type
 
@@ -39,6 +40,8 @@ contains
   subroutine tex_lexer_init(lexer)
     type(tex_lexer_type), intent(out) :: lexer
 
+    if (allocated(lexer%tokens)) deallocate(lexer%tokens)
+    allocate(lexer%tokens(64))
     lexer%token_count = 0
   end subroutine tex_lexer_init
 
@@ -52,6 +55,8 @@ contains
     character(len=*), intent(in)        :: source_text
     integer(kind=int32), intent(out)    :: token_count_out
 
+    if (allocated(lexer%tokens)) deallocate(lexer%tokens)
+    allocate(lexer%tokens(max(16, len_trim(source_text))))
     lexer%token_count = len_trim(source_text)
     token_count_out = lexer%token_count
   end subroutine tex_tokenize
@@ -64,6 +69,7 @@ contains
   subroutine tex_lexer_free(lexer)
     type(tex_lexer_type), intent(inout) :: lexer
 
+    if (allocated(lexer%tokens)) deallocate(lexer%tokens)
     lexer%token_count = 0
   end subroutine tex_lexer_free
 

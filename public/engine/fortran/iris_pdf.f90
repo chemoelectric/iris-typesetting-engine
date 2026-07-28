@@ -9,6 +9,8 @@
 !===============================================================================
 module iris_pdf
   use, intrinsic :: iso_fortran_env, only: int32, int64, real64
+  use iris_dynamic_array, only: ensure_int32_capacity, ensure_int64_capacity
+  use iris_dynamic_string, only: append_string_buffer, ensure_string_capacity
   implicit none
   private
 
@@ -27,9 +29,6 @@ module iris_pdf
   public :: pdf_read_page_text
 
   ! Constants
-  integer(kind=int32), parameter :: MAX_OBJECTS = 1000
-  integer(kind=int32), parameter :: MAX_PAGES = 100
-  integer(kind=int32), parameter :: MAX_STREAM_LEN = 65536
   character(len=*), parameter :: PDF_HEADER = "%PDF-1.7"
   character(len=*), parameter :: PDF_BINARY_COMMENT = "%" // char(226) // char(227) // char(207) // char(211)
 
@@ -39,11 +38,11 @@ module iris_pdf
     integer(kind=int32) :: unit_num
     integer(kind=int32) :: object_count
     integer(kind=int64) :: byte_offset
-    integer(kind=int64), dimension(MAX_OBJECTS) :: xref_offsets
+    integer(kind=int64), allocatable, dimension(:) :: xref_offsets
     integer(kind=int32) :: page_count
-    integer(kind=int32), dimension(MAX_PAGES) :: page_object_ids
-    integer(kind=int32), dimension(MAX_PAGES) :: stream_object_ids
-    character(len=MAX_STREAM_LEN) :: current_stream
+    integer(kind=int32), allocatable, dimension(:) :: page_object_ids
+    integer(kind=int32), allocatable, dimension(:) :: stream_object_ids
+    character(len=:), allocatable :: current_stream
     integer(kind=int32) :: stream_len
     real(kind=real64) :: current_page_width
     real(kind=real64) :: current_page_height
@@ -68,10 +67,14 @@ contains
     pdf%unit_num = 99
     pdf%object_count = 3  ! Reserve 1: Catalog, 2: Pages, 3: Font
     pdf%byte_offset = 0_int64
+    allocate(pdf%xref_offsets(64))
     pdf%xref_offsets = 0_int64
     pdf%page_count = 0
+    allocate(pdf%page_object_ids(16))
+    allocate(pdf%stream_object_ids(16))
     pdf%page_object_ids = 0
     pdf%stream_object_ids = 0
+    allocate(character(len=4096) :: pdf%current_stream)
     pdf%current_stream = ""
     pdf%stream_len = 0
     pdf%current_page_width = 612.0_real64   ! Default Letter width (pts)
@@ -104,13 +107,18 @@ contains
     real(kind=real64), intent(in) :: width
     real(kind=real64), intent(in) :: height
 
-    if (pdf%page_count >= MAX_PAGES) return
+    integer(kind=int32) :: curr_cap, new_cap
+    integer(kind=int32), allocatable, dimension(:) :: tmp_ids
 
     if (pdf%page_count > 0) then
       call flush_current_page_objects(pdf)
     end if
 
     pdf%page_count = pdf%page_count + 1
+
+    call ensure_int32_capacity(pdf%page_object_ids, pdf%page_count)
+    call ensure_int32_capacity(pdf%stream_object_ids, pdf%page_count)
+
     pdf%current_page_width = width
     pdf%current_page_height = height
     pdf%current_stream = ""
@@ -180,10 +188,8 @@ contains
       end do
 
       if (cur_y < 50.0_real64) then
-        if (pdf%page_count < MAX_PAGES) then
-          call pdf_add_page(pdf, pdf%current_page_width, pdf%current_page_height)
-          cur_y = pdf%current_page_height - 72.0_real64
-        end if
+        call pdf_add_page(pdf, pdf%current_page_width, pdf%current_page_height)
+        cur_y = pdf%current_page_height - 72.0_real64
       end if
 
       if (esc_pos > 1) then
@@ -479,7 +485,10 @@ contains
         read(xref_buf(line_pos+2:line_pos+10), *, iostat=status) count_objs
         if (status == 0 .and. count_objs > 0) then
           pdf%object_count = count_objs - 1
-          do i = 1, min(count_objs - 1, MAX_OBJECTS)
+          if (allocated(pdf%xref_offsets)) deallocate(pdf%xref_offsets)
+          allocate(pdf%xref_offsets(pdf%object_count + 16))
+          pdf%xref_offsets = 0_int64
+          do i = 1, pdf%object_count
             line_pos = index(xref_buf, "00000 n")
             if (line_pos > 10) then
               read(xref_buf(line_pos-10:line_pos-1), *, iostat=status) off_val
@@ -504,7 +513,7 @@ contains
       if (pos > 0) then
         read(page_buf(pos+7:pos+15), *, iostat=status) pcount
         if (status == 0 .and. pcount > 0) then
-          pdf%page_count = min(pcount, MAX_PAGES)
+          pdf%page_count = pcount
         else
           pdf%page_count = 1
         end if
@@ -512,6 +521,14 @@ contains
         pdf%page_count = 1
       end if
     end if
+
+    if (allocated(pdf%page_object_ids)) deallocate(pdf%page_object_ids)
+    if (allocated(pdf%stream_object_ids)) deallocate(pdf%stream_object_ids)
+    allocate(pdf%page_object_ids(pdf%page_count + 16))
+    allocate(pdf%stream_object_ids(pdf%page_count + 16))
+    pdf%page_object_ids = 0
+    pdf%stream_object_ids = 0
+
   end subroutine parse_pages_metadata
 
   !=============================================================================
@@ -531,7 +548,8 @@ contains
     type(pdf_document_type), intent(inout) :: pdf
     integer(kind=int32), intent(in) :: obj_id
 
-    if (obj_id >= 1 .and. obj_id <= MAX_OBJECTS) then
+    if (obj_id >= 1) then
+      call ensure_int64_capacity(pdf%xref_offsets, obj_id)
       pdf%xref_offsets(obj_id) = pdf%byte_offset
     end if
 
@@ -540,13 +558,8 @@ contains
   subroutine append_to_stream(pdf, str)
     type(pdf_document_type), intent(inout) :: pdf
     character(len=*), intent(in) :: str
-    integer(kind=int32) :: str_len
 
-    str_len = len(str)
-    if (pdf%stream_len + str_len <= MAX_STREAM_LEN) then
-      pdf%current_stream(pdf%stream_len + 1 : pdf%stream_len + str_len) = str
-      pdf%stream_len = pdf%stream_len + str_len
-    end if
+    call append_string_buffer(pdf%current_stream, pdf%stream_len, str)
 
   end subroutine append_to_stream
 
@@ -636,7 +649,7 @@ contains
     integer(kind=int32) :: stream_obj_id
     integer(kind=int32) :: page_obj_id
     character(len=256) :: header_buf
-    character(len=MAX_STREAM_LEN + 32) :: compressed_buf
+    character(len=:), allocatable :: compressed_buf
     integer(kind=int32) :: compressed_len
 
     stream_obj_id = next_object_id(pdf)
@@ -644,12 +657,14 @@ contains
     pdf%stream_object_ids(pdf%page_count) = stream_obj_id
 
     if (pdf%compress_streams) then
+      allocate(character(len=pdf%stream_len * 2 + 512) :: compressed_buf)
       call zlib_compress_stream(pdf%current_stream, pdf%stream_len, compressed_buf, compressed_len)
       write(header_buf, '(I0,A,I0,A)') stream_obj_id, " 0 obj" // new_line('a') // &
         "<< /Filter /FlateDecode /Length ", compressed_len, " >>" // new_line('a') // "stream" // new_line('a')
       call write_raw_string(pdf, trim(header_buf))
       call write_raw_string(pdf, compressed_buf(1:compressed_len))
       call write_raw_string(pdf, new_line('a') // "endstream" // new_line('a') // "endobj" // new_line('a'))
+      deallocate(compressed_buf)
     else
       write(header_buf, '(I0,A,I0,A)') stream_obj_id, " 0 obj" // new_line('a') // &
         "<< /Length ", pdf%stream_len, " >>" // new_line('a') // "stream" // new_line('a')

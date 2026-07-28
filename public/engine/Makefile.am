@@ -24,6 +24,8 @@ iris_LDADD = libiris.a -lz
 noinst_LIBRARIES = libiris.a
 
 libiris_a_SOURCES = \
+	fortran/iris_dynamic_array.f90 \
+	fortran/iris_dynamic_string.f90 \
 	fortran/iris_json.f90 \
 	fortran/iris_cli_args.f90 \
 	fortran/iris_bezier_intersect.f90 \
@@ -52,7 +54,7 @@ fortran/iris_spline.$(OBJEXT): fortran/iris_bezier_intersect.$(OBJEXT)
 fortran/iris_spline_collection.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_font_json.$(OBJEXT): fortran/iris_opentype.$(OBJEXT) fortran/iris_json.$(OBJEXT)
 fortran/iris_evaluate_pegs.$(OBJEXT): fortran/iris_opentype.$(OBJEXT) fortran/iris_spline_collection.$(OBJEXT)
-fortran/iris_pdf.$(OBJEXT): fortran/iris_evaluate_pegs.$(OBJEXT)
+fortran/iris_pdf.$(OBJEXT): fortran/iris_evaluate_pegs.$(OBJEXT) fortran/iris_dynamic_array.$(OBJEXT) fortran/iris_dynamic_string.$(OBJEXT)
 fortran/iris_markup_parser.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_kpsewhich.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_tex_lexer.$(OBJEXT): fortran/iris_json.$(OBJEXT)
@@ -61,7 +63,7 @@ fortran/iris_tex_math.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_tex_trip.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_tex.$(OBJEXT): fortran/iris_tex_lexer.$(OBJEXT) fortran/iris_tex_parser.$(OBJEXT) fortran/iris_tex_math.$(OBJEXT) fortran/iris_tex_trip.$(OBJEXT) fortran/iris_kpsewhich.$(OBJEXT) fortran/iris_json.$(OBJEXT)
 fortran/iris_batch_engine.$(OBJEXT): fortran/iris_markup_parser.$(OBJEXT) fortran/iris_pdf.$(OBJEXT)
-fortran/iris_main.$(OBJEXT): fortran/iris_batch_engine.$(OBJEXT) fortran/iris_cli_args.$(OBJEXT) fortran/iris_kpsewhich.$(OBJEXT) fortran/iris_tex.$(OBJEXT)
+fortran/iris_main.$(OBJEXT): fortran/iris_batch_engine.$(OBJEXT) fortran/iris_cli_args.$(OBJEXT) fortran/iris_kpsewhich.$(OBJEXT) fortran/iris_tex.$(OBJEXT) fortran/iris_dynamic_string.$(OBJEXT)
 
 # ------------------------------------------------------------------------------
 # R7RS Scheme Library Distribution
@@ -90,6 +92,8 @@ nobase_dist_scheme_DATA = \
 # Documentation Distribution
 # ------------------------------------------------------------------------------
 nobase_dist_doc_DATA = \
+	fortran/iris_dynamic_array.md \
+	fortran/iris_dynamic_string.md \
 	fortran/iris_json.md \
 	fortran/iris_cli_args.md \
 	fortran/iris_bezier_intersect.md \
