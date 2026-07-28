@@ -39,6 +39,9 @@ libiris_a_SOURCES = \
 	fortran/iris_cli_args.f90 \
 	fortran/iris_bezier_intersect.f90 \
 	fortran/iris_spline.f90 \
+	fortran/iris_svd_fallback.f90 \
+	fortran/iris_svd_bridge.f90 \
+	fortran/iris_hobby_svd.f90 \
 	fortran/iris_spline_collection.f90 \
 	fortran/iris_opentype.f90 \
 	fortran/iris_font_json.f90 \
@@ -60,6 +63,8 @@ AM_FCFLAGS = -I. -I$(srcdir) -Ifortran -I$(srcdir)/fortran
 fortran/iris_cli_args.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_bezier_intersect.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_spline.$(OBJEXT): fortran/iris_bezier_intersect.$(OBJEXT)
+fortran/iris_svd_bridge.$(OBJEXT): fortran/iris_svd_fallback.$(OBJEXT)
+fortran/iris_hobby_svd.$(OBJEXT): fortran/iris_svd_bridge.$(OBJEXT)
 fortran/iris_spline_collection.$(OBJEXT): fortran/iris_json.$(OBJEXT) fortran/iris_bezier_intersect.$(OBJEXT) fortran/iris_spline.$(OBJEXT)
 fortran/iris_opentype.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_font_json.$(OBJEXT): fortran/iris_opentype.$(OBJEXT) fortran/iris_json.$(OBJEXT)
@@ -112,6 +117,9 @@ nobase_dist_doc_DATA = \
 	fortran/iris_cli_args.md \
 	fortran/iris_bezier_intersect.md \
 	fortran/iris_spline.md \
+	fortran/iris_svd_fallback.md \
+	fortran/iris_svd_bridge.md \
+	fortran/iris_hobby_svd.md \
 	fortran/iris_spline_collection.md \
 	fortran/iris_font_json.md \
 	fortran/iris_opentype.md \
@@ -156,6 +164,7 @@ check_PROGRAMS = \
 	test_iris_cli_args \
 	test_iris_bezier \
 	test_iris_spline \
+	test_iris_svd \
 	test_iris_spline_collection \
 	test_iris_opentype \
 	test_iris_font_json \
@@ -182,6 +191,10 @@ tests/test_iris_bezier.$(OBJEXT): fortran/iris_bezier_intersect.$(OBJEXT)
 test_iris_spline_SOURCES = tests/test_iris_spline.f90
 test_iris_spline_LDADD = libiris.a
 tests/test_iris_spline.$(OBJEXT): fortran/iris_spline.$(OBJEXT)
+
+test_iris_svd_SOURCES = tests/test_iris_svd.f90
+test_iris_svd_LDADD = libiris.a
+tests/test_iris_svd.$(OBJEXT): fortran/iris_hobby_svd.$(OBJEXT) fortran/iris_svd_bridge.$(OBJEXT) fortran/iris_svd_fallback.$(OBJEXT)
 
 test_iris_spline_collection_SOURCES = tests/test_iris_spline_collection.f90
 test_iris_spline_collection_LDADD = libiris.a
