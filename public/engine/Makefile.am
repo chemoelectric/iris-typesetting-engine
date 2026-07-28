@@ -8,7 +8,7 @@
 AUTOMAKE_OPTIONS = foreign subdir-objects
 
 # Recursive build for subdirectories (kpsewhich built via recursive make)
-SUBDIRS = kpsewhich
+SUBDIRS = . kpsewhich
 
 # ------------------------------------------------------------------------------
 # Executable Binaries
