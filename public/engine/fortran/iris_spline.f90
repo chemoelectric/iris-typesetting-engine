@@ -434,15 +434,19 @@ contains
   subroutine spline_set_rotation(spline, target_rotation, status)
     type(piecewise_spline_type), intent(inout) :: spline
     integer(kind=int32), intent(in)            :: target_rotation
-    integer(kind=int32), intent(out)           :: status
+    integer(kind=int32), intent(out), optional :: status
 
     real(kind=real64) :: area
     logical           :: current_ccw, target_ccw
 
-    status = SPLINE_OK
+    if (present(status)) then
+      status = SPLINE_OK
+    end if
 
     if (spline%segment_count == 0) then
-      status = SPLINE_ERR_EMPTY
+      if (present(status)) then
+        status = SPLINE_ERR_EMPTY
+      end if
     else if (spline%is_closed) then
       area = spline_calc_signed_area(spline)
       current_ccw = (area >= 0.0_real64)
