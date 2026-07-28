@@ -27,8 +27,8 @@ contains
     real(kind=real64), intent(in)     :: singular_tol
     integer(kind=int32), intent(out)  :: status
 
-    real(kind=real64) :: U(n, n), V(n, n), S(n), UTb(n), SigmaPlusUTb(n)
-    real(kind=real64) :: max_off, c, s, tan_val, t_val, theta
+    real(kind=real64) :: U(n, n), V(n, n), S_vec(n), UTb(n), SigmaPlusUTb(n)
+    real(kind=real64) :: max_off, c_rot, s_rot, tan_val, t_val, theta
     integer(kind=int32) :: i, j, k, iter, max_iter
     real(kind=real64) :: app, aqq, apq
 
@@ -61,21 +61,21 @@ contains
             theta = (aqq - app) / (2.0_real64 * apq)
             t_val = 1.0_real64 / (abs(theta) + sqrt(1.0_real64 + theta * theta))
             if (theta < 0.0_real64) t_val = -t_val
-            c = 1.0_real64 / sqrt(1.0_real64 + t_val * t_val)
-            s = t_val * c
+            c_rot = 1.0_real64 / sqrt(1.0_real64 + t_val * t_val)
+            s_rot = t_val * c_rot
 
             ! Rotate U columns
             do k = 1, n
               tan_val = U(k, i)
-              U(k, i) = c * tan_val - s * U(k, j)
-              U(k, j) = s * tan_val + c * U(k, j)
+              U(k, i) = c_rot * tan_val - s_rot * U(k, j)
+              U(k, j) = s_rot * tan_val + c_rot * U(k, j)
             end do
 
             ! Rotate V columns
             do k = 1, n
               tan_val = V(k, i)
-              V(k, i) = c * tan_val - s * V(k, j)
-              V(k, j) = s * tan_val + c * V(k, j)
+              V(k, i) = c_rot * tan_val - s_rot * V(k, j)
+              V(k, j) = s_rot * tan_val + c_rot * V(k, j)
             end do
           end if
         end do
@@ -84,9 +84,9 @@ contains
 
     ! Extract singular values
     do i = 1, n
-      S(i) = sqrt(sum(U(:, i)**2))
-      if (S(i) > 1.0e-14_real64) then
-        U(:, i) = U(:, i) / S(i)
+      S_vec(i) = sqrt(sum(U(:, i)**2))
+      if (S_vec(i) > 1.0e-14_real64) then
+        U(:, i) = U(:, i) / S_vec(i)
       end if
     end do
 
@@ -97,8 +97,8 @@ contains
 
     ! Apply pseudo-inverse of singular values
     do i = 1, n
-      if (S(i) > singular_tol) then
-        SigmaPlusUTb(i) = UTb(i) / S(i)
+      if (S_vec(i) > singular_tol) then
+        SigmaPlusUTb(i) = UTb(i) / S_vec(i)
       else
         SigmaPlusUTb(i) = 0.0_real64
       end if
