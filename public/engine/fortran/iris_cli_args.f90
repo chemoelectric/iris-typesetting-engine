@@ -421,30 +421,34 @@ contains
     integer(kind=int32), intent(in) :: unit_no
 
     character(len=STR_LEN) :: work_str, line_buf
-    integer(kind=int32)    :: pos, nlen
+    integer(kind=int32)    :: pos, nlen, buf_len
 
-    work_str = trim(adjustl(str_in))
+    work_str = adjustl(str_in)
     nlen = len_trim(work_str)
     line_buf = ""
+    buf_len = 0
     pos = 1
 
     do while (pos <= nlen)
       if (pos < nlen .and. work_str(pos:pos+1) == '\n') then
-        write(unit_no, '(A)') trim(line_buf)
+        write(unit_no, '(A)') line_buf(1:buf_len)
         line_buf = ""
+        buf_len = 0
         pos = pos + 2
       else if (work_str(pos:pos) == achar(10) .or. work_str(pos:pos) == achar(13)) then
-        write(unit_no, '(A)') trim(line_buf)
+        write(unit_no, '(A)') line_buf(1:buf_len)
         line_buf = ""
+        buf_len = 0
         pos = pos + 1
       else
-        line_buf = trim(line_buf) // work_str(pos:pos)
+        buf_len = buf_len + 1
+        if (buf_len <= STR_LEN) line_buf(buf_len:buf_len) = work_str(pos:pos)
         pos = pos + 1
       end if
     end do
 
-    if (len_trim(line_buf) > 0) then
-      write(unit_no, '(A)') trim(line_buf)
+    if (buf_len > 0) then
+      write(unit_no, '(A)') line_buf(1:buf_len)
     end if
   end subroutine print_multiline_str
 
