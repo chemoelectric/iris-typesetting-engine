@@ -51,7 +51,7 @@
     ;; -------------------------------------------------------------------------
     (define (write-raw-string pdf str)
       (let ((p (pdf-doc-port pdf))
-            (len (string-length str)))
+            (len (bytevector-length (string->utf8 str))))
         (display str p)
         (pdf-doc-byte-offset-set! pdf (+ (pdf-doc-byte-offset pdf) len))))
 
@@ -154,7 +154,7 @@
       (let* ((raw-str (pdf-doc-cur-stream pdf))
              (do-compress? (pdf-doc-compress? pdf))
              (stream-str (if do-compress? (zlib-compress raw-str) raw-str))
-             (stream-len (string-length stream-str))
+             (stream-len (bytevector-length (string->utf8 stream-str)))
              (strm-id (+ (pdf-doc-obj-count pdf) 1)))
         (pdf-doc-obj-count-set! pdf strm-id)
         (pdf-doc-xref-offsets-set! pdf (cons (cons strm-id (pdf-doc-byte-offset pdf)) (pdf-doc-xref-offsets pdf)))
@@ -241,7 +241,7 @@
 
             (let ((font-id 3))
               (pdf-doc-xref-offsets-set! pdf (cons (cons font-id (pdf-doc-byte-offset pdf)) (pdf-doc-xref-offsets pdf)))
-              (write-raw-string pdf "3 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n"))
+              (write-raw-string pdf "3 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n"))
 
             (let ((xref-start (pdf-doc-byte-offset pdf))
                   (total-objs (pdf-doc-obj-count pdf))
