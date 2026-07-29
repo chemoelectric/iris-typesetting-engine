@@ -48,18 +48,18 @@
              (dialect (cdr (assoc 'dialect parse-ast)))
              (ambiguity? (cdr (assoc 'ambiguity-detected parse-ast)))
              (msg (cdr (assoc 'disambiguation-msg parse-ast)))
-             (pdf-doc (pdf-init))
-             (p-stat (pdf-add-page pdf-doc)))
+             (pdf-doc (pdf-init output-pdf-filename))
+             (_ (pdf-add-page! pdf-doc 595.0 842.0)))
 
-        (pdf-add-text pdf-doc
-                      (config-margin-left cfg)
-                      (config-margin-top cfg)
-                      input-content
-                      (config-font-size cfg))
+        (pdf-write-text! pdf-doc
+                        (config-margin-left cfg)
+                        (config-margin-top cfg)
+                        (config-font-size cfg)
+                        input-content)
 
-        (let ((pdf-stat (pdf-write-file pdf-doc output-pdf-filename)))
-          `((status . ,(if (= pdf-stat 0) 'ok 'error))
-            (pages-generated . 1)
-            (detected-dialect . ,dialect)
-            (ambiguity-warning . ,ambiguity?)
-            (status-msg . ,(if ambiguity? msg "Processing completed successfully.")))))))))
+        (pdf-close! pdf-doc)
+        `((status . ok)
+          (pages-generated . 1)
+          (detected-dialect . ,dialect)
+          (ambiguity-warning . ,ambiguity?)
+          (status-msg . ,(if ambiguity? msg "Processing completed successfully.")))))))
