@@ -29,21 +29,21 @@ module iris_dvi
   public :: dvi_close
 
   ! DVI Format Opcodes (TeX DVI v2 Specification)
-  integer(int8), parameter :: DVI_SET_RULE = -124_int8   ! 132
-  integer(int8), parameter :: DVI_PUT_RULE = -119_int8   ! 137
-  integer(int8), parameter :: DVI_BOP      = -117_int8   ! 139
-  integer(int8), parameter :: DVI_EOP      = -116_int8   ! 140
-  integer(int8), parameter :: DVI_PUSH     = -115_int8   ! 141
-  integer(int8), parameter :: DVI_POP      = -114_int8   ! 142
-  integer(int8), parameter :: DVI_RIGHT4   = -110_int8   ! 146
-  integer(int8), parameter :: DVI_DOWN4    = -96_int8    ! 160
-  integer(int8), parameter :: DVI_FNT1     = -21_int8    ! 235
-  integer(int8), parameter :: DVI_FNT_DEF1 = -13_int8    ! 243
-  integer(int8), parameter :: DVI_PRE      = -9_int8     ! 247
-  integer(int8), parameter :: DVI_POST     = -8_int8     ! 248
-  integer(int8), parameter :: DVI_POST_POST= -7_int8     ! 249
-  integer(int8), parameter :: DVI_ID        = 2_int8
-  integer(int8), parameter :: DVI_TRAILER_PAD = -33_int8 ! 223
+  integer(int8), parameter :: OP_DVI_SET_RULE = -124_int8   ! 132
+  integer(int8), parameter :: OP_DVI_PUT_RULE = -119_int8   ! 137
+  integer(int8), parameter :: OP_DVI_BOP      = -117_int8   ! 139
+  integer(int8), parameter :: OP_DVI_EOP      = -116_int8   ! 140
+  integer(int8), parameter :: OP_DVI_PUSH     = -115_int8   ! 141
+  integer(int8), parameter :: OP_DVI_POP      = -114_int8   ! 142
+  integer(int8), parameter :: OP_DVI_RIGHT4   = -110_int8   ! 146
+  integer(int8), parameter :: OP_DVI_DOWN4    = -96_int8    ! 160
+  integer(int8), parameter :: OP_DVI_FNT1     = -21_int8    ! 235
+  integer(int8), parameter :: OP_DVI_FNT_DEF1 = -13_int8    ! 243
+  integer(int8), parameter :: OP_DVI_PRE      = -9_int8     ! 247
+  integer(int8), parameter :: OP_DVI_POST     = -8_int8     ! 248
+  integer(int8), parameter :: OP_DVI_POST_POST= -7_int8     ! 249
+  integer(int8), parameter :: OP_DVI_ID        = 2_int8
+  integer(int8), parameter :: OP_DVI_TRAILER_PAD = -33_int8 ! 223
 
   ! DVI Font Metadata Record
   type :: dvi_font_type
@@ -115,7 +115,7 @@ contains
     integer(int8) :: b_code, b_len, b_zero
 
     name_len = len_trim(font_rec%font_name)
-    b_code = DVI_FNT_DEF1
+    b_code = OP_DVI_FNT_DEF1
     b_zero = 0_int8
     b_len = int(name_len, int8)
 
@@ -175,10 +175,10 @@ contains
     doc%last_bop_offset = -1_int32
 
     ! Write Preamble (pre)
-    call write_byte(unit_num, DVI_PRE, doc%byte_offset, status)
+    call write_byte(unit_num, OP_DVI_PRE, doc%byte_offset, status)
     if (status /= 0) return
 
-    call write_byte(unit_num, DVI_ID, doc%byte_offset, status)
+    call write_byte(unit_num, OP_DVI_ID, doc%byte_offset, status)
     if (status /= 0) return
 
     ! TeX standard numerator and denominator (25400000 / 473628672 sp per 100nm)
@@ -218,7 +218,7 @@ contains
     this_bop_offset = doc%byte_offset
     prev_bop = doc%last_bop_offset
 
-    call write_byte(doc%file_unit, DVI_BOP, doc%byte_offset, status)
+    call write_byte(doc%file_unit, OP_DVI_BOP, doc%byte_offset, status)
     if (status /= 0) return
 
     ! Write \count0 to \count9
@@ -248,7 +248,7 @@ contains
     status = 0
     if (.not. doc%page_open) return
 
-    call write_byte(doc%file_unit, DVI_EOP, doc%byte_offset, status)
+    call write_byte(doc%file_unit, OP_DVI_EOP, doc%byte_offset, status)
     if (status == 0) then
       doc%page_open = .false.
     end if
@@ -281,7 +281,7 @@ contains
     integer, intent(out) :: status
 
     status = 0
-    call write_byte(doc%file_unit, DVI_SET_RULE, doc%byte_offset, status)
+    call write_byte(doc%file_unit, OP_DVI_SET_RULE, doc%byte_offset, status)
     if (status /= 0) return
 
     call write_int32_be(doc%file_unit, height_sp, doc%byte_offset, status)
@@ -327,7 +327,7 @@ contains
       b_val = int(171_int32 + font_num, int8)
       call write_byte(doc%file_unit, b_val, doc%byte_offset, status)
     else
-      call write_byte(doc%file_unit, DVI_FNT1, doc%byte_offset, status)
+      call write_byte(doc%file_unit, OP_DVI_FNT1, doc%byte_offset, status)
       if (status /= 0) return
       b_val = int(iand(font_num, 255_int32), int8)
       call write_byte(doc%file_unit, b_val, doc%byte_offset, status)
@@ -345,7 +345,7 @@ contains
     integer, intent(out) :: status
 
     status = 0
-    call write_byte(doc%file_unit, DVI_RIGHT4, doc%byte_offset, status)
+    call write_byte(doc%file_unit, OP_DVI_RIGHT4, doc%byte_offset, status)
     if (status /= 0) return
 
     call write_int32_be(doc%file_unit, distance_sp, doc%byte_offset, status)
@@ -358,7 +358,7 @@ contains
     integer, intent(out) :: status
 
     status = 0
-    call write_byte(doc%file_unit, DVI_DOWN4, doc%byte_offset, status)
+    call write_byte(doc%file_unit, OP_DVI_DOWN4, doc%byte_offset, status)
     if (status /= 0) return
 
     call write_int32_be(doc%file_unit, distance_sp, doc%byte_offset, status)
@@ -370,7 +370,7 @@ contains
     integer, intent(out) :: status
 
     status = 0
-    call write_byte(doc%file_unit, DVI_PUSH, doc%byte_offset, status)
+    call write_byte(doc%file_unit, OP_DVI_PUSH, doc%byte_offset, status)
     if (status == 0) then
       doc%current_stack_depth = doc%current_stack_depth + 1_int32
       if (doc%current_stack_depth > doc%max_stack_depth) then
@@ -385,7 +385,7 @@ contains
     integer, intent(out) :: status
 
     status = 0
-    call write_byte(doc%file_unit, DVI_POP, doc%byte_offset, status)
+    call write_byte(doc%file_unit, OP_DVI_POP, doc%byte_offset, status)
     if (status == 0 .and. doc%current_stack_depth > 0_int32) then
       doc%current_stack_depth = doc%current_stack_depth - 1_int32
     end if
@@ -411,7 +411,7 @@ contains
     post_offset = doc%byte_offset
 
     ! Write post command
-    call write_byte(doc%file_unit, DVI_POST, doc%byte_offset, status)
+    call write_byte(doc%file_unit, OP_DVI_POST, doc%byte_offset, status)
     if (status /= 0) return
 
     ! Pointer to last BOP
@@ -457,7 +457,7 @@ contains
     post_post_offset = doc%byte_offset
 
     ! Write post_post command
-    call write_byte(doc%file_unit, DVI_POST_POST, doc%byte_offset, status)
+    call write_byte(doc%file_unit, OP_DVI_POST_POST, doc%byte_offset, status)
     if (status /= 0) return
 
     ! Pointer to post command
@@ -465,13 +465,13 @@ contains
     if (status /= 0) return
 
     ! DVI ID byte
-    call write_byte(doc%file_unit, DVI_ID, doc%byte_offset, status)
+    call write_byte(doc%file_unit, OP_DVI_ID, doc%byte_offset, status)
     if (status /= 0) return
 
     ! Trailer padding bytes (minimum 4 padding bytes of DVI_TRAILER_PAD / 223)
     pad_count = 4 + int(iand(doc%byte_offset + 4_int32, 3_int32))
     do idx = 1, pad_count
-      call write_byte(doc%file_unit, DVI_TRAILER_PAD, doc%byte_offset, status)
+      call write_byte(doc%file_unit, OP_DVI_TRAILER_PAD, doc%byte_offset, status)
       if (status /= 0) return
     end do
 
