@@ -274,26 +274,30 @@ contains
   ! Helper: Intersection between a pair of distinct cubic Bézier curves
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  function check_pair_intersect(c1, c2, is_adjacent, tol) result(found)
+  function check_pair_intersect(c1, c2, is_adjacent, is_wrap, tol) result(found)
     type(bezier_cubic_type), intent(in) :: c1, c2
-    logical, intent(in)                 :: is_adjacent
+    logical, intent(in)                 :: is_adjacent, is_wrap
     real(kind=real64), intent(in)       :: tol
     logical                             :: found
 
     type(bezier_result_type) :: res
     integer(kind=int32)      :: k
     real(kind=real64)        :: t1, t2
+    logical                  :: is_joint
 
     found = .false.
     call bezier_intersect(c1, c2, tol, res)
     do k = 1, res%count
       t1 = res%intersections(k)%t1
       t2 = res%intersections(k)%t2
-      if (is_adjacent) then
-        if (.not. (t1 > 0.95_real64 .and. t2 < 0.05_real64)) then
-          found = .true.
-        end if
-      else
+      is_joint = .false.
+      if (is_adjacent .and. (t1 > 0.95_real64 .and. t2 < 0.05_real64)) then
+        is_joint = .true.
+      end if
+      if (is_wrap .and. (t1 < 0.05_real64 .and. t2 > 0.95_real64)) then
+        is_joint = .true.
+      end if
+      if (.not. is_joint) then
         found = .true.
       end if
     end do
@@ -310,7 +314,7 @@ contains
 
     integer(kind=int32) :: i, j, n
     real(kind=real64)   :: tol
-    logical             :: is_adj
+    logical             :: is_adj, is_wrap
 
     intersects = .false.
     tol = DEFAULT_CONT_TOL
@@ -329,8 +333,9 @@ contains
       if (.not. intersects) then
         do i = 1, n
           do j = i + 1, n
-            is_adj = (j == i + 1) .or. (i == 1 .and. j == n .and. spline%is_closed)
-            if (check_pair_intersect(spline%segments(i), spline%segments(j), is_adj, tol)) then
+            is_adj = (j == i + 1)
+            is_wrap = (i == 1 .and. j == n .and. spline%is_closed)
+            if (check_pair_intersect(spline%segments(i), spline%segments(j), is_adj, is_wrap, tol)) then
               intersects = .true.
             end if
           end do
