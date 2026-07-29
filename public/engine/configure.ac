@@ -46,6 +46,8 @@ AC_ARG_WITH([lapack],
   [with_lapack=$withval],
   [with_lapack=check])
 
+AC_LANG_PUSH([Fortran])
+
 # Check for BLAS
 AS_IF([test "x$with_blas" != "xno"], [
   AS_IF([test "x$with_blas" != "xyes" && test "x$with_blas" != "xcheck"], [
@@ -90,6 +92,8 @@ AS_IF([test "x$with_lapack" != "xno"], [
     AC_MSG_ERROR([LAPACK library requested but not found])
   ])
 ])
+
+AC_LANG_POP([Fortran])
 
 AC_SUBST([BLAS_LIBS])
 AC_SUBST([LAPACK_LIBS])
