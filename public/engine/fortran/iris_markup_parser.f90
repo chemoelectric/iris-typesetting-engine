@@ -17,6 +17,7 @@ module iris_markup_parser
   integer(kind=int32), parameter, public :: DIALECT_TEX_LATEX        = 2
   integer(kind=int32), parameter, public :: DIALECT_CONTEXT          = 3
   integer(kind=int32), parameter, public :: DIALECT_TROFF_GROFF      = 4
+  integer(kind=int32), parameter, public :: DIALECT_TROFF            = 4
   integer(kind=int32), parameter, public :: DIALECT_HTML_XML         = 5
 
   ! Public Constants (AST Node Types)

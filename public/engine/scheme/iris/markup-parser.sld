@@ -17,6 +17,7 @@
     DIALECT-TEX-LATEX
     DIALECT-CONTEXT
     DIALECT-TROFF-GROFF
+    DIALECT-TROFF
     DIALECT-HTML-XML)
 
   (import (scheme base)
@@ -32,6 +33,7 @@
     (define DIALECT-TEX-LATEX 2)
     (define DIALECT-CONTEXT 3)
     (define DIALECT-TROFF-GROFF 4)
+    (define DIALECT-TROFF 4)
     (define DIALECT-HTML-XML 5)
 
     ;; -------------------------------------------------------------------------
