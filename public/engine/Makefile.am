@@ -13,19 +13,19 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 bin_PROGRAMS = iris iris-tex iris-kpsewhich iris-trip iris-compile
 
 iris_SOURCES = fortran/iris_main.f90
-iris_LDADD = libiris.a -lz
+iris_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) -lz
 
 iris_tex_SOURCES = fortran/iris_cmd_tex.f90
-iris_tex_LDADD = libiris.a -lz
+iris_tex_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) -lz
 
 iris_kpsewhich_SOURCES = fortran/iris_cmd_kpsewhich.f90
-iris_kpsewhich_LDADD = libiris.a -lz
+iris_kpsewhich_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) -lz
 
 iris_trip_SOURCES = fortran/iris_cmd_trip.f90
-iris_trip_LDADD = libiris.a -lz
+iris_trip_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) -lz
 
 iris_compile_SOURCES = fortran/iris_cmd_compile.f90
-iris_compile_LDADD = libiris.a -lz
+iris_compile_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) -lz
 
 # ------------------------------------------------------------------------------
 # Fortran Convenience Library
@@ -42,6 +42,8 @@ libiris_a_SOURCES = \
 	fortran/iris_svd_fallback.f90 \
 	fortran/iris_svd_bridge.f90 \
 	fortran/iris_hobby_svd.f90 \
+	fortran/spiro_lapack_bridge_mod.f90 \
+	fortran/spiro_svd_mod.f90 \
 	fortran/iris_spline_collection.f90 \
 	fortran/iris_opentype.f90 \
 	fortran/iris_font_json.f90 \
@@ -65,6 +67,7 @@ fortran/iris_bezier_intersect.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_spline.$(OBJEXT): fortran/iris_bezier_intersect.$(OBJEXT)
 fortran/iris_svd_bridge.$(OBJEXT): fortran/iris_svd_fallback.$(OBJEXT)
 fortran/iris_hobby_svd.$(OBJEXT): fortran/iris_svd_bridge.$(OBJEXT)
+fortran/spiro_svd_mod.$(OBJEXT): fortran/spiro_lapack_bridge_mod.$(OBJEXT)
 fortran/iris_spline_collection.$(OBJEXT): fortran/iris_json.$(OBJEXT) fortran/iris_bezier_intersect.$(OBJEXT) fortran/iris_spline.$(OBJEXT)
 fortran/iris_opentype.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_font_json.$(OBJEXT): fortran/iris_opentype.$(OBJEXT) fortran/iris_json.$(OBJEXT)
@@ -193,7 +196,7 @@ test_iris_spline_LDADD = libiris.a
 tests/test_iris_spline.$(OBJEXT): fortran/iris_spline.$(OBJEXT)
 
 test_iris_svd_SOURCES = tests/test_iris_svd.f90
-test_iris_svd_LDADD = libiris.a
+test_iris_svd_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS)
 tests/test_iris_svd.$(OBJEXT): fortran/iris_hobby_svd.$(OBJEXT) fortran/iris_svd_bridge.$(OBJEXT) fortran/iris_svd_fallback.$(OBJEXT)
 
 test_iris_spline_collection_SOURCES = tests/test_iris_spline_collection.f90

@@ -3,7 +3,12 @@
 ## Architectural Overview
 `iris_svd_bridge` provides a Fortran 2008 procedure pointer abstraction layer for Singular Value Decomposition (SVD) solvers. It decouples higher-level geometric spline modules (such as `iris_hobby_svd`) from specific linear algebra backend implementations.
 
-By default, `iris_svd_bridge` points to the pure Fortran Jacobi SVD fallback (`iris_svd_fallback_solve`). At runtime, applications or host environments can dynamically point `active_svd_solver` to LAPACK (`iris_svd_lapack_solve`) or vendor-optimized libraries (e.g., AMD AOCL-LAPACK, Intel MKL) without build-time CPP `#ifdef` macros or preprocessor directives.
+By default, `iris_svd_bridge` defaults to `iris_svd_lapack_solve` when compiled with LAPACK support (`HAVE_LAPACK`), and otherwise falls back to the pure Fortran Jacobi SVD fallback (`iris_svd_fallback_solve`). At runtime, applications or host environments can dynamically point `active_svd_solver` to LAPACK (`iris_svd_lapack_solve`), BLAS-accelerated operations, or custom vendor-optimized libraries (e.g., AMD AOCL, Intel MKL) using the provided configure options `--with-blas` and `--with-lapack`.
+
+## Build Configuration Options
+
+- `--with-blas[=LIB]`: Search for or specify external BLAS library (e.g., `-lblas`, `-lopenblas`, `-lmkl_rt`). Defines `HAVE_BLAS` and accelerates matrix-vector multiplications via `dgemv`.
+- `--with-lapack[=LIB]`: Search for or specify external LAPACK library (e.g., `-llapack`, `-lopenblas`, `-lmkl_rt`). Defines `HAVE_LAPACK` and enables direct `DGESVD` decomposition.
 
 ## Abstract Interface
 

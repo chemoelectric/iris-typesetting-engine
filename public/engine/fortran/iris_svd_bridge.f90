@@ -37,8 +37,24 @@ module iris_svd_bridge
     end subroutine dgesvd
   end interface
 
-  ! Procedure pointer defaulting to pure Fortran fallback
+  ! BLAS C/Fortran interface for DGEMV
+  interface
+    subroutine dgemv(trans, m, n, alpha, a, lda, x, incx, beta, y, incy)
+      import :: int32, real64
+      character(len=1), intent(in) :: trans
+      integer(kind=int32), intent(in) :: m, n, lda, incx, incy
+      real(kind=real64), intent(in) :: alpha, beta
+      real(kind=real64), intent(in) :: a(lda, *), x(*)
+      real(kind=real64), intent(inout) :: y(*)
+    end subroutine dgemv
+  end interface
+
+  ! Procedure pointer defaulting to LAPACK solver if available, otherwise pure Fortran fallback
+#ifdef HAVE_LAPACK
+  procedure(svd_solver_interface), pointer, save :: active_svd_solver => iris_svd_lapack_solve
+#else
   procedure(svd_solver_interface), pointer, save :: active_svd_solver => iris_svd_fallback_solve
+#endif
 
   ! Public API
   public :: svd_solver_interface
@@ -107,10 +123,15 @@ contains
     if (info /= 0) then
       status = -10
     else
+#ifdef HAVE_BLAS
+      ! Compute U^T * b using BLAS DGEMV
+      call dgemv('T', n, n, 1.0_real64, u_mat, n, b, 1, 0.0_real64, ut_b, 1)
+#else
       ! Compute U^T * b
       do i = 1, n
         ut_b(i) = dot_product(u_mat(:, i), b)
       end do
+#endif
 
       ! Apply pseudo-inverse
       do i = 1, n
@@ -121,6 +142,10 @@ contains
         end if
       end do
 
+#ifdef HAVE_BLAS
+      ! x = V * z = VT^T * z using BLAS DGEMV
+      call dgemv('T', n, n, 1.0_real64, vt_mat, n, z, 1, 0.0_real64, x, 1)
+#else
       ! x = V * z = VT^T * z
       do i = 1, n
         x(i) = 0.0_real64
@@ -128,6 +153,7 @@ contains
           x(i) = x(i) + vt_mat(j, i) * z(j)
         end do
       end do
+#endif
     end if
 
     deallocate(a_copy, s_vals, u_mat, vt_mat, ut_b, z, work)

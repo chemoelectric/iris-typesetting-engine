@@ -8,7 +8,7 @@
 program test_iris_svd
   use, intrinsic :: iso_fortran_env, only: int32, real64
   use iris_svd_fallback, only: iris_svd_fallback_solve
-  use iris_svd_bridge, only: iris_svd_solve, iris_svd_set_solver, iris_svd_reset_to_fallback
+  use iris_svd_bridge, only: iris_svd_solve, iris_svd_set_solver, iris_svd_reset_to_fallback, iris_svd_use_lapack
   use iris_hobby_svd, only: hobby_knot_type, hobby_control_point_type, hobby_config_type, &
                             hobby_init_config, hobby_compute_spline_svd, HOBBY_OK
   implicit none
@@ -45,6 +45,15 @@ program test_iris_svd
     print *, "TEST FAIL: Bridge dispatch SVD solve failed"
     exit_code = 3
   end if
+
+#ifdef HAVE_LAPACK
+  call iris_svd_use_lapack()
+  call iris_svd_solve(3, A, b, x, 1.0e-12_real64, status)
+  if (status /= 0) then
+    print *, "TEST FAIL: LAPACK bridge SVD solve failed"
+    exit_code = 6
+  end if
+#endif
 
   ! 3. Test Extended Hobby Spline SVD Computation
   call hobby_init_config(cfg)

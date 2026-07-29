@@ -25,6 +25,17 @@ module spiro_lapack_bridge_mod
     end subroutine dgesvd
   end interface
 
+  interface
+    subroutine dgemv(trans, m, n, alpha, a, lda, x, incx, beta, y, incy)
+      import :: int32, real64
+      character(len=1), intent(in) :: trans
+      integer(int32), intent(in)   :: m, n, lda, incx, incy
+      real(real64), intent(in)     :: alpha, beta
+      real(real64), intent(in)     :: a(lda, *), x(*)
+      real(real64), intent(inout)  :: y(*)
+    end subroutine dgemv
+  end interface
+
 contains
 
   ! LAPACK DGESVD Regularized Step Solver
@@ -72,10 +83,15 @@ contains
       allocate(z(n))
       z = 0.0_real64
 
+#ifdef HAVE_BLAS
+      ! Compute U^T * residual using BLAS DGEMV
+      call dgemv('T', m, m, 1.0_real64, u_mat, m, residual, 1, 0.0_real64, ut_res, 1)
+#else
       ! Compute U^T * residual
       do i = 1, m
         ut_res(i) = dot_product(u_mat(:, i), residual)
       end do
+#endif
 
       ! Apply Tikhonov / Jaynesian MaxEnt regularization
       do k = 1, min_mn
@@ -83,6 +99,10 @@ contains
         z(k) = ut_res(k) * reg_inv
       end do
 
+#ifdef HAVE_BLAS
+      ! Compute out_step = - V * z = - VT^T * z using BLAS DGEMV
+      call dgemv('T', min_mn, n, -1.0_real64, vt_mat, n, z, 1, 0.0_real64, out_step, 1)
+#else
       ! Compute out_step = - V * z = - VT^T * z
       do c = 1, n
         sum_v = 0.0_real64
@@ -91,6 +111,7 @@ contains
         end do
         out_step(c) = -sum_v
       end do
+#endif
 
       deallocate(ut_res)
       deallocate(z)
