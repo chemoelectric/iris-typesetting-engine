@@ -167,7 +167,7 @@
         (write-raw-string pdf (number->string stream-len))
         (write-raw-string pdf " >>\nstream\n")
         (write-raw-string pdf stream-str)
-        (write-raw-string pdf "\nendstream\nendobj\n")
+        (write-raw-string pdf "endstream\nendobj\n")
 
         (let ((page-id (+ (pdf-doc-obj-count pdf) 1)))
           (pdf-doc-obj-count-set! pdf page-id)
@@ -248,7 +248,7 @@
                   (offsets-alist (pdf-doc-xref-offsets pdf)))
               (write-raw-string pdf "xref\n0 ")
               (write-raw-string pdf (number->string (+ total-objs 1)))
-              (write-raw-string pdf "\n0000000000 65535 f \r\n")
+              (write-raw-string pdf "\n0000000000 65535 f\r\n")
 
               (let loop ((i 1))
                 (if (<= i total-objs)
@@ -257,7 +257,7 @@
                            (off-str (number->string off))
                            (padded (string-append (make-string (- 10 (string-length off-str)) #\0) off-str)))
                       (write-raw-string pdf padded)
-                      (write-raw-string pdf " 00000 n \r\n")
+                      (write-raw-string pdf " 00000 n\r\n")
                       (loop (+ i 1)))))
 
               (write-raw-string pdf "trailer\n<< /Size ")

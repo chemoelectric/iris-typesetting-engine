@@ -676,14 +676,14 @@ contains
         "<< /Filter /FlateDecode /Length ", compressed_len, " >>" // new_line('a') // "stream" // new_line('a')
       call write_raw_string(pdf, trim(header_buf))
       call write_raw_string(pdf, compressed_buf(1:compressed_len))
-      call write_raw_string(pdf, new_line('a') // "endstream" // new_line('a') // "endobj" // new_line('a'))
+      call write_raw_string(pdf, "endstream" // new_line('a') // "endobj" // new_line('a'))
       deallocate(compressed_buf)
     else
       write(header_buf, '(I0,A,I0,A)') stream_obj_id, " 0 obj" // new_line('a') // &
         "<< /Length ", pdf%stream_len, " >>" // new_line('a') // "stream" // new_line('a')
       call write_raw_string(pdf, trim(header_buf))
       call write_raw_string(pdf, pdf%current_stream(1:pdf%stream_len))
-      call write_raw_string(pdf, new_line('a') // "endstream" // new_line('a') // "endobj" // new_line('a'))
+      call write_raw_string(pdf, "endstream" // new_line('a') // "endobj" // new_line('a'))
     end if
 
     page_obj_id = next_object_id(pdf)
