@@ -41,9 +41,9 @@ contains
   ! LAPACK DGESVD Regularized Step Solver
   ! Single exit, M <= 6
   subroutine spiro_solve_lapack_svd_f08(jacobian, residual, m, n, lambda, out_step, status)
+    integer(int32), intent(in)  :: m, n
     real(real64), intent(in)    :: jacobian(m, n)
     real(real64), intent(in)    :: residual(m)
-    integer(int32), intent(in)  :: m, n
     real(real64), intent(in)    :: lambda
     real(real64), intent(out)   :: out_step(n)
     integer(int32), intent(out) :: status
