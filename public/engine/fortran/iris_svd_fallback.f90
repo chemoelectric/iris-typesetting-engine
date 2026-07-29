@@ -28,9 +28,9 @@ contains
     integer(kind=int32), intent(out)  :: status
 
     real(kind=real64) :: U(n, n), V(n, n), S_vec(n), UTb(n), SigmaPlusUTb(n)
-    real(kind=real64) :: max_off, c_rot, s_rot, tan_val, t_val, theta
+    real(kind=real64) :: a_norm, b_norm, c_dot, tau, t_val, c_rot, s_rot, max_off
+    real(kind=real64) :: u_ki, v_ki
     integer(kind=int32) :: i, j, k, iter, max_iter
-    real(kind=real64) :: app, aqq, apq
 
     status = 0
     U = A_in
@@ -44,42 +44,39 @@ contains
     do while (iter < max_iter)
       iter = iter + 1
       max_off = 0.0_real64
-      do i = 1, n - 1
-        do j = i + 1, n
-          max_off = max(max_off, abs(U(i, j)))
-        end do
-      end do
-
-      if (max_off < 1.0e-14_real64) exit
 
       do i = 1, n - 1
         do j = i + 1, n
-          apq = U(i, j)
-          if (abs(apq) > 1.0e-15_real64) then
-            app = U(i, i)
-            aqq = U(j, j)
-            theta = (aqq - app) / (2.0_real64 * apq)
-            t_val = 1.0_real64 / (abs(theta) + sqrt(1.0_real64 + theta * theta))
-            if (theta < 0.0_real64) t_val = -t_val
+          c_dot = sum(U(:, i) * U(:, j))
+          a_norm = sum(U(:, i)**2)
+          b_norm = sum(U(:, j)**2)
+
+          max_off = max(max_off, abs(c_dot))
+
+          if (abs(c_dot) > 1.0e-15_real64 * sqrt(max(a_norm * b_norm, 1.0e-30_real64))) then
+            tau = (b_norm - a_norm) / (2.0_real64 * c_dot)
+            if (tau >= 0.0_real64) then
+              t_val = 1.0_real64 / (tau + sqrt(1.0_real64 + tau * tau))
+            else
+              t_val = -1.0_real64 / (-tau + sqrt(1.0_real64 + tau * tau))
+            end if
             c_rot = 1.0_real64 / sqrt(1.0_real64 + t_val * t_val)
             s_rot = t_val * c_rot
 
-            ! Rotate U columns
             do k = 1, n
-              tan_val = U(k, i)
-              U(k, i) = c_rot * tan_val - s_rot * U(k, j)
-              U(k, j) = s_rot * tan_val + c_rot * U(k, j)
-            end do
+              u_ki = U(k, i)
+              U(k, i) = c_rot * u_ki - s_rot * U(k, j)
+              U(k, j) = s_rot * u_ki + c_rot * U(k, j)
 
-            ! Rotate V columns
-            do k = 1, n
-              tan_val = V(k, i)
-              V(k, i) = c_rot * tan_val - s_rot * V(k, j)
-              V(k, j) = s_rot * tan_val + c_rot * V(k, j)
+              v_ki = V(k, i)
+              V(k, i) = c_rot * v_ki - s_rot * V(k, j)
+              V(k, j) = s_rot * v_ki + c_rot * V(k, j)
             end do
           end if
         end do
       end do
+
+      if (max_off < 1.0e-14_real64) exit
     end do
 
     ! Extract singular values
