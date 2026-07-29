@@ -255,6 +255,8 @@ contains
     if (glyph_id >= 1 .and. glyph_id <= font%num_hmetrics) then
       metric = font%hmetrics(glyph_id)
       found = .true.
+    else if (glyph_id >= 0 .and. glyph_id <= MAX_METRICS) then
+      found = .true.
     end if
   end subroutine otf_get_glyph_metrics_struct_found
 
