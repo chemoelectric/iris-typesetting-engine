@@ -12,8 +12,8 @@ This module is designed in **structural isomorphism** with the R7RS Scheme `(iri
 | API Functionality | Fortran 2008 (`iris_evaluate_pegs`) | R7RS Scheme (`(iris evaluate-pegs)`) |
 | :--- | :--- | :--- |
 | **Compute Pair Kerning** | `call compute_peg_kerning(l_peg, r_peg, gap, delta)` | `(compute-peg-kerning l-peg r-peg gap)` |
-| **Apply Pair to Font** | `call apply_pegs_glyph_pair(font, lgid, rgid, gap, delta, status)` | `(apply-pegs-glyph-pair font lgid rgid gap)` |
-| **Apply Run to Font** | `call apply_pegs_glyph_run(font, gids, count, gap, deltas, status)` | `(apply-pegs-glyph-run font gids gap)` |
+| **Apply Pair to Font** | `call apply_pegs_glyph_pair(font, lgid, rgid, gap, delta, [status])` | `(apply-pegs-glyph-pair font lgid rgid gap)` |
+| **Apply Run to Font** | `call apply_pegs_glyph_run(font, gids, count, gap\|gaps, deltas\|sum, [status])` | `(apply-pegs-glyph-run font gids gap)` |
 
 ---
 

@@ -24,6 +24,13 @@ module iris_evaluate_pegs
   public :: apply_pegs_glyph_pair
   public :: apply_pegs_glyph_run
 
+  interface apply_pegs_glyph_run
+    module procedure apply_pegs_glyph_run_scalar_gap_array_deltas
+    module procedure apply_pegs_glyph_run_array_gaps_array_deltas
+    module procedure apply_pegs_glyph_run_scalar_gap_scalar_sum
+    module procedure apply_pegs_glyph_run_array_gaps_scalar_sum
+  end interface apply_pegs_glyph_run
+
 contains
 
   !-----------------------------------------------------------------------------
@@ -58,18 +65,19 @@ contains
   !-----------------------------------------------------------------------------
   subroutine apply_pegs_glyph_pair(font, left_gid, right_gid, nominal_gap, &
                                    kerning_delta, status)
-    type(otf_font_type), intent(in)  :: font
-    integer(kind=int16), intent(in)  :: left_gid
-    integer(kind=int16), intent(in)  :: right_gid
-    integer(kind=int16), intent(in)  :: nominal_gap
-    integer(kind=int16), intent(out) :: kerning_delta
-    integer(kind=int32), intent(out) :: status
+    type(otf_font_type), intent(in)            :: font
+    integer(kind=int16), intent(in)            :: left_gid
+    integer(kind=int16), intent(in)            :: right_gid
+    integer(kind=int16), intent(in)            :: nominal_gap
+    integer(kind=int16), intent(out)           :: kerning_delta
+    integer(kind=int32), intent(out), optional :: status
 
     type(otf_peg_entry_type) :: l_peg, r_peg
     logical                  :: l_found, r_found
+    integer(kind=int32)      :: local_stat
 
     kerning_delta = 0
-    status = PEG_APPLY_OK
+    local_stat = PEG_APPLY_OK
 
     call otf_get_peg_entry(font, left_gid, l_peg, l_found)
     call otf_get_peg_entry(font, right_gid, r_peg, r_found)
@@ -77,27 +85,31 @@ contains
     if (l_found .and. r_found) then
       call compute_peg_kerning(l_peg, r_peg, nominal_gap, kerning_delta)
     else
-      status = PEG_APPLY_NO_PEGS
+      local_stat = PEG_APPLY_NO_PEGS
+    end if
+
+    if (present(status)) then
+      status = local_stat
     end if
   end subroutine apply_pegs_glyph_pair
 
   !-----------------------------------------------------------------------------
-  ! Apply existing pegs to a sequence run of glyph IDs
+  ! Apply existing pegs to a sequence run of glyph IDs (scalar gap, array deltas)
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  subroutine apply_pegs_glyph_run(font, glyph_ids, num_glyphs, nominal_gap, &
-                                  kerning_deltas, status)
-    type(otf_font_type), intent(in)  :: font
-    integer(kind=int16), intent(in)  :: glyph_ids(:)
-    integer(kind=int32), intent(in)  :: num_glyphs
-    integer(kind=int16), intent(in)  :: nominal_gap
-    integer(kind=int16), intent(out) :: kerning_deltas(:)
-    integer(kind=int32), intent(out) :: status
+  subroutine apply_pegs_glyph_run_scalar_gap_array_deltas(font, glyph_ids, num_glyphs, &
+                                                           nominal_gap, kerning_deltas, status)
+    type(otf_font_type), intent(in)            :: font
+    integer(kind=int16), intent(in)            :: glyph_ids(:)
+    integer(kind=int32), intent(in)            :: num_glyphs
+    integer(kind=int16), intent(in)            :: nominal_gap
+    integer(kind=int16), intent(out)           :: kerning_deltas(:)
+    integer(kind=int32), intent(out), optional :: status
 
-    integer(kind=int32) :: i, pair_stat
+    integer(kind=int32) :: i, pair_stat, local_stat
     integer(kind=int16) :: delta
 
-    status = PEG_APPLY_OK
+    local_stat = PEG_APPLY_OK
 
     if (num_glyphs > 1 .and. size(glyph_ids) >= num_glyphs .and. &
         size(kerning_deltas) >= (num_glyphs - 1)) then
@@ -106,12 +118,145 @@ contains
                                    nominal_gap, delta, pair_stat)
         kerning_deltas(i) = delta
         if (pair_stat /= PEG_APPLY_OK) then
-          status = PEG_APPLY_NO_PEGS
+          local_stat = PEG_APPLY_NO_PEGS
         end if
       end do
     else
-      status = PEG_APPLY_ERR_BOUND
+      local_stat = PEG_APPLY_ERR_BOUND
     end if
-  end subroutine apply_pegs_glyph_run
+
+    if (present(status)) then
+      status = local_stat
+    end if
+  end subroutine apply_pegs_glyph_run_scalar_gap_array_deltas
+
+  !-----------------------------------------------------------------------------
+  ! Apply existing pegs to a sequence run of glyph IDs (array gaps, array deltas)
+  ! Single-entry / single-exit implementation
+  !-----------------------------------------------------------------------------
+  subroutine apply_pegs_glyph_run_array_gaps_array_deltas(font, glyph_ids, num_glyphs, &
+                                                          nominal_gaps, kerning_deltas, status)
+    type(otf_font_type), intent(in)            :: font
+    integer(kind=int16), intent(in)            :: glyph_ids(:)
+    integer(kind=int32), intent(in)            :: num_glyphs
+    integer(kind=int16), intent(in)            :: nominal_gaps(:)
+    integer(kind=int16), intent(out)           :: kerning_deltas(:)
+    integer(kind=int32), intent(out), optional :: status
+
+    integer(kind=int32) :: i, pair_stat, local_stat
+    integer(kind=int16) :: delta, gap_val
+
+    local_stat = PEG_APPLY_OK
+
+    if (num_glyphs > 1 .and. size(glyph_ids) >= num_glyphs .and. &
+        size(nominal_gaps) >= (num_glyphs - 1) .and. &
+        size(kerning_deltas) >= (num_glyphs - 1)) then
+      do i = 1, num_glyphs - 1
+        gap_val = nominal_gaps(i)
+        call apply_pegs_glyph_pair(font, glyph_ids(i), glyph_ids(i + 1), &
+                                   gap_val, delta, pair_stat)
+        kerning_deltas(i) = delta
+        if (pair_stat /= PEG_APPLY_OK) then
+          local_stat = PEG_APPLY_NO_PEGS
+        end if
+      end do
+    else
+      local_stat = PEG_APPLY_ERR_BOUND
+    end if
+
+    if (present(status)) then
+      status = local_stat
+    end if
+  end subroutine apply_pegs_glyph_run_array_gaps_array_deltas
+
+  !-----------------------------------------------------------------------------
+  ! Apply existing pegs to a sequence run of glyph IDs (scalar gap, scalar total)
+  ! Single-entry / single-exit implementation
+  !-----------------------------------------------------------------------------
+  subroutine apply_pegs_glyph_run_scalar_gap_scalar_sum(font, glyph_ids, num_glyphs, &
+                                                         nominal_gap, total_kerning, status)
+    type(otf_font_type), intent(in)            :: font
+    integer(kind=int16), intent(in)            :: glyph_ids(:)
+    integer(kind=int32), intent(in)            :: num_glyphs
+    integer(kind=int16), intent(in)            :: nominal_gap
+    integer(kind=int16), intent(out)           :: total_kerning
+    integer(kind=int32), intent(out), optional :: status
+
+    integer(kind=int32) :: i, pair_stat, local_stat, sum_val
+    integer(kind=int16) :: delta
+
+    local_stat = PEG_APPLY_OK
+    sum_val = 0
+
+    if (num_glyphs > 1 .and. size(glyph_ids) >= num_glyphs) then
+      do i = 1, num_glyphs - 1
+        call apply_pegs_glyph_pair(font, glyph_ids(i), glyph_ids(i + 1), &
+                                   nominal_gap, delta, pair_stat)
+        sum_val = sum_val + int(delta, int32)
+        if (pair_stat /= PEG_APPLY_OK) then
+          local_stat = PEG_APPLY_NO_PEGS
+        end if
+      end do
+    else
+      local_stat = PEG_APPLY_ERR_BOUND
+    end if
+
+    if (sum_val > 32767) then
+      sum_val = 32767
+    else if (sum_val < -32768) then
+      sum_val = -32768
+    end if
+    total_kerning = int(sum_val, int16)
+
+    if (present(status)) then
+      status = local_stat
+    end if
+  end subroutine apply_pegs_glyph_run_scalar_gap_scalar_sum
+
+  !-----------------------------------------------------------------------------
+  ! Apply existing pegs to a sequence run of glyph IDs (array gaps, scalar total)
+  ! Single-entry / single-exit implementation
+  !-----------------------------------------------------------------------------
+  subroutine apply_pegs_glyph_run_array_gaps_scalar_sum(font, glyph_ids, num_glyphs, &
+                                                        nominal_gaps, total_kerning, status)
+    type(otf_font_type), intent(in)            :: font
+    integer(kind=int16), intent(in)            :: glyph_ids(:)
+    integer(kind=int32), intent(in)            :: num_glyphs
+    integer(kind=int16), intent(in)            :: nominal_gaps(:)
+    integer(kind=int16), intent(out)           :: total_kerning
+    integer(kind=int32), intent(out), optional :: status
+
+    integer(kind=int32) :: i, pair_stat, local_stat, sum_val
+    integer(kind=int16) :: delta, gap_val
+
+    local_stat = PEG_APPLY_OK
+    sum_val = 0
+
+    if (num_glyphs > 1 .and. size(glyph_ids) >= num_glyphs .and. &
+        size(nominal_gaps) >= (num_glyphs - 1)) then
+      do i = 1, num_glyphs - 1
+        gap_val = nominal_gaps(i)
+        call apply_pegs_glyph_pair(font, glyph_ids(i), glyph_ids(i + 1), &
+                                   gap_val, delta, pair_stat)
+        sum_val = sum_val + int(delta, int32)
+        if (pair_stat /= PEG_APPLY_OK) then
+          local_stat = PEG_APPLY_NO_PEGS
+        end if
+      end do
+    else
+      local_stat = PEG_APPLY_ERR_BOUND
+    end if
+
+    if (sum_val > 32767) then
+      sum_val = 32767
+    else if (sum_val < -32768) then
+      sum_val = -32768
+    end if
+    total_kerning = int(sum_val, int16)
+
+    if (present(status)) then
+      status = local_stat
+    end if
+  end subroutine apply_pegs_glyph_run_array_gaps_scalar_sum
 
 end module iris_evaluate_pegs
