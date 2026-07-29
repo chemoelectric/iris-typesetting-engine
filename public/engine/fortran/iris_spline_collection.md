@@ -20,12 +20,12 @@ This module is designed in **structural isomorphism** with the R7RS Scheme `(iri
 | :--- | :--- | :--- |
 | **Initialize Collection** | `call collection_init(coll)` | `(make-spline-collection [splines])` |
 | **Add Spline Contour** | `call collection_add_spline(coll, spline, status)` | `(collection-add-spline! coll spline)` |
-| **Get Bounding Box** | `call collection_get_bbox(spline, minx, maxx, miny, maxy)` | `(spline-get-bbox spline)` |
+| **Get Bounding Box** | `call collection_get_bbox(spline\|coll, minx, miny, maxx, maxy)` | `(spline-get-bbox spline)` |
 | **Point-in-Spline Test** | `inside = collection_point_in_spline(spline, pt)` | `(collection-point-in-spline? spline pt)` |
-| **Internal Intersections**| `call collection_find_intersections_internal(coll, tol, res)` | `(collection-find-intersections-internal coll [tol])` |
-| **Intersections Between** | `call collection_find_intersections_between(ca, cb, tol, res)` | `(collection-find-intersections-between ca cb [tol])` |
-| **Compute Hierarchy** | `call collection_compute_hierarchy(coll, status)` | `(collection-compute-hierarchy! coll)` |
-| **Auto-Orient OpenType** | `call collection_auto_orient_opentype(coll, status)` | `(collection-auto-orient-opentype! coll)` |
+| **Internal Intersections**| `call collection_find_intersections_internal(coll, res, [tol])` | `(collection-find-intersections-internal coll [tol])` |
+| **Intersections Between** | `call collection_find_intersections_between(ca, cb, res, [tol])` | `(collection-find-intersections-between ca cb [tol])` |
+| **Compute Hierarchy** | `call collection_compute_hierarchy(coll, [status])` | `(collection-compute-hierarchy! coll)` |
+| **Auto-Orient OpenType** | `call collection_auto_orient_opentype(coll, [status])` | `(collection-auto-orient-opentype! coll)` |
 
 ---
 

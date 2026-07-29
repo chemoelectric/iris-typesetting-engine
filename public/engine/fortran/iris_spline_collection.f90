@@ -42,6 +42,11 @@ module iris_spline_collection
   public :: collection_compute_hierarchy
   public :: collection_auto_orient_opentype
 
+  interface collection_get_bbox
+    module procedure collection_get_bbox_spline
+    module procedure collection_get_bbox_coll
+  end interface collection_get_bbox
+
   type :: collection_intersection_type
     integer(kind=int32) :: spline_idx1 = 0
     integer(kind=int32) :: seg_idx1    = 0
@@ -100,9 +105,9 @@ contains
   ! Calculate tight axis-aligned bounding box for a spline
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  subroutine collection_get_bbox(spline, min_x, max_x, min_y, max_y)
+  subroutine collection_get_bbox_spline(spline, min_x, min_y, max_x, max_y)
     type(piecewise_spline_type), intent(in) :: spline
-    real(kind=real64), intent(out)          :: min_x, max_x, min_y, max_y
+    real(kind=real64), intent(out)          :: min_x, min_y, max_x, max_y
 
     integer(kind=int32) :: i
     type(point_2d_type) :: p0, p1, p2, p3
@@ -131,7 +136,35 @@ contains
         max_y = max(max_y, max(p0%y, max(p1%y, max(p2%y, p3%y))))
       end do
     end if
-  end subroutine collection_get_bbox
+  end subroutine collection_get_bbox_spline
+
+  !-----------------------------------------------------------------------------
+  ! Calculate tight axis-aligned bounding box for an entire spline collection
+  ! Single-entry / single-exit implementation
+  !-----------------------------------------------------------------------------
+  subroutine collection_get_bbox_coll(coll, min_x, min_y, max_x, max_y)
+    type(spline_collection_type), intent(in) :: coll
+    real(kind=real64), intent(out)          :: min_x, min_y, max_x, max_y
+
+    integer(kind=int32) :: i
+    real(kind=real64)   :: s_min_x, s_min_y, s_max_x, s_max_y
+
+    if (coll%spline_count == 0) then
+      min_x = 0.0_real64
+      min_y = 0.0_real64
+      max_x = 0.0_real64
+      max_y = 0.0_real64
+    else
+      call collection_get_bbox_spline(coll%splines(1), min_x, min_y, max_x, max_y)
+      do i = 2, coll%spline_count
+        call collection_get_bbox_spline(coll%splines(i), s_min_x, s_min_y, s_max_x, s_max_y)
+        min_x = min(min_x, s_min_x)
+        min_y = min(min_y, s_min_y)
+        max_x = max(max_x, s_max_x)
+        max_y = max(max_y, s_max_y)
+      end do
+    end if
+  end subroutine collection_get_bbox_coll
 
   !-----------------------------------------------------------------------------
   ! Point-in-polygon containment test via ray casting against cubic segments
@@ -215,8 +248,8 @@ contains
     real(kind=real64)   :: min2_x, max2_x, min2_y, max2_y
     logical             :: bbox_overlap
 
-    call collection_get_bbox(s1, min1_x, max1_x, min1_y, max1_y)
-    call collection_get_bbox(s2, min2_x, max2_x, min2_y, max2_y)
+    call collection_get_bbox(s1, min1_x, min1_y, max1_x, max1_y)
+    call collection_get_bbox(s2, min2_x, min2_y, max2_x, max2_y)
 
     bbox_overlap = .not. (max1_x < min2_x .or. min1_x > max2_x .or. &
                          max1_y < min2_y .or. min1_y > max2_y)
@@ -236,10 +269,10 @@ contains
   ! Find all internal intersections between splines in a single collection
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  subroutine collection_find_intersections_internal(coll, tol_opt, res)
+  subroutine collection_find_intersections_internal(coll, res, tol_opt)
     type(spline_collection_type), intent(in) :: coll
-    real(kind=real64), intent(in), optional   :: tol_opt
     type(collection_intersect_result_type), intent(out) :: res
+    real(kind=real64), intent(in), optional   :: tol_opt
 
     integer(kind=int32) :: i, j
     real(kind=real64)   :: tol
@@ -263,10 +296,10 @@ contains
   ! Find all intersections between two distinct collections (A and B)
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  subroutine collection_find_intersections_between(coll_a, coll_b, tol_opt, res)
+  subroutine collection_find_intersections_between(coll_a, coll_b, res, tol_opt)
     type(spline_collection_type), intent(in) :: coll_a, coll_b
-    real(kind=real64), intent(in), optional   :: tol_opt
     type(collection_intersect_result_type), intent(out) :: res
+    real(kind=real64), intent(in), optional   :: tol_opt
 
     integer(kind=int32) :: i, j
     real(kind=real64)   :: tol
@@ -292,15 +325,15 @@ contains
   !-----------------------------------------------------------------------------
   subroutine collection_compute_hierarchy(coll, status)
     type(spline_collection_type), intent(inout) :: coll
-    integer(kind=int32), intent(out)            :: status
+    integer(kind=int32), intent(out), optional  :: status
 
-    integer(kind=int32) :: i, j, depth
+    integer(kind=int32) :: i, j, depth, local_stat
     type(point_2d_type) :: test_pt
 
-    status = COLLECTION_OK
+    local_stat = COLLECTION_OK
 
     if (coll%spline_count == 0) then
-      status = COLLECTION_ERR_EMPTY
+      local_stat = COLLECTION_ERR_EMPTY
     else
       do i = 1, coll%spline_count
         depth = 0
@@ -317,6 +350,10 @@ contains
         coll%nesting_levels(i) = depth
       end do
     end if
+
+    if (present(status)) then
+      status = local_stat
+    end if
   end subroutine collection_compute_hierarchy
 
   !-----------------------------------------------------------------------------
@@ -327,13 +364,13 @@ contains
   !-----------------------------------------------------------------------------
   subroutine collection_auto_orient_opentype(coll, status)
     type(spline_collection_type), intent(inout) :: coll
-    integer(kind=int32), intent(out)            :: status
+    integer(kind=int32), intent(out), optional  :: status
 
-    integer(kind=int32) :: i, target_rot, set_stat
+    integer(kind=int32) :: i, target_rot, set_stat, local_stat
 
-    call collection_compute_hierarchy(coll, status)
+    call collection_compute_hierarchy(coll, local_stat)
 
-    if (status == COLLECTION_OK) then
+    if (local_stat == COLLECTION_OK) then
       do i = 1, coll%spline_count
         if (mod(coll%nesting_levels(i), 2) == 0) then
           target_rot = SPLINE_ROTATION_CCW
@@ -343,6 +380,10 @@ contains
 
         call spline_set_rotation(coll%splines(i), target_rot, set_stat)
       end do
+    end if
+
+    if (present(status)) then
+      status = local_stat
     end if
   end subroutine collection_auto_orient_opentype
 
