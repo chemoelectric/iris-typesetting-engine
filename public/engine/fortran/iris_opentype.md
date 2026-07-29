@@ -11,14 +11,14 @@ This module is designed in **structural isomorphism** with the R7RS Scheme `(iri
 
 | API Functionality | Fortran 2008 (`iris_opentype`) | R7RS Scheme (`(iris opentype)`) |
 | :--- | :--- | :--- |
-| **Font Constructor** | `call otf_init_font(font, family)` | `(make-otf-font family)` |
+| **Font Constructor** | `call otf_init_font(font, [family])` | `(make-otf-font family)` |
 | **Read Binary File** | `call otf_read_file(path, font, status)` | `(otf-read-file path)` |
 | **Write Binary File** | `call otf_write_file(path, font, status)` | `(otf-write-file font path)` |
-| **Register Peg Entry** | `call otf_add_peg_entry(font, id, lx, ly, rx, ry, cx, status)` | `(otf-add-peg-entry! font id lx ly rx ry cx)` |
-| **Query Peg Entry** | `call otf_get_peg_entry(font, id, peg, found)` | `(otf-get-peg-entry font id)` |
-| **Query Glyph Metrics** | `call otf_get_glyph_metrics(font, id, metric, found)` | `(otf-get-glyph-metrics font id)` |
-| **Set Name String** | `call otf_set_name_string(font, name_id, str)` | `(otf-set-name-string! font name_id str)` |
-| **Get Name String** | `call otf_get_name_string(font, name_id, str)` | `(otf-get-name-string font name_id)` |
+| **Register Peg Entry** | `call otf_add_peg_entry(font, peg\|id, [lx, ly, rx, ry, cx], [status])` | `(otf-add-peg-entry! font id lx ly rx ry cx)` |
+| **Query Peg Entry** | `call otf_get_peg_entry(font, id, peg, status\|found)` | `(otf-get-peg-entry font id)` |
+| **Query Glyph Metrics** | `call otf_get_glyph_metrics(font, id, metric\|adv, [lsb], status\|found)` | `(otf-get-glyph-metrics font id)` |
+| **Set Name String** | `call otf_set_name_string(font, name_id, str, [status])` | `(otf-set-name-string! font name_id str)` |
+| **Get Name String** | `call otf_get_name_string(font, name_id, str, [status])` | `(otf-get-name-string font name_id)` |
 | **Cleanup** | `call otf_free_font(font)` | N/A (Garbage Collected) |
 
 ---

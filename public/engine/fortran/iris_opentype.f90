@@ -24,7 +24,7 @@ module iris_opentype
   public :: otf_peg_entry_type
   public :: otf_font_type
 
-  ! Public API Procedures
+  ! Public Generic / Overloaded Procedures
   public :: otf_init_font
   public :: otf_read_file
   public :: otf_write_file
@@ -34,6 +34,22 @@ module iris_opentype
   public :: otf_set_name_string
   public :: otf_get_name_string
   public :: otf_free_font
+
+  interface otf_add_peg_entry
+    module procedure otf_add_peg_entry_struct
+    module procedure otf_add_peg_entry_args
+  end interface otf_add_peg_entry
+
+  interface otf_get_peg_entry
+    module procedure otf_get_peg_entry_status
+    module procedure otf_get_peg_entry_found
+  end interface otf_get_peg_entry
+
+  interface otf_get_glyph_metrics
+    module procedure otf_get_glyph_metrics_split
+    module procedure otf_get_glyph_metrics_struct_found
+    module procedure otf_get_glyph_metrics_struct_status
+  end interface otf_get_glyph_metrics
 
   integer(kind=int32), parameter :: MAX_METRICS = 2048
   integer(kind=int32), parameter :: MAX_PEGS    = 2048
@@ -100,11 +116,15 @@ contains
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
   subroutine otf_init_font(font, family_name)
-    type(otf_font_type), intent(out) :: font
-    character(len=*), intent(in)     :: family_name
+    type(otf_font_type), intent(out)       :: font
+    character(len=*), intent(in), optional :: family_name
 
     font%sfnt_version = 'OTTO'
-    font%family_name = trim(adjustl(family_name))
+    if (present(family_name)) then
+      font%family_name = trim(adjustl(family_name))
+    else
+      font%family_name = 'Iris Default'
+    end if
     font%subfamily_name = 'Regular'
     font%full_name = trim(font%family_name) // ' Regular'
     font%postscript_name = trim(font%family_name) // '-Regular'
@@ -116,37 +136,69 @@ contains
   ! Register a Sorts Mill Peg coordinate entry in the PEGS table
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  subroutine otf_add_peg_entry(font, glyph_id, lx, ly, rx, ry, cx, status)
-    type(otf_font_type), intent(inout) :: font
-    integer(kind=int16), intent(in)    :: glyph_id, lx, ly, rx, ry, cx
-    integer(kind=int32), intent(out)   :: status
+  subroutine otf_add_peg_entry_struct(font, peg, status)
+    type(otf_font_type), intent(inout)         :: font
+    type(otf_peg_entry_type), intent(in)       :: peg
+    integer(kind=int32), intent(out), optional :: status
 
-    integer(kind=int32) :: idx
+    integer(kind=int32) :: idx, local_stat
 
-    status = OTF_OK
+    local_stat = OTF_OK
     if (font%num_pegs < MAX_PEGS) then
       font%num_pegs = font%num_pegs + 1
       idx = font%num_pegs
-      font%pegs(idx)%glyph_id = glyph_id
-      font%pegs(idx)%left_peg_x = lx
-      font%pegs(idx)%left_peg_y = ly
-      font%pegs(idx)%right_peg_x = rx
-      font%pegs(idx)%right_peg_y = ry
-      font%pegs(idx)%optical_center_x = cx
+      font%pegs(idx) = peg
     else
-      status = OTF_ERR_WRITE
+      local_stat = OTF_ERR_WRITE
     end if
-  end subroutine otf_add_peg_entry
+
+    if (present(status)) then
+      status = local_stat
+    end if
+  end subroutine otf_add_peg_entry_struct
+
+  subroutine otf_add_peg_entry_args(font, glyph_id, lx, ly, rx, ry, cx, status)
+    type(otf_font_type), intent(inout)         :: font
+    integer(kind=int16), intent(in)            :: glyph_id, lx, ly, rx, ry, cx
+    integer(kind=int32), intent(out), optional :: status
+
+    type(otf_peg_entry_type) :: peg
+
+    peg%glyph_id = glyph_id
+    peg%left_peg_x = lx
+    peg%left_peg_y = ly
+    peg%right_peg_x = rx
+    peg%right_peg_y = ry
+    peg%optical_center_x = cx
+
+    call otf_add_peg_entry_struct(font, peg, status)
+  end subroutine otf_add_peg_entry_args
 
   !-----------------------------------------------------------------------------
   ! Query a Sorts Mill Peg coordinate entry by glyph_id
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  subroutine otf_get_peg_entry(font, glyph_id, peg, found)
-    type(otf_font_type), intent(in)   :: font
-    integer(kind=int16), intent(in)   :: glyph_id
-    type(otf_peg_entry_type), intent(out) :: peg
-    logical, intent(out)              :: found
+  subroutine otf_get_peg_entry_status(font, glyph_id, peg, status)
+    type(otf_font_type), intent(in)        :: font
+    integer(kind=int16), intent(in)        :: glyph_id
+    type(otf_peg_entry_type), intent(out)  :: peg
+    integer(kind=int32), intent(out)       :: status
+
+    logical :: found
+
+    call otf_get_peg_entry_found(font, glyph_id, peg, found)
+    if (found) then
+      status = OTF_OK
+    else
+      status = OTF_ERR_READ
+    end if
+  end subroutine otf_get_peg_entry_status
+
+  subroutine otf_get_peg_entry_found(font, glyph_id, peg, found)
+    type(otf_font_type), intent(in)        :: font
+    integer(kind=int16), intent(in)        :: glyph_id
+    type(otf_peg_entry_type), intent(out)  :: peg
+    logical, intent(out)                   :: found
 
     integer(kind=int32) :: i
 
@@ -165,17 +217,36 @@ contains
         exit
       end if
     end do
-  end subroutine otf_get_peg_entry
+  end subroutine otf_get_peg_entry_found
 
   !-----------------------------------------------------------------------------
   ! Query Horizontal Metrics for a glyph
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  subroutine otf_get_glyph_metrics(font, glyph_id, metric, found)
-    type(otf_font_type), intent(in)   :: font
-    integer(kind=int16), intent(in)   :: glyph_id
+  subroutine otf_get_glyph_metrics_split(font, glyph_id, advance_width, left_side_bearing, status)
+    type(otf_font_type), intent(in)    :: font
+    integer(kind=int16), intent(in)    :: glyph_id
+    integer(kind=int16), intent(out)   :: advance_width, left_side_bearing
+    integer(kind=int32), intent(out)   :: status
+
+    type(otf_hmetric_type) :: metric
+    logical                :: found
+
+    call otf_get_glyph_metrics_struct_found(font, glyph_id, metric, found)
+    advance_width = metric%advance_width
+    left_side_bearing = metric%left_side_bearing
+    if (found) then
+      status = OTF_OK
+    else
+      status = OTF_ERR_READ
+    end if
+  end subroutine otf_get_glyph_metrics_split
+
+  subroutine otf_get_glyph_metrics_struct_found(font, glyph_id, metric, found)
+    type(otf_font_type), intent(in)     :: font
+    integer(kind=int16), intent(in)     :: glyph_id
     type(otf_hmetric_type), intent(out) :: metric
-    logical, intent(out)              :: found
+    logical, intent(out)                :: found
 
     found = .false.
     metric%advance_width = 500
@@ -185,16 +256,33 @@ contains
       metric = font%hmetrics(glyph_id)
       found = .true.
     end if
-  end subroutine otf_get_glyph_metrics
+  end subroutine otf_get_glyph_metrics_struct_found
+
+  subroutine otf_get_glyph_metrics_struct_status(font, glyph_id, metric, status)
+    type(otf_font_type), intent(in)     :: font
+    integer(kind=int16), intent(in)     :: glyph_id
+    type(otf_hmetric_type), intent(out) :: metric
+    integer(kind=int32), intent(out)    :: status
+
+    logical :: found
+
+    call otf_get_glyph_metrics_struct_found(font, glyph_id, metric, found)
+    if (found) then
+      status = OTF_OK
+    else
+      status = OTF_ERR_READ
+    end if
+  end subroutine otf_get_glyph_metrics_struct_status
 
   !-----------------------------------------------------------------------------
   ! Set Naming Table String
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  subroutine otf_set_name_string(font, name_id, str_val)
-    type(otf_font_type), intent(inout) :: font
-    integer(kind=int32), intent(in)    :: name_id
-    character(len=*), intent(in)       :: str_val
+  subroutine otf_set_name_string(font, name_id, str_val, status)
+    type(otf_font_type), intent(inout)         :: font
+    integer(kind=int32), intent(in)            :: name_id
+    character(len=*), intent(in)               :: str_val
+    integer(kind=int32), intent(out), optional :: status
 
     select case (name_id)
     case (1) ! Family
@@ -206,16 +294,21 @@ contains
     case (6) ! PostScript Name
       font%postscript_name = trim(adjustl(str_val))
     end select
+
+    if (present(status)) then
+      status = OTF_OK
+    end if
   end subroutine otf_set_name_string
 
   !-----------------------------------------------------------------------------
   ! Get Naming Table String
   ! Single-entry / single-exit implementation
   !-----------------------------------------------------------------------------
-  subroutine otf_get_name_string(font, name_id, str_out)
-    type(otf_font_type), intent(in) :: font
-    integer(kind=int32), intent(in)  :: name_id
-    character(len=*), intent(out)    :: str_out
+  subroutine otf_get_name_string(font, name_id, str_out, status)
+    type(otf_font_type), intent(in)            :: font
+    integer(kind=int32), intent(in)            :: name_id
+    character(len=*), intent(out)              :: str_out
+    integer(kind=int32), intent(out), optional :: status
 
     str_out = ''
     select case (name_id)
@@ -228,6 +321,10 @@ contains
     case (6)
       str_out = trim(font%postscript_name)
     end select
+
+    if (present(status)) then
+      status = OTF_OK
+    end if
   end subroutine otf_get_name_string
 
   !-----------------------------------------------------------------------------
