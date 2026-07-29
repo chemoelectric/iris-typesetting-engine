@@ -51,6 +51,7 @@ libiris_a_SOURCES = \
 	fortran/iris_font_json.f90 \
 	fortran/iris_evaluate_pegs.f90 \
 	fortran/iris_pdf.f90 \
+	fortran/iris_dvi.f90 \
 	fortran/iris_markup_parser.f90 \
 	fortran/iris_kpsewhich.f90 \
 	fortran/iris_tex_lexer.f90 \
@@ -90,29 +91,6 @@ fortran/iris_cmd_compile.$(OBJEXT): fortran/iris_batch_engine.$(OBJEXT) fortran/
 fortran/iris_main.$(OBJEXT): fortran/iris_cli_args.$(OBJEXT)
 
 # ------------------------------------------------------------------------------
-# R7RS Scheme Library Distribution
-# ------------------------------------------------------------------------------
-schemedir = $(pkgdatadir)/scheme/iris
-nobase_dist_scheme_DATA = \
-	scheme/iris/json.sld \
-	scheme/iris/cli-args.sld \
-	scheme/iris/bezier-intersect.sld \
-	scheme/iris/spline.sld \
-	scheme/iris/spline-collection.sld \
-	scheme/iris/font-json.sld \
-	scheme/iris/opentype.sld \
-	scheme/iris/evaluate-pegs.sld \
-	scheme/iris/pdf.sld \
-	scheme/iris/markup-parser.sld \
-	scheme/iris/kpsewhich.sld \
-	scheme/iris/tex-lexer.sld \
-	scheme/iris/tex-parser.sld \
-	scheme/iris/tex-math.sld \
-	scheme/iris/tex-trip.sld \
-	scheme/iris/tex.sld \
-	scheme/iris/batch-engine.sld
-
-# ------------------------------------------------------------------------------
 # Documentation Distribution
 # ------------------------------------------------------------------------------
 nobase_dist_doc_DATA = \
@@ -130,6 +108,7 @@ nobase_dist_doc_DATA = \
 	fortran/iris_opentype.md \
 	fortran/iris_evaluate_pegs.md \
 	fortran/iris_pdf.md \
+	fortran/iris_dvi.md \
 	fortran/iris_markup_parser.md \
 	fortran/iris_kpsewhich.md \
 	fortran/iris_tex_lexer.md \
@@ -142,24 +121,7 @@ nobase_dist_doc_DATA = \
 	fortran/iris_cmd_kpsewhich.md \
 	fortran/iris_cmd_trip.md \
 	fortran/iris_cmd_compile.md \
-	fortran/iris_main.md \
-	scheme/iris/json.md \
-	scheme/iris/cli-args.md \
-	scheme/iris/bezier-intersect.md \
-	scheme/iris/spline.md \
-	scheme/iris/spline-collection.md \
-	scheme/iris/font-json.md \
-	scheme/iris/opentype.md \
-	scheme/iris/evaluate-pegs.md \
-	scheme/iris/pdf.md \
-	scheme/iris/markup-parser.md \
-	scheme/iris/kpsewhich.md \
-	scheme/iris/tex-lexer.md \
-	scheme/iris/tex-parser.md \
-	scheme/iris/tex-math.md \
-	scheme/iris/tex-trip.md \
-	scheme/iris/tex.md \
-	scheme/iris/batch-engine.md
+	fortran/iris_main.md
 
 # ------------------------------------------------------------------------------
 # Test Harness Integration
@@ -175,6 +137,7 @@ check_PROGRAMS = \
 	test_iris_font_json \
 	test_iris_evaluate_pegs \
 	test_iris_pdf \
+	test_iris_dvi \
 	test_iris_markup_parser \
 	test_iris_kpsewhich \
 	test_iris_tex \
@@ -221,6 +184,10 @@ test_iris_pdf_SOURCES = tests/test_iris_pdf.f90
 test_iris_pdf_LDADD = libiris.a
 tests/test_iris_pdf.$(OBJEXT): fortran/iris_pdf.$(OBJEXT)
 
+test_iris_dvi_SOURCES = tests/test_iris_dvi.f90
+test_iris_dvi_LDADD = libiris.a
+tests/test_iris_dvi.$(OBJEXT): fortran/iris_dvi.$(OBJEXT)
+
 test_iris_markup_parser_SOURCES = tests/test_iris_markup_parser.f90
 test_iris_markup_parser_LDADD = libiris.a
 tests/test_iris_markup_parser.$(OBJEXT): fortran/iris_markup_parser.$(OBJEXT)
@@ -246,6 +213,6 @@ TESTS = $(check_PROGRAMS)
 # ------------------------------------------------------------------------------
 # Cleanup Rules for Fortran Module Binaries & Output PDF Files
 # ------------------------------------------------------------------------------
-CLEANFILES = *.mod fortran/*.mod tests/*.mod *.pdf test_output.pdf test_pdf_out.pdf
+CLEANFILES = *.mod fortran/*.mod tests/*.mod *.pdf *.dvi test_output.pdf test_pdf_out.pdf test_dvi_out.dvi
 
 EXTRA_DIST = autogen.sh LICENSE COPYING

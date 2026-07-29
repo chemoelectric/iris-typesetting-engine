@@ -1,7 +1,7 @@
 # ==============================================================================
 # Configure Script Generator for Iris Typographic Engine
 # Standard: GNU Autoconf 2.72+ / Automake 1.18.1+
-# Domain: Fortran 2008 & R7RS Scheme Dual Engine
+# Domain: Modern Fortran Engine
 # ==============================================================================
 
 AC_PREREQ([2.72])
@@ -134,10 +134,6 @@ AS_IF([test "x$have_lapack" = "xyes"], [
 
 # Check for zlib library
 AC_CHECK_LIB([z], [compress], [], [AC_MSG_ERROR([zlib library is required])])
-
-# Check for Gauche Scheme interpreter (R7RS) for Scheme test harness
-AC_CHECK_PROGS([GOSH], [gosh], [none])
-AM_CONDITIONAL([HAVE_GOSH], [test "x$GOSH" != "xnone"])
 
 # Output configuration files
 CHEM_CONFIG_MAKEFILES
