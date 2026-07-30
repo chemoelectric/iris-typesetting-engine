@@ -14,6 +14,8 @@ module iris_tex
   use iris_tex_parser, only: tex_parser_type, tex_parser_init, tex_parse_tokens, tex_parser_free
   use iris_tex_math, only: tex_math_type, tex_math_init, tex_typeset_math, tex_math_free
   use iris_tex_trip, only: tex_run_trip_suite
+  use iris_typography_levels, only: typography_config_type, typography_config_init, &
+                                   TYPO_LEVEL_0_CLASSIC_TEX
   implicit none
   private
 
@@ -23,13 +25,14 @@ module iris_tex
   integer(kind=int32), parameter, public :: TEX_ERR = 1
 
   type :: tex_engine_type
-    type(tex_parser_type) :: parser
-    type(tex_math_type)   :: math_eng
-    character(len=512)    :: jobname = "iris_job"
-    character(len=256)    :: format_name = "plain"
-    real(kind=real64)     :: hsize = 468.0_real64 ! 6.5 inches in points
-    real(kind=real64)     :: vsize = 648.0_real64 ! 9.0 inches in points
-    integer(kind=int32)   :: token_count = 0
+    type(tex_parser_type)        :: parser
+    type(tex_math_type)          :: math_eng
+    type(typography_config_type) :: typography_cfg
+    character(len=512)           :: jobname = "iris_job"
+    character(len=256)           :: format_name = "plain"
+    real(kind=real64)            :: hsize = 468.0_real64 ! 6.5 inches in points
+    real(kind=real64)            :: vsize = 648.0_real64 ! 9.0 inches in points
+    integer(kind=int32)          :: token_count = 0
   end type tex_engine_type
 
 contains
@@ -45,6 +48,7 @@ contains
 
     call tex_parser_init(engine%parser)
     call tex_math_init(engine%math_eng)
+    call typography_config_init(engine%typography_cfg, TYPO_LEVEL_0_CLASSIC_TEX)
     engine%jobname = trim(jobname)
     engine%format_name = "plain"
     engine%hsize = 468.0_real64

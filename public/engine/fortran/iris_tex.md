@@ -1,12 +1,12 @@
 # Iris Modular TeX Engine (`iris_tex`)
 
 ## Overview
-The `iris_tex` Fortran module provides modular TeX macro expansion, tokenization, and typesetting AST generation for the Iris typographic system.
+The `iris_tex` Fortran module provides modular TeX macro expansion, tokenization, typesetting AST generation, and typography level selection for the Iris typographic system.
 
 ## API Procedures
 
 ### `tex_init(engine, jobname)`
-Initializes the TeX engine instance with specified job name and default dimensions.
+Initializes the TeX engine instance with specified job name, default dimensions, and Level 0 Classic TeX typography configuration.
 
 ### `tex_compile_string(engine, tex_source, ast_out, status)`
 Compiles TeX input source string into a structured layout AST object.
