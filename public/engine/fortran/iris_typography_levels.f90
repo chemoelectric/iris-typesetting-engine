@@ -8,7 +8,7 @@
 module iris_typography_levels
   use, intrinsic :: iso_fortran_env, only: int32, real64
   use iris_json, only: json_value_type, json_create_object, json_create_string, &
-                       json_create_integer, json_create_real, json_set_field
+                       json_create_number, json_set_field
   implicit none
   private
 
@@ -104,11 +104,18 @@ contains
   subroutine typography_export_json(config, json_obj)
     type(typography_config_type), intent(in) :: config
     type(json_value_type), intent(out)        :: json_obj
+    type(json_value_type)                     :: tmp_val
 
     call json_create_object(json_obj)
-    call json_set_field(json_obj, "level", json_create_integer(config%active_level))
-    call json_set_field(json_obj, "description", json_create_string(trim(typography_evaluate_level(config))))
-    call json_set_field(json_obj, "attachment_mode", json_create_string(trim(config%font_attachment_mode)))
+
+    call json_create_number(tmp_val, real(config%active_level, real64))
+    call json_set_field(json_obj, "level", tmp_val)
+
+    call json_create_string(tmp_val, trim(typography_evaluate_level(config)))
+    call json_set_field(json_obj, "description", tmp_val)
+
+    call json_create_string(tmp_val, trim(config%font_attachment_mode))
+    call json_set_field(json_obj, "attachment_mode", tmp_val)
 
   end subroutine typography_export_json
 
