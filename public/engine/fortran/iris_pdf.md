@@ -70,6 +70,7 @@ end type pdf_document_type
 - **`pdf_init(pdf, out_filename, status, [compress])`**: Initializes writing mode, opens output stream, writes `%PDF-1.7` header, and initializes Tagged PDF structure context.
 - **`pdf_embed_font_truetype(pdf, font_name, tt_data)`**: Embeds TrueType font binary stream into PDF Font Descriptor (`/FontFile2`).
 - **`pdf_embed_font_cff(pdf, font_name, cff_data)`**: Embeds CFF (Compact Font Format) font binary stream into PDF Font Descriptor (`/FontFile3` with `/Subtype /CIDFontType0C`).
+- **`pdf_embed_font_by_kpsewhich(pdf, font_spec, font_name, status)`**: Uses TeX `kpsewhich` binary locator to find the font file on disk and embeds its binary stream into the PDF Font Descriptor (`/FontFile2` or `/FontFile3`). Fallback font embedding generation is automatically executed if `kpsewhich` yields no file.
 - **`pdf_add_page(pdf, width, height)`**: Flushes active stream and allocates new page object.
 - **`pdf_write_text(pdf, x, y, font_size, text_content)`**: Appends text operator (`BT /F1 ... Tj ET`) wrapped in Tagged PDF Marked Content operators (`BDC ... EMC`).
 - **`pdf_draw_rect(pdf, x, y, w, h, fill_flag)`**: Appends vector rectangle operator (`re f` or `re S`).

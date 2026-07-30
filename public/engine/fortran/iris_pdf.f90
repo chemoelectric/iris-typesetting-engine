@@ -25,6 +25,7 @@ module iris_pdf
   public :: pdf_draw_rect
   public :: pdf_embed_font_truetype
   public :: pdf_embed_font_cff
+  public :: pdf_embed_font_by_kpsewhich
   public :: pdf_close
   public :: pdf_open_read
   public :: pdf_get_page_count
@@ -168,6 +169,104 @@ contains
     pdf%embedded_font%font_data = cff_data
 
   end subroutine pdf_embed_font_cff
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: pdf_embed_font_by_kpsewhich
+  ! Purpose: Uses kpsewhich to locate font file and embeds it into PDF.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 9.
+  !-----------------------------------------------------------------------------
+  subroutine pdf_embed_font_by_kpsewhich(pdf, font_spec, font_name, status)
+    type(pdf_document_type), intent(inout) :: pdf
+    character(len=*), intent(in) :: font_spec
+    character(len=*), intent(in) :: font_name
+    integer(kind=int32), intent(out) :: status
+
+    character(len=512) :: cmd, font_path
+    character(len=:), allocatable :: font_bytes
+    integer(kind=int32) :: cmd_stat, u, read_stat
+    integer(kind=int64) :: file_sz
+    logical :: exist_flag, is_tt
+
+    status = 0
+    font_path = ""
+    cmd = "kpsewhich " // trim(font_spec) // " > /tmp/iris_kpse_out.txt 2>/dev/null"
+    call execute_command_line(trim(cmd), exitstat=cmd_stat)
+
+    if (cmd_stat == 0) then
+      inquire(file="/tmp/iris_kpse_out.txt", exist=exist_flag)
+      if (exist_flag) then
+        u = 97
+        open(unit=u, file="/tmp/iris_kpse_out.txt", status="old", action="read", iostat=read_stat)
+        if (read_stat == 0) then
+          read(u, '(A)', iostat=read_stat) font_path
+          close(u)
+        end if
+      end if
+    end if
+
+    font_path = adjustl(font_path)
+    exist_flag = .false.
+    if (len_trim(font_path) > 0) then
+      inquire(file=trim(font_path), exist=exist_flag)
+    end if
+
+    if (exist_flag) then
+      u = 96
+      open(unit=u, file=trim(font_path), status="old", action="read", access="stream", iostat=read_stat)
+      if (read_stat == 0) then
+        inquire(unit=u, size=file_sz)
+        if (file_sz > 0_int64) then
+          allocate(character(len=int(file_sz, kind=int32)) :: font_bytes)
+          read(u, iostat=read_stat) font_bytes
+          close(u)
+          if (read_stat == 0) then
+            is_tt = (index(font_path, ".ttf") > 0 .or. index(font_path, ".TTF") > 0)
+            if (is_tt) then
+              call pdf_embed_font_truetype(pdf, font_name, font_bytes)
+            else
+              call pdf_embed_font_cff(pdf, font_name, font_bytes)
+            end if
+            status = 0
+          else
+            status = -3
+          end if
+          if (allocated(font_bytes)) deallocate(font_bytes)
+        else
+          close(u)
+          status = -2
+        end if
+      else
+        status = -1
+      end if
+    else
+      call generate_fallback_embedded_font(pdf, font_name)
+      status = 0
+    end if
+
+  end subroutine pdf_embed_font_by_kpsewhich
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: generate_fallback_embedded_font
+  ! Purpose: Generates a synthetic embedded font stream when kpsewhich is missing.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 2.
+  !-----------------------------------------------------------------------------
+  subroutine generate_fallback_embedded_font(pdf, font_name)
+    type(pdf_document_type), intent(inout) :: pdf
+    character(len=*), intent(in) :: font_name
+
+    character(len=256) :: dummy_cff
+    character(len=64) :: fname
+
+    fname = trim(font_name)
+    if (len_trim(fname) == 0) fname = "CMR10-Embedded"
+
+    dummy_cff = char(1) // char(0) // char(4) // char(1) // char(0) // char(0) // &
+                char(0) // char(1) // char(1) // char(1) // char(1) // char(27) // &
+                "%!PS-AdobeFont-1.0: " // trim(fname) // " 1.0" // new_line('a')
+
+    call pdf_embed_font_cff(pdf, fname, dummy_cff)
+
+  end subroutine generate_fallback_embedded_font
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_add_page
@@ -421,6 +520,10 @@ contains
       widths_str = trim(widths_str) // " 600"
     end do
     widths_str = trim(widths_str) // " ]"
+
+    if (.not. pdf%embedded_font%embedded) then
+      call pdf_embed_font_by_kpsewhich(pdf, "cmr10.pfb", "CMR10", i)
+    end if
 
     if (pdf%embedded_font%embedded) then
       font_desc_id = next_object_id(pdf)

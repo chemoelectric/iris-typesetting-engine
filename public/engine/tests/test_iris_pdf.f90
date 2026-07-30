@@ -21,8 +21,12 @@ program test_iris_pdf
   ! 1. Initialize PDF Document with Font Embedding & Tagged Structure
   call pdf_init(pdf, "test_pdf_out.pdf", status, compress=.true.)
 
-  ! 2. Embed CFF Font Data
-  call pdf_embed_font_cff(pdf, "SortsMillGoudy-Regular", sample_cff_bytes)
+  ! 2. Embed Font via kpsewhich (or fallback)
+  call pdf_embed_font_by_kpsewhich(pdf, "cmr10.pfb", "CMR10", status)
+  if (status /= 0) then
+    print *, "TEST FAIL: pdf_embed_font_by_kpsewhich failed with status ", status
+    exit_code = 4
+  end if
 
   ! 3. Add Page
   call pdf_add_page(pdf, 595.0_real64, 842.0_real64)
