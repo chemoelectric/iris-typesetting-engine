@@ -310,6 +310,10 @@ contains
     line_height = font_size * 1.35_real64
     pos = 1
 
+    if (pdf%page_count == 0) then
+      call pdf_add_page(pdf, pdf%current_page_width, pdf%current_page_height)
+    end if
+
     do while (pos <= content_len)
       next_nl = index(text_content(pos:content_len), char(10))
       if (next_nl == 0) then
@@ -397,6 +401,10 @@ contains
 
     character(len=256) :: buffer
     integer(kind=int32) :: buf_len
+
+    if (pdf%page_count == 0) then
+      call pdf_add_page(pdf, pdf%current_page_width, pdf%current_page_height)
+    end if
 
     if (fill_flag) then
       write(buffer, '(F8.2,A,F8.2,A,F8.2,A,F8.2,A)') x, " ", y, " ", w, " ", h, " re f" // new_line('a')
