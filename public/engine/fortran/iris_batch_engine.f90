@@ -9,7 +9,8 @@
 module iris_batch_engine
   use, intrinsic :: iso_fortran_env, only: int32, real64
   use iris_markup_parser, only: parse_result_type, parse_mixed_markup_text, &
-                                 DIALECT_NATURAL_PROSE, DIALECT_TROFF_GROFF
+                                 DIALECT_NATURAL_PROSE, DIALECT_TROFF_GROFF, &
+                                 NODE_TYPE_HEADING, NODE_TYPE_PARAGRAPH, NODE_TYPE_INTENT_ANNOT
   use iris_pdf, only: pdf_document_type, pdf_init, pdf_add_page, &
                       pdf_write_text, pdf_close
   implicit none
@@ -73,11 +74,15 @@ contains
 
     type(parse_result_type) :: parse_ast
     type(pdf_document_type) :: pdf_doc
-    integer(kind=int32)     :: pdf_stat, p_stat
+    integer(kind=int32)     :: pdf_stat, p_stat, i, est_lines
+    real(kind=real64)       :: cur_y, line_h, para_h, page_h, margin_b
 
     report%status = BATCH_OK
     report%pages_generated = 0
     report%status_msg = "Processing completed successfully."
+
+    page_h = 842.0_real64
+    margin_b = cfg%margin_top
 
     ! Step 1: Parse mixed input text & disambiguate markup dialect
     call parse_mixed_markup_text(input_content, parse_ast)
@@ -97,12 +102,42 @@ contains
       report%status = BATCH_ERR_PDF_FAIL
       report%status_msg = "Error initializing PDF document."
     else
-      call pdf_add_page(pdf_doc, 595.0_real64, 842.0_real64)
+      call pdf_add_page(pdf_doc, 595.0_real64, page_h)
+      cur_y = page_h - cfg%margin_top
+      line_h = cfg%font_size * 1.35_real64
 
-      ! Step 3: Layout text content using MaxEnt peg metrics
+      ! Step 3: Layout AST token sequence onto PDF pages
       if (parse_ast%token_count > 0) then
-        call pdf_write_text(pdf_doc, cfg%margin_left, 842.0_real64 - cfg%margin_top, &
-                          cfg%font_size, trim(parse_ast%tokens(1)%content))
+        do i = 1, parse_ast%token_count
+          if (parse_ast%tokens(i)%node_type == NODE_TYPE_HEADING) then
+            if (cur_y < margin_b + 40.0_real64) then
+              call pdf_add_page(pdf_doc, 595.0_real64, page_h)
+              cur_y = page_h - cfg%margin_top
+            end if
+            call pdf_write_text(pdf_doc, cfg%margin_left, cur_y, cfg%font_size + 4.0_real64, &
+                              trim(parse_ast%tokens(i)%content))
+            cur_y = cur_y - (cfg%font_size + 4.0_real64) * 1.5_real64 - 12.0_real64
+
+          else if (parse_ast%tokens(i)%node_type == NODE_TYPE_PARAGRAPH) then
+            est_lines = max(1, len_trim(parse_ast%tokens(i)%content) / 75 + 1)
+            para_h = est_lines * line_h + 14.0_real64
+
+            if (cur_y - para_h < margin_b .and. cur_y < page_h - cfg%margin_top - 40.0_real64) then
+              call pdf_add_page(pdf_doc, 595.0_real64, page_h)
+              cur_y = page_h - cfg%margin_top
+            end if
+
+            call pdf_write_text(pdf_doc, cfg%margin_left, cur_y, cfg%font_size, &
+                              trim(parse_ast%tokens(i)%content))
+            cur_y = cur_y - para_h
+
+          else if (parse_ast%tokens(i)%node_type == NODE_TYPE_INTENT_ANNOT) then
+            if (trim(parse_ast%tokens(i)%parameter) == "page_break") then
+              call pdf_add_page(pdf_doc, 595.0_real64, page_h)
+              cur_y = page_h - cfg%margin_top
+            end if
+          end if
+        end do
       end if
 
       ! Step 4: Write CUPS-compliant PDF output file
@@ -112,7 +147,7 @@ contains
         report%status = BATCH_ERR_PDF_FAIL
         report%status_msg = "Error writing compiled PDF file to disk."
       else
-        report%pages_generated = 1
+        report%pages_generated = pdf_doc%page_count
       end if
     end if
   end subroutine batch_process_document

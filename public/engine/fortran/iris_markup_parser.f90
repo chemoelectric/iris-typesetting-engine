@@ -136,121 +136,172 @@ contains
     character(len=*), intent(in)   :: input_text
     type(parse_result_type), intent(out) :: result_ast
 
-    integer(kind=int32) :: hint_dialect, auto_dialect
-    logical             :: has_hint
+    character(len=2048) :: line_buf, cleaned_line, para_buf, head_txt, cmd_txt
+    integer(kind=int32) :: pos, next_nl, raw_len, dialect, hint_dialect, auto_dialect
+    logical             :: has_hint, is_head, is_cmd
+    integer(kind=int32) :: token_cap, t_cnt
 
-    result_ast%token_count = 0
     result_ast%ambiguity_detected = .false.
     result_ast%disambiguation_msg = ""
 
-    ! Step 1: Check for explicit inline natural language hints
     call parse_disambiguation_hint(input_text, hint_dialect, has_hint)
-
     if (has_hint .and. hint_dialect /= DIALECT_UNKNOWN) then
       result_ast%detected_dialect = hint_dialect
     else
       auto_dialect = detect_markup_dialect(input_text)
       result_ast%detected_dialect = auto_dialect
-
-      ! Detect potential syntax ambiguity
       if (index(input_text, "\") > 0 .and. index(input_text, ".") == 1 .and. auto_dialect == DIALECT_NATURAL_PROSE) then
         result_ast%ambiguity_detected = .true.
         result_ast%disambiguation_msg = "Ambiguous markup detected. Please insert '[markup: troff]' or '[markup: latex]' in prose."
       end if
     end if
 
-    ! Step 2: Tokenize text into single root paragraph IIR AST
-    allocate(result_ast%tokens(16))
-    result_ast%token_count = 1
-    result_ast%tokens(1)%dialect = result_ast%detected_dialect
-    result_ast%tokens(1)%node_type = NODE_TYPE_PARAGRAPH
-    result_ast%tokens(1)%parameter = ""
+    dialect = result_ast%detected_dialect
+    token_cap = 64
+    allocate(result_ast%tokens(token_cap))
+    t_cnt = 0
+    para_buf = ""
 
-    if (result_ast%detected_dialect == DIALECT_CONTEXT .or. &
-        result_ast%detected_dialect == DIALECT_TEX_LATEX) then
-      call clean_context_markup(input_text, result_ast%tokens(1)%content)
-      if (len_trim(result_ast%tokens(1)%content) == 0) then
-        result_ast%tokens(1)%content = trim(input_text)
-      end if
-    else
-      result_ast%tokens(1)%content = trim(input_text)
-    end if
-  end subroutine parse_mixed_markup_text
-
-  !-----------------------------------------------------------------------------
-  ! Subroutine: clean_context_markup
-  ! Purpose: Removes ConTeXt/TeX comments, preamble commands, and extracts text/titles
-  ! Single-entry / single-exit implementation
-  !-----------------------------------------------------------------------------
-  subroutine clean_context_markup(raw_in, cleaned_out)
-    character(len=*), intent(in)  :: raw_in
-    character(len=*), intent(out) :: cleaned_out
-
-    character(len=2048) :: line_buf
-    integer(kind=int32) :: raw_len, pos, next_nl, out_pos, i, p1, p2
-
-    raw_len = len_trim(raw_in)
-    cleaned_out = ""
-    out_pos = 1
+    raw_len = len(input_text)
     pos = 1
 
     do while (pos <= raw_len)
-      next_nl = index(raw_in(pos:raw_len), char(10))
+      next_nl = index(input_text(pos:raw_len), char(10))
       if (next_nl == 0) then
-        line_buf = raw_in(pos:raw_len)
+        line_buf = input_text(pos:raw_len)
         pos = raw_len + 1
       else
-        line_buf = raw_in(pos : pos + next_nl - 1)
+        line_buf = input_text(pos : pos + next_nl - 1)
         pos = pos + next_nl
       end if
 
-      i = len_trim(line_buf)
-      if (i > 0) then
-        if (line_buf(i:i) == char(13)) line_buf(i:i) = ' '
-      end if
-
-      p1 = index(line_buf, "%")
-      if (p1 > 0) then
-        if (p1 == 1 .or. line_buf(p1-1:p1-1) /= "\") then
-          line_buf = line_buf(1 : p1 - 1)
+      if (trim(line_buf) == "\par" .or. trim(line_buf) == ".PP" .or. len_trim(line_buf) == 0) then
+        ! Paragraph boundary
+        if (len_trim(para_buf) > 0) then
+          t_cnt = t_cnt + 1
+          result_ast%tokens(t_cnt)%dialect = dialect
+          result_ast%tokens(t_cnt)%node_type = NODE_TYPE_PARAGRAPH
+          result_ast%tokens(t_cnt)%content = trim(para_buf)
+          para_buf = ""
+        end if
+      else
+        call clean_markup_line(line_buf, cleaned_line, is_head, head_txt, is_cmd, cmd_txt)
+        if (is_cmd) then
+          if (len_trim(para_buf) > 0) then
+            t_cnt = t_cnt + 1
+            result_ast%tokens(t_cnt)%dialect = dialect
+            result_ast%tokens(t_cnt)%node_type = NODE_TYPE_PARAGRAPH
+            result_ast%tokens(t_cnt)%content = trim(para_buf)
+            para_buf = ""
+          end if
+          t_cnt = t_cnt + 1
+          result_ast%tokens(t_cnt)%dialect = dialect
+          result_ast%tokens(t_cnt)%node_type = NODE_TYPE_INTENT_ANNOT
+          result_ast%tokens(t_cnt)%parameter = trim(cmd_txt)
+        else if (is_head) then
+          if (len_trim(para_buf) > 0) then
+            t_cnt = t_cnt + 1
+            result_ast%tokens(t_cnt)%dialect = dialect
+            result_ast%tokens(t_cnt)%node_type = NODE_TYPE_PARAGRAPH
+            result_ast%tokens(t_cnt)%content = trim(para_buf)
+            para_buf = ""
+          end if
+          t_cnt = t_cnt + 1
+          result_ast%tokens(t_cnt)%dialect = dialect
+          result_ast%tokens(t_cnt)%node_type = NODE_TYPE_HEADING
+          result_ast%tokens(t_cnt)%content = trim(head_txt)
+        else if (len_trim(cleaned_line) > 0) then
+          if (len_trim(para_buf) > 0) then
+            para_buf = trim(para_buf) // " " // trim(cleaned_line)
+          else
+            para_buf = trim(cleaned_line)
+          end if
         end if
       end if
+    end do
 
+    if (len_trim(para_buf) > 0) then
+      t_cnt = t_cnt + 1
+      result_ast%tokens(t_cnt)%dialect = dialect
+      result_ast%tokens(t_cnt)%node_type = NODE_TYPE_PARAGRAPH
+      result_ast%tokens(t_cnt)%content = trim(para_buf)
+    end if
+
+    if (t_cnt == 0) then
+      t_cnt = 1
+      result_ast%tokens(1)%dialect = dialect
+      result_ast%tokens(1)%node_type = NODE_TYPE_PARAGRAPH
+      result_ast%tokens(1)%content = trim(input_text)
+    end if
+
+    result_ast%token_count = t_cnt
+  end subroutine parse_mixed_markup_text
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: clean_markup_line
+  ! Purpose: Analyzes single input line for commands, headings, and clean text
+  ! Single-entry / single-exit implementation
+  !-----------------------------------------------------------------------------
+  subroutine clean_markup_line(line_in, line_out, is_heading, heading_txt, is_cmd, cmd_txt)
+    character(len=*), intent(in)  :: line_in
+    character(len=*), intent(out) :: line_out
+    logical, intent(out)          :: is_heading
+    character(len=*), intent(out) :: heading_txt
+    logical, intent(out)          :: is_cmd
+    character(len=*), intent(out) :: cmd_txt
+
+    character(len=2048) :: line_buf
+    integer(kind=int32) :: p1, p2, i
+
+    line_out = ""
+    is_heading = .false.
+    heading_txt = ""
+    is_cmd = .false.
+    cmd_txt = ""
+
+    line_buf = line_in
+    i = len_trim(line_buf)
+    if (i > 0) then
+      if (line_buf(i:i) == char(13)) line_buf(i:i) = ' '
+    end if
+
+    p1 = index(line_buf, "%")
+    if (p1 > 0) then
+      if (p1 == 1 .or. line_buf(p1-1:p1-1) /= "\") then
+        line_buf = line_buf(1 : p1 - 1)
+      end if
+    end if
+
+    ! Check for commands / page breaks
+    if (trim(line_buf) == "\bye" .or. trim(line_buf) == "\page" .or. &
+        trim(line_buf) == "\eject" .or. trim(line_buf) == "\stoptext" .or. &
+        trim(line_buf) == "\end{document}") then
+      is_cmd = .true.
+      cmd_txt = "page_break"
+    else if (index(line_buf, "\centerline{") > 0) then
+      p1 = index(line_buf, "\centerline{") + 12
+      p2 = index(line_buf(p1:), "}")
+      if (p2 > 0) then
+        is_heading = .true.
+        heading_txt = line_buf(p1 : p1 + p2 - 2)
+      end if
+    else if (index(line_buf, "\chapter{") > 0 .or. index(line_buf, "\section{") > 0) then
+      p1 = index(line_buf, "{") + 1
+      p2 = index(line_buf(p1:), "}")
+      if (p2 > 0) then
+        is_heading = .true.
+        heading_txt = line_buf(p1 : p1 + p2 - 2)
+      end if
+    else if (index(line_buf, ".SH") == 1 .or. index(line_buf, ".TH") == 1) then
+      is_heading = .true.
+      heading_txt = trim(line_buf(4:))
+    else
       if (index(line_buf, "\starttext") > 0 .or. index(line_buf, "\stoptext") > 0 .or. &
           index(line_buf, "\setup") > 0 .or. index(line_buf, "\usemodule") > 0 .or. &
           index(line_buf, "\documentclass") > 0 .or. index(line_buf, "\usepackage") > 0 .or. &
           index(line_buf, "\begin{document}") > 0 .or. index(line_buf, "\end{document}") > 0 .or. &
-          index(line_buf, "\stopchapter") > 0 .or. index(line_buf, "\stopsection") > 0 .or. &
-          index(line_buf, "\hsize=") > 0 .or. index(line_buf, "\vsize=") > 0 .or. &
-          trim(line_buf) == "\bigskip" .or. trim(line_buf) == "\bye" .or. &
-          trim(line_buf) == "\par") then
+          index(line_buf, "\hsize=") > 0 .or. index(line_buf, "\vsize=") > 0) then
         line_buf = ""
-      end if
-
-      if (index(line_buf, "\centerline{") > 0) then
-        p1 = index(line_buf, "\centerline{") + 12
-        p2 = index(line_buf(p1:), "}")
-        if (p2 > 0) then
-          line_buf = line_buf(p1 : p1 + p2 - 2)
-        end if
-      else if (index(line_buf, "title={") > 0) then
-        p1 = index(line_buf, "title={") + 7
-        p2 = index(line_buf(p1:), "}")
-        if (p2 > 0) then
-          line_buf = line_buf(p1 : p1 + p2 - 2) // new_line('a')
-        end if
-      else if (index(line_buf, "\chapter{") > 0) then
-        p1 = index(line_buf, "\chapter{") + 9
-        p2 = index(line_buf(p1:), "}")
-        if (p2 > 0) then
-          line_buf = line_buf(p1 : p1 + p2 - 2) // new_line('a')
-        end if
-      else if (index(line_buf, "\section{") > 0) then
-        p1 = index(line_buf, "\section{") + 9
-        p2 = index(line_buf(p1:), "}")
-        if (p2 > 0) then
-          line_buf = line_buf(p1 : p1 + p2 - 2) // new_line('a')
-        end if
       end if
 
       do while (index(line_buf, "\bf ") > 0)
@@ -262,33 +313,18 @@ contains
         p1 = index(line_buf, "{\tt ")
         line_buf = line_buf(1:p1-1) // line_buf(p1+5:)
         p2 = index(line_buf(p1:), "}")
-        if (p2 > 0) then
-          line_buf = line_buf(1:p1+p2-2) // line_buf(p1+p2:)
-        end if
+        if (p2 > 0) line_buf = line_buf(1:p1+p2-2) // line_buf(p1+p2:)
       end do
 
       do while (index(line_buf, "{\bf ") > 0)
         p1 = index(line_buf, "{\bf ")
         line_buf = line_buf(1:p1-1) // line_buf(p1+5:)
         p2 = index(line_buf(p1:), "}")
-        if (p2 > 0) then
-          line_buf = line_buf(1:p1+p2-2) // line_buf(p1+p2:)
-        end if
+        if (p2 > 0) line_buf = line_buf(1:p1+p2-2) // line_buf(p1+p2:)
       end do
 
-      if (len_trim(line_buf) > 0) then
-        if (out_pos > 1) then
-          cleaned_out(out_pos:out_pos) = char(10)
-          out_pos = out_pos + 1
-        end if
-        p2 = len_trim(line_buf)
-        if (out_pos + p2 <= len(cleaned_out)) then
-          cleaned_out(out_pos : out_pos + p2 - 1) = line_buf(1:p2)
-          out_pos = out_pos + p2
-        end if
-      end if
-    end do
-
-  end subroutine clean_context_markup
+      line_out = trim(line_buf)
+    end if
+  end subroutine clean_markup_line
 
 end module iris_markup_parser
