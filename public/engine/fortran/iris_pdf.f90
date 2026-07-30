@@ -4,6 +4,7 @@
 ! Architecture: Imperative Procedural API for PDF 1.7 Specification Engine
 ! Features: Dual PDF Generation & PDF Reader / Stream Parser Module
 !           Pure Fortran ISO RFC 1950 / RFC 1951 (zlib/FlateDecode) Compression
+!           CFF & TrueType Font Embedding, /ToUnicode CMap, Tagged PDF StructTree
 ! Compliance: Single-entry/single-exit control constructs, zero goto constructs.
 !             McCabe Cyclomatic Complexity <= 10 per procedure.
 !===============================================================================
@@ -22,6 +23,8 @@ module iris_pdf
   public :: pdf_add_page
   public :: pdf_write_text
   public :: pdf_draw_rect
+  public :: pdf_embed_font_truetype
+  public :: pdf_embed_font_cff
   public :: pdf_close
   public :: pdf_open_read
   public :: pdf_get_page_count
@@ -31,6 +34,15 @@ module iris_pdf
   ! Constants
   character(len=*), parameter :: PDF_HEADER = "%PDF-1.7"
   character(len=*), parameter :: PDF_BINARY_COMMENT = "%" // char(226) // char(227) // char(207) // char(211)
+
+  ! Derived Type Definition for Embedded Font Metadata
+  type :: font_embed_type
+    logical :: embedded = .false.
+    integer(kind=int32) :: font_type = 0 ! 1: TrueType (FontFile2), 2: CFF (FontFile3)
+    character(len=64) :: font_name = ""
+    character(len=:), allocatable :: font_data
+    integer(kind=int32) :: font_data_len = 0
+  end type font_embed_type
 
   ! Derived Type Definition for PDF Document Context
   type :: pdf_document_type
@@ -48,6 +60,15 @@ module iris_pdf
     real(kind=real64) :: current_page_height
     logical :: compress_streams = .false.
     logical :: is_read_mode = .false.
+
+    ! Tagged PDF Structure & MCID Context
+    logical :: tagged_pdf = .true.
+    integer(kind=int32) :: current_mcid = 0
+    integer(kind=int32) :: mcid_count = 0
+    integer(kind=int32), allocatable, dimension(:) :: mcid_page_ids
+
+    ! Embedded Font Descriptor Context
+    type(font_embed_type) :: embedded_font
   end type pdf_document_type
 
 contains
@@ -81,6 +102,17 @@ contains
     pdf%current_page_height = 792.0_real64  ! Default Letter height (pts)
     pdf%is_read_mode = .false.
 
+    pdf%tagged_pdf = .true.
+    pdf%current_mcid = 0
+    pdf%mcid_count = 0
+    allocate(pdf%mcid_page_ids(16))
+    pdf%mcid_page_ids = 0
+
+    pdf%embedded_font%embedded = .false.
+    pdf%embedded_font%font_type = 0
+    pdf%embedded_font%font_name = "Helvetica"
+    pdf%embedded_font%font_data_len = 0
+
     if (present(compress)) then
       pdf%compress_streams = compress
     else
@@ -98,6 +130,46 @@ contains
   end subroutine pdf_init
 
   !-----------------------------------------------------------------------------
+  ! Subroutine: pdf_embed_font_truetype
+  ! Purpose: Configures TrueType embedded font stream and metadata.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 3.
+  !-----------------------------------------------------------------------------
+  subroutine pdf_embed_font_truetype(pdf, font_name, tt_data)
+    type(pdf_document_type), intent(inout) :: pdf
+    character(len=*), intent(in) :: font_name
+    character(len=*), intent(in) :: tt_data
+
+    pdf%embedded_font%embedded = .true.
+    pdf%embedded_font%font_type = 1  ! TrueType
+    pdf%embedded_font%font_name = trim(font_name)
+    pdf%embedded_font%font_data_len = len(tt_data)
+    if (allocated(pdf%embedded_font%font_data)) deallocate(pdf%embedded_font%font_data)
+    allocate(character(len=len(tt_data)) :: pdf%embedded_font%font_data)
+    pdf%embedded_font%font_data = tt_data
+
+  end subroutine pdf_embed_font_truetype
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: pdf_embed_font_cff
+  ! Purpose: Configures CFF (Compact Font Format) embedded font stream.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 3.
+  !-----------------------------------------------------------------------------
+  subroutine pdf_embed_font_cff(pdf, font_name, cff_data)
+    type(pdf_document_type), intent(inout) :: pdf
+    character(len=*), intent(in) :: font_name
+    character(len=*), intent(in) :: cff_data
+
+    pdf%embedded_font%embedded = .true.
+    pdf%embedded_font%font_type = 2  ! CFF / Type 1C
+    pdf%embedded_font%font_name = trim(font_name)
+    pdf%embedded_font%font_data_len = len(cff_data)
+    if (allocated(pdf%embedded_font%font_data)) deallocate(pdf%embedded_font%font_data)
+    allocate(character(len=len(cff_data)) :: pdf%embedded_font%font_data)
+    pdf%embedded_font%font_data = cff_data
+
+  end subroutine pdf_embed_font_cff
+
+  !-----------------------------------------------------------------------------
   ! Subroutine: pdf_add_page
   ! Purpose: Flushes previous page stream if open, allocates new page context.
   ! Control Structure: Single-entry / single-exit. Complexity <= 5.
@@ -106,9 +178,6 @@ contains
     type(pdf_document_type), intent(inout) :: pdf
     real(kind=real64), intent(in) :: width
     real(kind=real64), intent(in) :: height
-
-    integer(kind=int32) :: curr_cap, new_cap
-    integer(kind=int32), allocatable, dimension(:) :: tmp_ids
 
     if (pdf%page_count > 0) then
       call flush_current_page_objects(pdf)
@@ -123,13 +192,14 @@ contains
     pdf%current_page_height = height
     pdf%current_stream = ""
     pdf%stream_len = 0
+    pdf%current_mcid = 0
 
   end subroutine pdf_add_page
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_write_text
-  ! Purpose: Appends text rendering operator (BT ... ET) to active stream.
-  ! Control Structure: Single-entry / single-exit. Complexity <= 4.
+  ! Purpose: Appends text operator (BT ... ET) wrapped in Tagged PDF Marked Content.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 6.
   !-----------------------------------------------------------------------------
   subroutine pdf_write_text(pdf, x, y, font_size, text_content)
     type(pdf_document_type), intent(inout) :: pdf
@@ -139,7 +209,7 @@ contains
     character(len=*), intent(in) :: text_content
 
     character(len=2048) :: line_buf, escaped_buf, op_buf
-    character(len=32)   :: f_str, x_str, y_str
+    character(len=32)   :: f_str, x_str, y_str, mcid_str
     integer(kind=int32) :: content_len, pos, next_nl, line_len, i, esc_pos, op_len
     real(kind=real64)   :: cur_y, line_height
     character(1)        :: ch
@@ -196,8 +266,22 @@ contains
         write(f_str, '(F6.2)') font_size
         write(x_str, '(F8.2)') x
         write(y_str, '(F8.2)') cur_y
-        op_buf = "BT /F1 " // adjustl(f_str) // " Tf " // adjustl(x_str) // " " // &
-                 adjustl(y_str) // " Td (" // escaped_buf(1:esc_pos-1) // ") Tj ET" // new_line('a')
+
+        if (pdf%tagged_pdf) then
+          write(mcid_str, '(I0)') pdf%current_mcid
+          op_buf = "/P << /MCID " // trim(mcid_str) // " >> BDC" // new_line('a') // &
+                   "BT /F1 " // adjustl(f_str) // " Tf " // adjustl(x_str) // " " // &
+                   adjustl(y_str) // " Td (" // escaped_buf(1:esc_pos-1) // ") Tj ET" // new_line('a') // &
+                   "EMC" // new_line('a')
+          pdf%mcid_count = pdf%mcid_count + 1
+          call ensure_int32_capacity(pdf%mcid_page_ids, pdf%mcid_count)
+          pdf%mcid_page_ids(pdf%mcid_count) = pdf%page_count
+          pdf%current_mcid = pdf%current_mcid + 1
+        else
+          op_buf = "BT /F1 " // adjustl(f_str) // " Tf " // adjustl(x_str) // " " // &
+                   adjustl(y_str) // " Td (" // escaped_buf(1:esc_pos-1) // ") Tj ET" // new_line('a')
+        end if
+
         op_len = len_trim(op_buf)
         call append_to_stream(pdf, op_buf(1:op_len))
       end if
@@ -236,16 +320,16 @@ contains
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_close
-  ! Purpose: Flushes open streams, writes catalog, pages, font, xref & trailer.
-  ! Control Structure: Single-entry / single-exit. Complexity <= 6.
+  ! Purpose: Flushes open streams, writes catalog, Tagged PDF tree, fonts, xref & trailer.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 7.
   !-----------------------------------------------------------------------------
   subroutine pdf_close(pdf, status)
     type(pdf_document_type), intent(inout) :: pdf
     integer(kind=int32), intent(out) :: status
 
-    integer(kind=int32) :: catalog_id
-    integer(kind=int32) :: pages_id
-    integer(kind=int32) :: font_id
+    integer(kind=int32) :: catalog_id, pages_id, font_id, tounicode_id
+    integer(kind=int32) :: font_desc_id, font_file_id, cid_font_id
+    integer(kind=int32) :: struct_tree_root_id, struct_doc_elem_id
     integer(kind=int64) :: xref_start_offset
 
     if (pdf%is_read_mode) then
@@ -255,18 +339,36 @@ contains
         call flush_current_page_objects(pdf)
       end if
 
+      struct_tree_root_id = 0
+      struct_doc_elem_id = 0
+      if (pdf%tagged_pdf) then
+        struct_tree_root_id = next_object_id(pdf)
+        struct_doc_elem_id = next_object_id(pdf)
+      end if
+
+      ! Catalog Object (Obj 1)
       catalog_id = 1
       call record_object_offset(pdf, catalog_id)
-      call write_raw_string(pdf, "1 0 obj" // new_line('a') // "<< /Type /Catalog /Pages 2 0 R >>" // new_line('a') // "endobj" // new_line('a'))
+      if (pdf%tagged_pdf) then
+        call write_catalog_tagged(pdf, struct_tree_root_id)
+      else
+        call write_raw_string(pdf, "1 0 obj" // new_line('a') // "<< /Type /Catalog /Pages 2 0 R >>" // new_line('a') // "endobj" // new_line('a'))
+      end if
 
+      ! Pages Tree Object (Obj 2)
       pages_id = 2
       call record_object_offset(pdf, pages_id)
       call write_pages_tree_object(pdf)
 
+      ! Font Objects, /ToUnicode CMap, FontDescriptor & Font Files (Obj 3+)
       font_id = 3
       call record_object_offset(pdf, font_id)
-      call write_raw_string(pdf, "3 0 obj" // new_line('a') // &
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>" // new_line('a') // "endobj" // new_line('a'))
+      call write_font_objects(pdf, font_id, tounicode_id, font_desc_id, font_file_id, cid_font_id)
+
+      ! Tagged PDF StructTreeRoot & StructElem Objects
+      if (pdf%tagged_pdf) then
+        call write_tagged_struct_tree(pdf, struct_tree_root_id, struct_doc_elem_id)
+      end if
 
       xref_start_offset = pdf%byte_offset
       call write_xref_table(pdf)
@@ -276,6 +378,188 @@ contains
     end if
 
   end subroutine pdf_close
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: write_catalog_tagged
+  ! Purpose: Writes Catalog object with /MarkInfo and /StructTreeRoot references.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 2.
+  !-----------------------------------------------------------------------------
+  subroutine write_catalog_tagged(pdf, struct_root_id)
+    type(pdf_document_type), intent(inout) :: pdf
+    integer(kind=int32), intent(in) :: struct_root_id
+    character(len=256) :: buf
+
+    write(buf, '(A,I0,A)') "1 0 obj" // new_line('a') // &
+      "<< /Type /Catalog /Pages 2 0 R /MarkInfo << /Marked true >> /StructTreeRoot ", &
+      struct_root_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
+    call write_raw_string(pdf, trim(buf))
+
+  end subroutine write_catalog_tagged
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: write_font_objects
+  ! Purpose: Writes Font Object, /ToUnicode CMap Stream, FontDescriptor and Font Data.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 8.
+  !-----------------------------------------------------------------------------
+  subroutine write_font_objects(pdf, font_id, tounicode_id, font_desc_id, font_file_id, cid_font_id)
+    type(pdf_document_type), intent(inout) :: pdf
+    integer(kind=int32), intent(in) :: font_id
+    integer(kind=int32), intent(out) :: tounicode_id
+    integer(kind=int32), intent(out) :: font_desc_id
+    integer(kind=int32), intent(out) :: font_file_id
+    integer(kind=int32), intent(out) :: cid_font_id
+
+    character(len=2048) :: font_buf, cmap_stream
+    integer(kind=int32) :: cmap_len
+
+    tounicode_id = next_object_id(pdf)
+
+    if (pdf%embedded_font%embedded) then
+      font_desc_id = next_object_id(pdf)
+      font_file_id = next_object_id(pdf)
+
+      if (pdf%embedded_font%font_type == 2) then  ! CFF
+        cid_font_id = next_object_id(pdf)
+        ! Type 0 Font
+        write(font_buf, '(I0,A,A,A,I0,A,I0,A)') font_id, " 0 obj" // new_line('a') // &
+          "<< /Type /Font /Subtype /Type0 /BaseFont /", trim(pdf%embedded_font%font_name), &
+          " /Encoding /Identity-H /DescendantFonts [", cid_font_id, " 0 R] /ToUnicode ", &
+          tounicode_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
+        call write_raw_string(pdf, trim(font_buf))
+
+        ! CIDFont Object
+        call record_object_offset(pdf, cid_font_id)
+        write(font_buf, '(I0,A,A,A,I0,A)') cid_font_id, " 0 obj" // new_line('a') // &
+          "<< /Type /Font /Subtype /CIDFontType0 /BaseFont /", trim(pdf%embedded_font%font_name), &
+          " /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor ", &
+          font_desc_id, " 0 R /DW 1000 >>" // new_line('a') // "endobj" // new_line('a')
+        call write_raw_string(pdf, trim(font_buf))
+      else  ! TrueType
+        cid_font_id = 0
+        write(font_buf, '(I0,A,A,A,I0,A,I0,A)') font_id, " 0 obj" // new_line('a') // &
+          "<< /Type /Font /Subtype /TrueType /BaseFont /", trim(pdf%embedded_font%font_name), &
+          " /FirstChar 0 /LastChar 255 /FontDescriptor ", font_desc_id, &
+          " 0 R /ToUnicode ", tounicode_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
+        call write_raw_string(pdf, trim(font_buf))
+      end if
+
+      ! FontDescriptor Object
+      call record_object_offset(pdf, font_desc_id)
+      if (pdf%embedded_font%font_type == 2) then
+        write(font_buf, '(I0,A,A,A,I0,A)') font_desc_id, " 0 obj" // new_line('a') // &
+          "<< /Type /FontDescriptor /FontName /", trim(pdf%embedded_font%font_name), &
+          " /Flags 32 /FontBBox [-500 -300 1200 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile3 ", &
+          font_file_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
+      else
+        write(font_buf, '(I0,A,A,A,I0,A)') font_desc_id, " 0 obj" // new_line('a') // &
+          "<< /Type /FontDescriptor /FontName /", trim(pdf%embedded_font%font_name), &
+          " /Flags 32 /FontBBox [-500 -300 1200 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 ", &
+          font_file_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
+      end if
+      call write_raw_string(pdf, trim(font_buf))
+
+      ! Font File Stream Object
+      call record_object_offset(pdf, font_file_id)
+      if (pdf%embedded_font%font_type == 2) then
+        write(font_buf, '(I0,A,I0,A)') font_file_id, " 0 obj" // new_line('a') // &
+          "<< /Subtype /CIDFontType0C /Length ", pdf%embedded_font%font_data_len, &
+          " >>" // new_line('a') // "stream" // new_line('a')
+      else
+        write(font_buf, '(I0,A,I0,A)') font_file_id, " 0 obj" // new_line('a') // &
+          "<< /Length ", pdf%embedded_font%font_data_len, &
+          " >>" // new_line('a') // "stream" // new_line('a')
+      end if
+      call write_raw_string(pdf, trim(font_buf))
+      if (pdf%embedded_font%font_data_len > 0) then
+        call write_raw_string(pdf, pdf%embedded_font%font_data(1:pdf%embedded_font%font_data_len))
+      end if
+      call write_raw_string(pdf, new_line('a') // "endstream" // new_line('a') // "endobj" // new_line('a'))
+
+    else
+      font_desc_id = 0
+      font_file_id = 0
+      cid_font_id = 0
+      write(font_buf, '(I0,A,I0,A)') font_id, " 0 obj" // new_line('a') // &
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /ToUnicode ", &
+        tounicode_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
+      call write_raw_string(pdf, trim(font_buf))
+    end if
+
+    ! /ToUnicode CMap Stream Object
+    call record_object_offset(pdf, tounicode_id)
+    cmap_stream = "/CIDInit /ProcSet findresource begin" // new_line('a') // &
+      "12 dict begin" // new_line('a') // &
+      "begincmap" // new_line('a') // &
+      "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def" // new_line('a') // &
+      "/CMapName /Adobe-Identity-UCS def" // new_line('a') // &
+      "/CMapType 2 def" // new_line('a') // &
+      "1 begincodespacerange" // new_line('a') // &
+      "<0000> <FFFF>" // new_line('a') // &
+      "endcodespacerange" // new_line('a') // &
+      "1 beginbfrange" // new_line('a') // &
+      "<0000> <FFFF> <0000>" // new_line('a') // &
+      "endbfrange" // new_line('a') // &
+      "endcmap" // new_line('a') // &
+      "CMapName currentdict /CMap defineresource pop" // new_line('a') // &
+      "end" // new_line('a') // &
+      "end" // new_line('a')
+    cmap_len = len_trim(cmap_stream)
+
+    write(font_buf, '(I0,A,I0,A)') tounicode_id, " 0 obj" // new_line('a') // &
+      "<< /Length ", cmap_len, " >>" // new_line('a') // "stream" // new_line('a')
+    call write_raw_string(pdf, trim(font_buf))
+    call write_raw_string(pdf, cmap_stream(1:cmap_len))
+    call write_raw_string(pdf, "endstream" // new_line('a') // "endobj" // new_line('a'))
+
+  end subroutine write_font_objects
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: write_tagged_struct_tree
+  ! Purpose: Writes Tagged PDF StructTreeRoot and StructElem Objects.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 6.
+  !-----------------------------------------------------------------------------
+  subroutine write_tagged_struct_tree(pdf, struct_root_id, struct_doc_id)
+    type(pdf_document_type), intent(inout) :: pdf
+    integer(kind=int32), intent(in) :: struct_root_id
+    integer(kind=int32), intent(in) :: struct_doc_id
+
+    character(len=4096) :: buf, elem_ref
+    integer(kind=int32) :: i, p_elem_id, page_obj_id
+
+    ! Write StructTreeRoot Object
+    call record_object_offset(pdf, struct_root_id)
+    write(buf, '(I0,A,I0,A)') struct_root_id, " 0 obj" // new_line('a') // &
+      "<< /Type /StructTreeRoot /RoleMap << /P /P /Document /Document >> /K [", &
+      struct_doc_id, " 0 R] >>" // new_line('a') // "endobj" // new_line('a')
+    call write_raw_string(pdf, trim(buf))
+
+    ! Write Document StructElem Object
+    call record_object_offset(pdf, struct_doc_id)
+    buf = ""
+    write(buf, '(I0,A,I0,A)') struct_doc_id, " 0 obj" // new_line('a') // &
+      "<< /Type /StructElem /S /Document /P ", struct_root_id, " 0 R /K ["
+
+    do i = 1, pdf%mcid_count
+      p_elem_id = next_object_id(pdf)
+      write(elem_ref, '(I0,A)') p_elem_id, " 0 R "
+      buf = trim(buf) // " " // trim(elem_ref)
+    end do
+    buf = trim(buf) // "] >>" // new_line('a') // "endobj" // new_line('a')
+    call write_raw_string(pdf, trim(buf))
+
+    ! Write Paragraph StructElem Objects
+    p_elem_id = struct_doc_id + 1
+    do i = 1, pdf%mcid_count
+      call record_object_offset(pdf, p_elem_id)
+      page_obj_id = pdf%page_object_ids(pdf%mcid_page_ids(i))
+      write(buf, '(I0,A,I0,A,I0,A,I0,A)') p_elem_id, " 0 obj" // new_line('a') // &
+        "<< /Type /StructElem /S /P /P ", struct_doc_id, " 0 R /Pg ", page_obj_id, &
+        " 0 R /K ", i - 1, " >>" // new_line('a') // "endobj" // new_line('a')
+      call write_raw_string(pdf, trim(buf))
+      p_elem_id = p_elem_id + 1
+    end do
+
+  end subroutine write_tagged_struct_tree
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_open_read
@@ -695,7 +979,7 @@ contains
       "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R >> >> /MediaBox [0 0 ", &
       pdf%current_page_width, " ", pdf%current_page_height, "] /Contents ", stream_obj_id, " 0 R >>" // new_line('a') // &
       "endobj" // new_line('a')
-    
+
     call write_raw_string(pdf, trim(header_buf))
 
   end subroutine flush_current_page_objects
