@@ -6,7 +6,7 @@
 !        McCabe Cyclomatic Complexity <= 10 per procedure.
 !===============================================================================
 module iris_c_pdf_io
-  use, intrinsic :: iso_c_binding, only: c_ptr, c_char, c_int8_t, c_int32_t, &
+  use, intrinsic :: iso_c_binding, only: c_ptr, c_null_ptr, c_char, c_int8_t, c_int32_t, &
                                          c_int64_t, c_size_t, c_null_char, c_associated
   use, intrinsic :: iso_fortran_env, only: int32, int64
   implicit none
@@ -21,7 +21,7 @@ module iris_c_pdf_io
   public :: pdf_c_close
 
   type :: pdf_c_stream_type
-    type(c_ptr) :: handle = c_ptr()
+    type(c_ptr) :: handle = c_null_ptr
   end type pdf_c_stream_type
 
   interface
@@ -177,7 +177,7 @@ contains
 
     if (c_associated(stream%handle)) then
       status = int(c_iris_pdf_close_stream(stream%handle), int32)
-      stream%handle = c_ptr()
+      stream%handle = c_null_ptr
     else
       status = 0
     end if
