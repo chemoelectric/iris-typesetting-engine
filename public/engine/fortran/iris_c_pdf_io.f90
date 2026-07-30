@@ -39,6 +39,14 @@ module iris_c_pdf_io
       integer(kind=c_int32_t) :: status
     end function c_iris_pdf_write_bytes
 
+    function c_iris_pdf_write_char_bytes(stream_ptr, data, length) result(status) bind(c, name="iris_pdf_write_bytes")
+      import :: c_ptr, c_char, c_size_t, c_int32_t
+      type(c_ptr), value :: stream_ptr
+      character(kind=c_char), intent(in) :: data(*)
+      integer(kind=c_size_t), value :: length
+      integer(kind=c_int32_t) :: status
+    end function c_iris_pdf_write_char_bytes
+
     function c_iris_pdf_write_string(stream_ptr, str) result(status) bind(c, name="iris_pdf_write_string")
       import :: c_ptr, c_char, c_int32_t
       type(c_ptr), value :: stream_ptr
@@ -125,7 +133,7 @@ contains
     if (c_associated(stream%handle)) then
       s_len = int(len(str), c_size_t)
       if (s_len > 0_c_size_t) then
-        status = int(c_iris_pdf_write_bytes(stream%handle, str, s_len), int32)
+        status = int(c_iris_pdf_write_char_bytes(stream%handle, str, s_len), int32)
       else
         status = 0
       end if
