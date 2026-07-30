@@ -1,16 +1,20 @@
 # Module: `iris_pdf_io`
 
 ## Overview
-The `iris_pdf_io` module provides an ISO C23 binary stream I/O backend for PDF document generation in the Iris typesetting system. It bypasses standard Fortran record-based I/O overhead and OS-dependent newline encoding discrepancies, providing exact byte-offset tracking, zero-padding string writing, and direct stream buffer flushing.
+The `iris_pdf_io` module provides an ISO C23 binary stream and CapyPDF 0.21.0 primitive binding backend for PDF document generation in the Iris typesetting system. It bypasses standard Fortran record-based I/O overhead and OS-dependent newline encoding discrepancies, providing exact byte-offset tracking, zero-padding string writing, direct stream buffer flushing, and CapyPDF 0.21.0 generator/draw context primitive execution.
 
 ## C23 Procedures & API
 
-- **`iris_pdf_open_stream(filename)`**: Opens binary file stream (`fopen(..., "wb")`) and initializes stream context handle.
+- **`iris_pdf_open_stream(filename)`**: Opens binary file stream (`fopen(..., "wb")`) and initializes stream context handle and CapyPDF 0.21.0 generator instance.
 - **`iris_pdf_write_bytes(stream, data, length)`**: Writes unformatted raw bytes directly to stream.
 - **`iris_pdf_write_string(stream, str)`**: Writes null-terminated ASCII/UTF-8 string without record delimiters or extra spaces.
 - **`iris_pdf_write_formatted_int(stream, val)`**: Formats integer as tightly packed decimal text string and writes to stream.
+- **`iris_pdf_capy_add_page(stream, width, height)`**: Allocates new page draw context via CapyPDF 0.21.0 generator.
+- **`iris_pdf_capy_write_text(stream, x, y, font_size, text)`**: Appends text rendering primitive via CapyPDF draw context.
+- **`iris_pdf_capy_draw_rect(stream, x, y, w, h, fill_flag)`**: Appends rectangle drawing primitive via CapyPDF draw context.
+- **`iris_pdf_capy_embed_font(stream, font_name, data, len)`**: Registers embedded font binary with CapyPDF 0.21.0 generator.
 - **`iris_pdf_get_offset(stream)`**: Returns exact cumulative byte offset written to stream.
-- **`iris_pdf_close_stream(stream)`**: Flushes stdio stream buffer, closes OS file descriptor, and releases context memory.
+- **`iris_pdf_close_stream(stream)`**: Flushes CapyPDF generator, serializes output, closes OS file descriptor, and releases context memory.
 
 ## Architectural Rules
 - **Standard**: ISO C23.

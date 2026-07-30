@@ -1,14 +1,14 @@
 !===============================================================================
 ! Module: iris_c_pdf_io
 ! Standard: Fortran 2008 (ISO/IEC 1539-1:2010) & ISO_C_BINDING
-! Architecture: Fortran ISO_C_BINDING Bridge to ISO C23 Binary Stream I/O
+! Architecture: Fortran ISO_C_BINDING Bridge to CapyPDF 0.21.0 C23 Binding Layer
 ! Rules: Single-entry/single-exit control constructs, no goto.
 !        McCabe Cyclomatic Complexity <= 10 per procedure.
 !===============================================================================
 module iris_c_pdf_io
   use, intrinsic :: iso_c_binding, only: c_ptr, c_null_ptr, c_char, c_int8_t, c_int32_t, &
-                                         c_int64_t, c_size_t, c_null_char, c_associated
-  use, intrinsic :: iso_fortran_env, only: int32, int64
+                                         c_int64_t, c_double, c_size_t, c_null_char, c_associated
+  use, intrinsic :: iso_fortran_env, only: int32, int64, real64
   implicit none
   private
 
@@ -17,6 +17,10 @@ module iris_c_pdf_io
   public :: pdf_c_write_bytes
   public :: pdf_c_write_string
   public :: pdf_c_write_int
+  public :: pdf_c_capy_add_page
+  public :: pdf_c_capy_write_text
+  public :: pdf_c_capy_draw_rect
+  public :: pdf_c_capy_embed_font
   public :: pdf_c_get_offset
   public :: pdf_c_close
 
@@ -61,6 +65,38 @@ module iris_c_pdf_io
       integer(kind=c_int32_t) :: status
     end function c_iris_pdf_write_formatted_int
 
+    function c_iris_pdf_capy_add_page(stream_ptr, width, height) result(status) bind(c, name="iris_pdf_capy_add_page")
+      import :: c_ptr, c_double, c_int32_t
+      type(c_ptr), value :: stream_ptr
+      real(kind=c_double), value :: width, height
+      integer(kind=c_int32_t) :: status
+    end function c_iris_pdf_capy_add_page
+
+    function c_iris_pdf_capy_write_text(stream_ptr, x, y, font_size, text) result(status) bind(c, name="iris_pdf_capy_write_text")
+      import :: c_ptr, c_double, c_char, c_int32_t
+      type(c_ptr), value :: stream_ptr
+      real(kind=c_double), value :: x, y, font_size
+      character(kind=c_char), intent(in) :: text(*)
+      integer(kind=c_int32_t) :: status
+    end function c_iris_pdf_capy_write_text
+
+    function c_iris_pdf_capy_draw_rect(stream_ptr, x, y, w, h, fill_flag) result(status) bind(c, name="iris_pdf_capy_draw_rect")
+      import :: c_ptr, c_double, c_int32_t
+      type(c_ptr), value :: stream_ptr
+      real(kind=c_double), value :: x, y, w, h
+      integer(kind=c_int32_t), value :: fill_flag
+      integer(kind=c_int32_t) :: status
+    end function c_iris_pdf_capy_draw_rect
+
+    function c_iris_pdf_capy_embed_font(stream_ptr, font_name, data, len) result(status) bind(c, name="iris_pdf_capy_embed_font")
+      import :: c_ptr, c_char, c_int8_t, c_size_t, c_int32_t
+      type(c_ptr), value :: stream_ptr
+      character(kind=c_char), intent(in) :: font_name(*)
+      integer(kind=c_int8_t), intent(in) :: data(*)
+      integer(kind=c_size_t), value :: len
+      integer(kind=c_int32_t) :: status
+    end function c_iris_pdf_capy_embed_font
+
     function c_iris_pdf_get_offset(stream_ptr) result(offset) bind(c, name="iris_pdf_get_offset")
       import :: c_ptr, c_int64_t
       type(c_ptr), value :: stream_ptr
@@ -78,7 +114,7 @@ contains
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_c_open
-  ! Purpose: Opens binary PDF file via ISO C23 stream I/O backend
+  ! Purpose: Opens binary PDF file via CapyPDF 0.21.0 C23 stream I/O backend
   ! Control Structure: Single-entry / single-exit. Complexity <= 3.
   !-----------------------------------------------------------------------------
   subroutine pdf_c_open(stream, filename, status)
@@ -101,7 +137,7 @@ contains
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_c_write_bytes
-  ! Purpose: Writes raw byte buffer via ISO C23 stream layer
+  ! Purpose: Writes raw byte buffer via C23 stream layer
   ! Control Structure: Single-entry / single-exit. Complexity <= 3.
   !-----------------------------------------------------------------------------
   subroutine pdf_c_write_bytes(stream, data, length, status)
@@ -162,8 +198,92 @@ contains
   end subroutine pdf_c_write_int
 
   !-----------------------------------------------------------------------------
+  ! Subroutine: pdf_c_capy_add_page
+  ! Purpose: Adds page using CapyPDF 0.21.0 C API binding
+  ! Control Structure: Single-entry / single-exit. Complexity <= 3.
+  !-----------------------------------------------------------------------------
+  subroutine pdf_c_capy_add_page(stream, width, height, status)
+    type(pdf_c_stream_type), intent(in) :: stream
+    real(kind=real64), intent(in)       :: width, height
+    integer(kind=int32), intent(out)    :: status
+
+    if (c_associated(stream%handle)) then
+      status = int(c_iris_pdf_capy_add_page(stream%handle, real(width, c_double), real(height, c_double)), int32)
+    else
+      status = -1
+    end if
+
+  end subroutine pdf_c_capy_add_page
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: pdf_c_capy_write_text
+  ! Purpose: Writes text using CapyPDF 0.21.0 C API binding
+  ! Control Structure: Single-entry / single-exit. Complexity <= 3.
+  !-----------------------------------------------------------------------------
+  subroutine pdf_c_capy_write_text(stream, x, y, font_size, text_str, status)
+    type(pdf_c_stream_type), intent(in) :: stream
+    real(kind=real64), intent(in)       :: x, y, font_size
+    character(len=*), intent(in)        :: text_str
+    integer(kind=int32), intent(out)    :: status
+
+    character(kind=c_char, len=len_trim(text_str)+1) :: c_text
+
+    if (c_associated(stream%handle)) then
+      c_text = trim(text_str) // c_null_char
+      status = int(c_iris_pdf_capy_write_text(stream%handle, real(x, c_double), real(y, c_double), &
+                                               real(font_size, c_double), c_text), int32)
+    else
+      status = -1
+    end if
+
+  end subroutine pdf_c_capy_write_text
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: pdf_c_capy_draw_rect
+  ! Purpose: Draws rectangle using CapyPDF 0.21.0 C API binding
+  ! Control Structure: Single-entry / single-exit. Complexity <= 3.
+  !-----------------------------------------------------------------------------
+  subroutine pdf_c_capy_draw_rect(stream, x, y, w, h, fill_flag, status)
+    type(pdf_c_stream_type), intent(in) :: stream
+    real(kind=real64), intent(in)       :: x, y, w, h
+    integer(kind=int32), intent(in)     :: fill_flag
+    integer(kind=int32), intent(out)    :: status
+
+    if (c_associated(stream%handle)) then
+      status = int(c_iris_pdf_capy_draw_rect(stream%handle, real(x, c_double), real(y, c_double), &
+                                              real(w, c_double), real(h, c_double), fill_flag), int32)
+    else
+      status = -1
+    end if
+
+  end subroutine pdf_c_capy_draw_rect
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: pdf_c_capy_embed_font
+  ! Purpose: Embeds font binary using CapyPDF 0.21.0 C API binding
+  ! Control Structure: Single-entry / single-exit. Complexity <= 3.
+  !-----------------------------------------------------------------------------
+  subroutine pdf_c_capy_embed_font(stream, font_name, data, len, status)
+    type(pdf_c_stream_type), intent(in) :: stream
+    character(len=*), intent(in)        :: font_name
+    integer(kind=c_int8_t), intent(in)  :: data(*)
+    integer(kind=int64), intent(in)     :: len
+    integer(kind=int32), intent(out)    :: status
+
+    character(kind=c_char, len=len_trim(font_name)+1) :: c_name
+
+    if (c_associated(stream%handle)) then
+      c_name = trim(font_name) // c_null_char
+      status = int(c_iris_pdf_capy_embed_font(stream%handle, c_name, data, int(len, c_size_t)), int32)
+    else
+      status = -1
+    end if
+
+  end subroutine pdf_c_capy_embed_font
+
+  !-----------------------------------------------------------------------------
   ! Function: pdf_c_get_offset
-  ! Purpose: Queries exact byte offset from C23 stream handle
+  ! Purpose: Queries exact byte offset from CapyPDF C23 stream handle
   ! Control Structure: Single-entry / single-exit. Complexity <= 3.
   !-----------------------------------------------------------------------------
   function pdf_c_get_offset(stream) result(offset)
@@ -180,7 +300,7 @@ contains
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_c_close
-  ! Purpose: Closes C23 stream handle and flushes output buffer
+  ! Purpose: Closes CapyPDF stream handle and serializes output document
   ! Control Structure: Single-entry / single-exit. Complexity <= 3.
   !-----------------------------------------------------------------------------
   subroutine pdf_c_close(stream, status)

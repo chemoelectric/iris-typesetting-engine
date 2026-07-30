@@ -10,7 +10,9 @@
 !===============================================================================
 module iris_pdf
   use, intrinsic :: iso_fortran_env, only: int32, int64, real64
-  use iris_c_pdf_io, only: pdf_c_stream_type, pdf_c_open, pdf_c_write_string, pdf_c_get_offset, pdf_c_close
+  use, intrinsic :: iso_c_binding, only: c_int8_t
+  use iris_c_pdf_io, only: pdf_c_stream_type, pdf_c_open, pdf_c_write_string, pdf_c_get_offset, pdf_c_close, &
+                         pdf_c_capy_add_page, pdf_c_capy_write_text, pdf_c_capy_draw_rect, pdf_c_capy_embed_font
   use iris_dynamic_array, only: ensure_int32_capacity, ensure_int64_capacity
   use iris_dynamic_string, only: append_string_buffer, ensure_string_capacity
   implicit none
@@ -141,6 +143,9 @@ contains
     character(len=*), intent(in) :: font_name
     character(len=*), intent(in) :: tt_data
 
+    integer(kind=int32) :: c_stat, idx
+    integer(kind=c_int8_t), allocatable :: c_bytes(:)
+
     pdf%embedded_font%embedded = .true.
     pdf%embedded_font%font_type = 1  ! TrueType
     pdf%embedded_font%font_name = trim(font_name)
@@ -148,6 +153,15 @@ contains
     if (allocated(pdf%embedded_font%font_data)) deallocate(pdf%embedded_font%font_data)
     allocate(character(len=len(tt_data)) :: pdf%embedded_font%font_data)
     pdf%embedded_font%font_data = tt_data
+
+    if (len(tt_data) > 0) then
+      allocate(c_bytes(len(tt_data)))
+      do idx = 1, len(tt_data)
+        c_bytes(idx) = int(iachar(tt_data(idx:idx)), c_int8_t)
+      end do
+      call pdf_c_capy_embed_font(pdf%c_stream, font_name, c_bytes, int(len(tt_data), int64), c_stat)
+      deallocate(c_bytes)
+    end if
 
   end subroutine pdf_embed_font_truetype
 
@@ -161,6 +175,9 @@ contains
     character(len=*), intent(in) :: font_name
     character(len=*), intent(in) :: cff_data
 
+    integer(kind=int32) :: c_stat, idx
+    integer(kind=c_int8_t), allocatable :: c_bytes(:)
+
     pdf%embedded_font%embedded = .true.
     pdf%embedded_font%font_type = 2  ! CFF / Type 1C
     pdf%embedded_font%font_name = trim(font_name)
@@ -168,6 +185,15 @@ contains
     if (allocated(pdf%embedded_font%font_data)) deallocate(pdf%embedded_font%font_data)
     allocate(character(len=len(cff_data)) :: pdf%embedded_font%font_data)
     pdf%embedded_font%font_data = cff_data
+
+    if (len(cff_data) > 0) then
+      allocate(c_bytes(len(cff_data)))
+      do idx = 1, len(cff_data)
+        c_bytes(idx) = int(iachar(cff_data(idx:idx)), c_int8_t)
+      end do
+      call pdf_c_capy_embed_font(pdf%c_stream, font_name, c_bytes, int(len(cff_data), int64), c_stat)
+      deallocate(c_bytes)
+    end if
 
   end subroutine pdf_embed_font_cff
 
@@ -269,6 +295,7 @@ contains
     type(pdf_document_type), intent(inout) :: pdf
     real(kind=real64), intent(in) :: width
     real(kind=real64), intent(in) :: height
+    integer(kind=int32) :: c_stat
 
     if (pdf%page_count > 0) then
       call flush_current_page_objects(pdf)
@@ -284,6 +311,9 @@ contains
     pdf%current_stream = ""
     pdf%stream_len = 0
     pdf%current_mcid = 0
+
+    ! CapyPDF 0.21.0 primitive page creation
+    call pdf_c_capy_add_page(pdf%c_stream, width, height, c_stat)
 
   end subroutine pdf_add_page
 
@@ -301,7 +331,7 @@ contains
 
     character(len=2048) :: line_buf, escaped_buf, op_buf
     character(len=32)   :: f_str, x_str, y_str, mcid_str
-    integer(kind=int32) :: content_len, pos, next_nl, line_len, i, esc_pos, op_len
+    integer(kind=int32) :: content_len, pos, next_nl, line_len, i, esc_pos, op_len, c_stat
     real(kind=real64)   :: cur_y, line_height
     character(1)        :: ch
 
@@ -357,6 +387,11 @@ contains
         cur_y = pdf%current_page_height - 72.0_real64
       end if
 
+      if (line_len > 0) then
+        ! CapyPDF 0.21.0 text rendering primitive
+        call pdf_c_capy_write_text(pdf%c_stream, x, cur_y, font_size, line_buf(1:line_len), c_stat)
+      end if
+
       if (esc_pos > 1) then
         write(f_str, '(F6.2)') font_size
         write(x_str, '(F8.2)') x
@@ -400,11 +435,17 @@ contains
     logical, intent(in) :: fill_flag
 
     character(len=256) :: buffer
-    integer(kind=int32) :: buf_len
+    integer(kind=int32) :: buf_len, fill_val, c_stat
 
     if (pdf%page_count == 0) then
       call pdf_add_page(pdf, pdf%current_page_width, pdf%current_page_height)
     end if
+
+    fill_val = 0
+    if (fill_flag) fill_val = 1
+
+    ! CapyPDF 0.21.0 rectangle primitive binding
+    call pdf_c_capy_draw_rect(pdf%c_stream, x, y, w, h, fill_val, c_stat)
 
     if (fill_flag) then
       write(buffer, '(F8.2,A,F8.2,A,F8.2,A,F8.2,A)') x, " ", y, " ", w, " ", h, " re f" // new_line('a')
