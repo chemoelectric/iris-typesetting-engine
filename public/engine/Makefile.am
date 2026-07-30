@@ -58,6 +58,7 @@ libiris_a_SOURCES = \
 	fortran/iris_tex_parser.f90 \
 	fortran/iris_tex_math.f90 \
 	fortran/iris_tex_trip.f90 \
+	fortran/iris_typography_levels.f90 \
 	fortran/iris_tex.f90 \
 	fortran/iris_batch_engine.f90
 
@@ -82,7 +83,8 @@ fortran/iris_tex_lexer.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_tex_parser.$(OBJEXT): fortran/iris_tex_lexer.$(OBJEXT) fortran/iris_json.$(OBJEXT)
 fortran/iris_tex_math.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_tex_trip.$(OBJEXT): fortran/iris_json.$(OBJEXT)
-fortran/iris_tex.$(OBJEXT): fortran/iris_tex_lexer.$(OBJEXT) fortran/iris_tex_parser.$(OBJEXT) fortran/iris_tex_math.$(OBJEXT) fortran/iris_tex_trip.$(OBJEXT) fortran/iris_kpsewhich.$(OBJEXT) fortran/iris_json.$(OBJEXT)
+fortran/iris_typography_levels.$(OBJEXT): fortran/iris_json.$(OBJEXT)
+fortran/iris_tex.$(OBJEXT): fortran/iris_tex_lexer.$(OBJEXT) fortran/iris_tex_parser.$(OBJEXT) fortran/iris_tex_math.$(OBJEXT) fortran/iris_tex_trip.$(OBJEXT) fortran/iris_typography_levels.$(OBJEXT) fortran/iris_kpsewhich.$(OBJEXT) fortran/iris_json.$(OBJEXT)
 fortran/iris_batch_engine.$(OBJEXT): fortran/iris_markup_parser.$(OBJEXT) fortran/iris_pdf.$(OBJEXT)
 fortran/iris_cmd_tex.$(OBJEXT): fortran/iris_tex.$(OBJEXT) fortran/iris_cli_args.$(OBJEXT) fortran/iris_json.$(OBJEXT) fortran/iris_batch_engine.$(OBJEXT) fortran/iris_dynamic_string.$(OBJEXT)
 fortran/iris_cmd_kpsewhich.$(OBJEXT): fortran/iris_kpsewhich.$(OBJEXT) fortran/iris_cli_args.$(OBJEXT)
@@ -115,6 +117,7 @@ nobase_dist_doc_DATA = \
 	fortran/iris_tex_parser.md \
 	fortran/iris_tex_math.md \
 	fortran/iris_tex_trip.md \
+	fortran/iris_typography_levels.md \
 	fortran/iris_tex.md \
 	fortran/iris_batch_engine.md \
 	fortran/iris_cmd_tex.md \
