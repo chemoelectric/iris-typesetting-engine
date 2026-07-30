@@ -532,15 +532,15 @@ contains
 
       if (pdf%embedded_font%font_type == 2) then  ! CFF / Type1C
         write(font_buf, '(I0,A,I0,A,I0,A)') font_id, " 0 obj" // new_line('a') // &
-          "<< /Type /Font /Subtype /Type1 /BaseFont /", trim(pdf%embedded_font%font_name), &
-          " /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 255 ", trim(widths_str), &
+          "<< /Type /Font /Subtype /Type1 /BaseFont /" // trim(pdf%embedded_font%font_name) // &
+          " /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 255 " // trim(widths_str) // &
           " /FontDescriptor ", font_desc_id, " 0 R /ToUnicode ", tounicode_id, &
           " 0 R >>" // new_line('a') // "endobj" // new_line('a')
         call write_raw_string(pdf, trim(font_buf))
       else  ! TrueType
         write(font_buf, '(I0,A,I0,A,I0,A)') font_id, " 0 obj" // new_line('a') // &
-          "<< /Type /Font /Subtype /TrueType /BaseFont /", trim(pdf%embedded_font%font_name), &
-          " /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 255 ", trim(widths_str), &
+          "<< /Type /Font /Subtype /TrueType /BaseFont /" // trim(pdf%embedded_font%font_name) // &
+          " /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 255 " // trim(widths_str) // &
           " /FontDescriptor ", font_desc_id, " 0 R /ToUnicode ", tounicode_id, &
           " 0 R >>" // new_line('a') // "endobj" // new_line('a')
         call write_raw_string(pdf, trim(font_buf))
@@ -550,12 +550,12 @@ contains
       call record_object_offset(pdf, font_desc_id)
       if (pdf%embedded_font%font_type == 2) then
         write(font_buf, '(I0,A,I0,A)') font_desc_id, " 0 obj" // new_line('a') // &
-          "<< /Type /FontDescriptor /FontName /", trim(pdf%embedded_font%font_name), &
+          "<< /Type /FontDescriptor /FontName /" // trim(pdf%embedded_font%font_name) // &
           " /Flags 32 /FontBBox [-500 -300 1200 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile3 ", &
           font_file_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
       else
         write(font_buf, '(I0,A,I0,A)') font_desc_id, " 0 obj" // new_line('a') // &
-          "<< /Type /FontDescriptor /FontName /", trim(pdf%embedded_font%font_name), &
+          "<< /Type /FontDescriptor /FontName /" // trim(pdf%embedded_font%font_name) // &
           " /Flags 32 /FontBBox [-500 -300 1200 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 ", &
           font_file_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
       end if
