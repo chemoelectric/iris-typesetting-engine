@@ -15,19 +15,19 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 bin_PROGRAMS = iris iris-tex iris-kpsewhich iris-trip iris-compile
 
 iris_SOURCES = fortran/iris_main.f90
-iris_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) -lz
+iris_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) $(CAPYPDF_LIBS) -lz
 
 iris_tex_SOURCES = fortran/iris_cmd_tex.f90
-iris_tex_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) -lz
+iris_tex_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) $(CAPYPDF_LIBS) -lz
 
 iris_kpsewhich_SOURCES = fortran/iris_cmd_kpsewhich.f90
-iris_kpsewhich_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) -lz
+iris_kpsewhich_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) $(CAPYPDF_LIBS) -lz
 
 iris_trip_SOURCES = fortran/iris_cmd_trip.f90
-iris_trip_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) -lz
+iris_trip_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) $(CAPYPDF_LIBS) -lz
 
 iris_compile_SOURCES = fortran/iris_cmd_compile.f90
-iris_compile_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) -lz
+iris_compile_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) $(CAPYPDF_LIBS) -lz
 
 # ------------------------------------------------------------------------------
 # Fortran Convenience Library
@@ -191,7 +191,7 @@ test_iris_evaluate_pegs_LDADD = libiris.a
 tests/test_iris_evaluate_pegs.$(OBJEXT): fortran/iris_evaluate_pegs.$(OBJEXT)
 
 test_iris_pdf_SOURCES = tests/test_iris_pdf.f90
-test_iris_pdf_LDADD = libiris.a
+test_iris_pdf_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) $(CAPYPDF_LIBS) -lz
 tests/test_iris_pdf.$(OBJEXT): fortran/iris_pdf.$(OBJEXT)
 
 test_iris_dvi_SOURCES = tests/test_iris_dvi.f90
@@ -207,15 +207,15 @@ test_iris_kpsewhich_LDADD = libiris.a
 tests/test_iris_kpsewhich.$(OBJEXT): fortran/iris_kpsewhich.$(OBJEXT)
 
 test_iris_tex_SOURCES = tests/test_iris_tex.f90
-test_iris_tex_LDADD = libiris.a
+test_iris_tex_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) $(CAPYPDF_LIBS) -lz
 tests/test_iris_tex.$(OBJEXT): fortran/iris_tex.$(OBJEXT)
 
 test_iris_trip_SOURCES = tests/test_iris_trip.f90
-test_iris_trip_LDADD = libiris.a
+test_iris_trip_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) $(CAPYPDF_LIBS) -lz
 tests/test_iris_trip.$(OBJEXT): fortran/iris_tex.$(OBJEXT)
 
 test_iris_batch_SOURCES = tests/test_iris_batch.f90
-test_iris_batch_LDADD = libiris.a
+test_iris_batch_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) $(CAPYPDF_LIBS) -lz
 tests/test_iris_batch.$(OBJEXT): fortran/iris_batch_engine.$(OBJEXT)
 
 TESTS = $(check_PROGRAMS)

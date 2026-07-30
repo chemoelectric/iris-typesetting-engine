@@ -135,6 +135,24 @@ AS_IF([test "x$have_lapack" = "xyes"], [
 # Check for zlib library
 AC_CHECK_LIB([z], [compress], [], [AC_MSG_ERROR([zlib library is required])])
 
+# Check for CapyPDF library
+CAPYPDF_LIBS=""
+AC_ARG_WITH([capypdf],
+  [AS_HELP_STRING([--with-capypdf], [use CapyPDF library [default=check]])],
+  [with_capypdf=$withval],
+  [with_capypdf=check])
+
+AS_IF([test "x$with_capypdf" != "xno"], [
+  AC_CHECK_LIB([capypdf], [capy_generator_new], [CAPYPDF_LIBS="-lcapypdf"], [
+    AC_CHECK_LIB([capypdf], [capy_options_new], [CAPYPDF_LIBS="-lcapypdf"], [
+      AS_IF([test "x$with_capypdf" = "xyes"], [
+        AC_MSG_ERROR([CapyPDF library requested but not found])
+      ])
+    ])
+  ])
+])
+AC_SUBST([CAPYPDF_LIBS])
+
 # Output configuration files
 CHEM_CONFIG_MAKEFILES
 AC_OUTPUT
