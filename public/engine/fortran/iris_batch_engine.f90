@@ -135,6 +135,12 @@ contains
             if (trim(parse_ast%tokens(i)%parameter) == "page_break") then
               call pdf_add_page(pdf_doc, 595.0_real64, page_h)
               cur_y = page_h - cfg%margin_top
+            else if (trim(parse_ast%tokens(i)%parameter) == "bigskip") then
+              cur_y = cur_y - 24.0_real64
+            else if (trim(parse_ast%tokens(i)%parameter) == "medskip") then
+              cur_y = cur_y - 12.0_real64
+            else if (trim(parse_ast%tokens(i)%parameter) == "smallskip") then
+              cur_y = cur_y - 6.0_real64
             end if
           end if
         end do

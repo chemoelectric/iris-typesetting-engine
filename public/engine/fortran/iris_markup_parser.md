@@ -7,6 +7,7 @@ Key capabilities include:
 - Structural syntax detection for TeX, ConTeXt, Troff/Groff, HTML, and Natural Prose dialects.
 - Inline natural language disambiguation hint parsing (e.g., `[markup: troff]` or `[format: context]`).
 - Automatic detection of ambiguous syntax patterns with self-disambiguation user guidance prompts.
+- TeX formatting macro stripping (`\bf`, `\it`, `\tt`, `{\bf ...}`, etc.) and vertical skip conversion (`\bigskip`, `\medskip`, `\smallskip`).
 - Conversion of mixed input into Intermediate Intent Representation (IIR) AST tokens.
 
 This module is designed in **structural isomorphism** with the R7RS Scheme `(iris markup-parser)` library.

@@ -272,12 +272,21 @@ contains
       end if
     end if
 
-    ! Check for commands / page breaks
+    ! Check for commands / page breaks / vertical skips
     if (trim(line_buf) == "\bye" .or. trim(line_buf) == "\page" .or. &
         trim(line_buf) == "\eject" .or. trim(line_buf) == "\stoptext" .or. &
         trim(line_buf) == "\end{document}") then
       is_cmd = .true.
       cmd_txt = "page_break"
+    else if (trim(line_buf) == "\bigskip") then
+      is_cmd = .true.
+      cmd_txt = "bigskip"
+    else if (trim(line_buf) == "\medskip") then
+      is_cmd = .true.
+      cmd_txt = "medskip"
+    else if (trim(line_buf) == "\smallskip") then
+      is_cmd = .true.
+      cmd_txt = "smallskip"
     else if (index(line_buf, "\centerline{") > 0) then
       p1 = index(line_buf, "\centerline{") + 12
       p2 = index(line_buf(p1:), "}")
@@ -304,27 +313,102 @@ contains
         line_buf = ""
       end if
 
-      do while (index(line_buf, "\bf ") > 0)
-        p1 = index(line_buf, "\bf ")
-        line_buf = line_buf(1:p1-1) // line_buf(p1+4:)
-      end do
-
-      do while (index(line_buf, "{\tt ") > 0)
-        p1 = index(line_buf, "{\tt ")
-        line_buf = line_buf(1:p1-1) // line_buf(p1+5:)
-        p2 = index(line_buf(p1:), "}")
-        if (p2 > 0) line_buf = line_buf(1:p1+p2-2) // line_buf(p1+p2:)
-      end do
-
-      do while (index(line_buf, "{\bf ") > 0)
-        p1 = index(line_buf, "{\bf ")
-        line_buf = line_buf(1:p1-1) // line_buf(p1+5:)
-        p2 = index(line_buf(p1:), "}")
-        if (p2 > 0) line_buf = line_buf(1:p1+p2-2) // line_buf(p1+p2:)
-      end do
+      call strip_tex_macros(line_buf)
 
       line_out = trim(line_buf)
     end if
   end subroutine clean_markup_line
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: strip_tex_macros
+  ! Purpose: Removes TeX formatting macros and braces from line buffer
+  !-----------------------------------------------------------------------------
+  subroutine strip_tex_macros(buf)
+    character(len=*), intent(inout) :: buf
+
+    call remove_substring(buf, "\bigskip")
+    call remove_substring(buf, "\medskip")
+    call remove_substring(buf, "\smallskip")
+    call remove_substring(buf, "\noindent")
+    call remove_substring(buf, "\hfill")
+    call remove_substring(buf, "\vfill")
+    call remove_substring(buf, "\break")
+    call remove_substring(buf, "\newline")
+    call remove_substring(buf, "\strut")
+
+    call remove_substring(buf, "{\bf ")
+    call remove_substring(buf, "{\it ")
+    call remove_substring(buf, "{\tt ")
+    call remove_substring(buf, "{\em ")
+    call remove_substring(buf, "{\rm ")
+    call remove_substring(buf, "{\sf ")
+    call remove_substring(buf, "{\sl ")
+    call remove_substring(buf, "{\bfseries ")
+    call remove_substring(buf, "{\itshape ")
+    call remove_substring(buf, "\bf ")
+    call remove_substring(buf, "\it ")
+    call remove_substring(buf, "\tt ")
+    call remove_substring(buf, "\em ")
+    call remove_substring(buf, "\rm ")
+    call remove_substring(buf, "\sf ")
+    call remove_substring(buf, "\sl ")
+    call remove_substring(buf, "\bfseries")
+    call remove_substring(buf, "\itshape")
+    call remove_substring(buf, "\ttfamily")
+    call remove_substring(buf, "\rmfamily")
+    call remove_substring(buf, "\sffamily")
+    call remove_substring(buf, "\Large")
+    call remove_substring(buf, "\large")
+    call remove_substring(buf, "\LARGE")
+    call remove_substring(buf, "\huge")
+    call remove_substring(buf, "\Huge")
+    call remove_substring(buf, "\small")
+    call remove_substring(buf, "\tiny")
+    call remove_substring(buf, "\normalsize")
+    call remove_substring(buf, "\bf")
+    call remove_substring(buf, "\it")
+    call remove_substring(buf, "\tt")
+    call remove_substring(buf, "\em")
+
+    call clean_dangling_braces(buf)
+  end subroutine strip_tex_macros
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: remove_substring
+  ! Purpose: Helper to strip occurrences of target substring from str
+  !-----------------------------------------------------------------------------
+  subroutine remove_substring(str, target)
+    character(len=*), intent(inout) :: str
+    character(len=*), intent(in)    :: target
+    integer(kind=int32) :: p, t_len
+    t_len = len(target)
+    if (t_len > 0) then
+      p = index(str, target)
+      do while (p > 0)
+        str = str(1:p-1) // str(p+t_len:)
+        p = index(str, target)
+      end do
+    end if
+  end subroutine remove_substring
+
+  !-----------------------------------------------------------------------------
+  ! Subroutine: clean_dangling_braces
+  ! Purpose: Helper to strip surrounding/dangling braces left over from macros
+  !-----------------------------------------------------------------------------
+  subroutine clean_dangling_braces(str)
+    character(len=*), intent(inout) :: str
+    character(len=2048) :: temp
+    integer(kind=int32) :: n
+    temp = trim(str)
+    n = len_trim(temp)
+    if (n > 0) then
+      if (temp(1:1) == '{') temp = temp(2:n)
+      n = len_trim(temp)
+      if (n > 0) then
+        if (temp(n:n) == '}') temp = temp(1:n-1)
+      end if
+      str = trim(temp)
+    end if
+  end subroutine clean_dangling_braces
 
 end module iris_markup_parser
