@@ -35,6 +35,9 @@ iris_compile_LDADD = libiris.a $(LAPACK_LIBS) $(BLAS_LIBS) -lz
 noinst_LIBRARIES = libiris.a
 
 libiris_a_SOURCES = \
+	c/iris_pdf_io.c \
+	c/iris_pdf_io.h \
+	fortran/iris_c_pdf_io.f90 \
 	fortran/iris_dynamic_array.f90 \
 	fortran/iris_dynamic_string.f90 \
 	fortran/iris_json.f90 \
@@ -62,10 +65,12 @@ libiris_a_SOURCES = \
 	fortran/iris_tex.f90 \
 	fortran/iris_batch_engine.f90
 
-# AM_FCFLAGS for include paths in build directory and source directory (VPATH support)
+# AM_FCFLAGS and AM_CPPFLAGS for include paths in build directory and source directory (VPATH support)
+AM_CPPFLAGS = -I. -I$(srcdir) -Ic -I$(srcdir)/c
 AM_FCFLAGS = -I. -I$(srcdir) -Ifortran -I$(srcdir)/fortran
 
 # Explicit Fortran Module Dependencies for Parallel / VPATH Builds
+fortran/iris_c_pdf_io.$(OBJEXT): c/iris_pdf_io.$(OBJEXT)
 fortran/iris_cli_args.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_bezier_intersect.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_spline.$(OBJEXT): fortran/iris_bezier_intersect.$(OBJEXT)
@@ -76,7 +81,7 @@ fortran/iris_spline_collection.$(OBJEXT): fortran/iris_json.$(OBJEXT) fortran/ir
 fortran/iris_opentype.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_font_json.$(OBJEXT): fortran/iris_opentype.$(OBJEXT) fortran/iris_json.$(OBJEXT)
 fortran/iris_evaluate_pegs.$(OBJEXT): fortran/iris_opentype.$(OBJEXT)
-fortran/iris_pdf.$(OBJEXT): fortran/iris_dynamic_array.$(OBJEXT) fortran/iris_dynamic_string.$(OBJEXT)
+fortran/iris_pdf.$(OBJEXT): fortran/iris_c_pdf_io.$(OBJEXT) fortran/iris_dynamic_array.$(OBJEXT) fortran/iris_dynamic_string.$(OBJEXT)
 fortran/iris_markup_parser.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_kpsewhich.$(OBJEXT): fortran/iris_json.$(OBJEXT)
 fortran/iris_tex_lexer.$(OBJEXT): fortran/iris_json.$(OBJEXT)
@@ -96,6 +101,8 @@ fortran/iris_main.$(OBJEXT): fortran/iris_cli_args.$(OBJEXT)
 # Documentation Distribution
 # ------------------------------------------------------------------------------
 nobase_dist_doc_DATA = \
+	c/iris_pdf_io.md \
+	fortran/iris_c_pdf_io.md \
 	fortran/iris_dynamic_array.md \
 	fortran/iris_dynamic_string.md \
 	fortran/iris_json.md \
