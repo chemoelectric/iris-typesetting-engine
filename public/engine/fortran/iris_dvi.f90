@@ -159,7 +159,7 @@ contains
     integer :: c_len
     integer(int8) :: b_val
 
-    comment = "TeS/Iris Engine DVI Output"
+    comment = "TeX/Iris Engine DVI Output"
     c_len = len_trim(comment)
     status = 0
 
@@ -429,11 +429,11 @@ contains
     call write_int32_be(doc%file_unit, 1000_int32, doc%byte_offset, status)
     if (status /= 0) return
 
-    ! Max vertical and max horizontal dimensions (e.g. 10 inches in sp = 10 * 72.27 * 65536)
-    call write_int32_be(doc%file_unit, 473628672_int32, doc%byte_offset, status)
+    ! Max vertical and max horizontal dimensions (11in x 8.5in in sp)
+    call write_int32_be(doc%file_unit, 52099005_int32, doc%byte_offset, status)
     if (status /= 0) return
 
-    call write_int32_be(doc%file_unit, 473628672_int32, doc%byte_offset, status)
+    call write_int32_be(doc%file_unit, 40258322_int32, doc%byte_offset, status)
     if (status /= 0) return
 
     ! Max stack depth (2 bytes big endian)
@@ -468,8 +468,8 @@ contains
     call write_byte(doc%file_unit, OP_DVI_ID, doc%byte_offset, status)
     if (status /= 0) return
 
-    ! Trailer padding bytes (minimum 4 padding bytes of DVI_TRAILER_PAD / 223)
-    pad_count = 4 + int(iand(doc%byte_offset + 4_int32, 3_int32))
+    ! Trailer padding bytes (minimum 4 padding bytes of DVI_TRAILER_PAD / 223 so total file length is multiple of 4)
+    pad_count = 4 + int(mod(4_int32 - mod(doc%byte_offset, 4_int32), 4_int32))
     do idx = 1, pad_count
       call write_byte(doc%file_unit, OP_DVI_TRAILER_PAD, doc%byte_offset, status)
       if (status /= 0) return

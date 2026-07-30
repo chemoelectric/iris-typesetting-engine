@@ -206,8 +206,8 @@ contains
       report%status = BATCH_ERR_PDF_FAIL
       report%status_msg = "Error initializing DVI document."
     else
-      ! Define default TeX font cmr10 (Font #1)
-      call dvi_define_font(dvi_doc, 1_int32, 1234567_int32, sp_font_11pt, sp_font_11pt, "cmr10", dvi_stat)
+      ! Define default TeX font cmr10 (Font #1; checksum = 0, design size = 10pt = 655360 sp)
+      call dvi_define_font(dvi_doc, 1_int32, 0_int32, sp_font_11pt, 655360_int32, "cmr10", dvi_stat)
 
       cur_page = 1
       call dvi_begin_page(dvi_doc, cur_page, dvi_stat)
