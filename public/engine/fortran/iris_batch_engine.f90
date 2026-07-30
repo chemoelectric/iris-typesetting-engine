@@ -13,6 +13,10 @@ module iris_batch_engine
                                  NODE_TYPE_HEADING, NODE_TYPE_PARAGRAPH, NODE_TYPE_INTENT_ANNOT
   use iris_pdf, only: pdf_document_type, pdf_init, pdf_add_page, &
                       pdf_write_text, pdf_close
+  use iris_dvi, only: dvi_document_type, dvi_init, dvi_begin_page, &
+                      dvi_end_page, dvi_write_char, dvi_define_font, &
+                      dvi_select_font, dvi_move_right, dvi_move_down, &
+                      dvi_close
   implicit none
   private
 
@@ -29,6 +33,7 @@ module iris_batch_engine
   ! Public API Procedures
   public :: batch_init_config
   public :: batch_process_document
+  public :: batch_process_dvi
 
   type :: batch_config_type
     character(len=256) :: page_size = "A4"
@@ -157,5 +162,100 @@ contains
       end if
     end if
   end subroutine batch_process_document
+
+  !-----------------------------------------------------------------------------
+  ! Process document and compile to TeX DVI binary output
+  ! Single-entry / single-exit implementation
+  !-----------------------------------------------------------------------------
+  subroutine batch_process_dvi(input_content, output_dvi_filename, cfg, report)
+    character(len=*), intent(in)            :: input_content
+    character(len=*), intent(in)            :: output_dvi_filename
+    type(batch_config_type), intent(in)     :: cfg
+    type(batch_run_report_type), intent(out):: report
+
+    type(parse_result_type) :: parse_ast
+    type(dvi_document_type) :: dvi_doc
+    integer(kind=int32)     :: dvi_stat, i, j, c_code, cur_page
+    integer(kind=int32)     :: sp_margin_l, sp_margin_t, sp_line_h, sp_font_11pt
+    character(len=2048)     :: text_str
+
+    report%status = BATCH_OK
+    report%pages_generated = 0
+    report%status_msg = "Processing completed successfully."
+
+    sp_font_11pt = int(cfg%font_size * 65536.0_real64, int32)
+    sp_margin_l = int(cfg%margin_left * 65536.0_real64, int32)
+    sp_margin_t = int(cfg%margin_top * 65536.0_real64, int32)
+    sp_line_h   = int(cfg%font_size * 1.35_real64 * 65536.0_real64, int32)
+
+    ! Step 1: Parse input markup text
+    call parse_mixed_markup_text(input_content, parse_ast)
+
+    report%detected_dialect = parse_ast%detected_dialect
+    report%ambiguity_warning = parse_ast%ambiguity_detected
+
+    if (parse_ast%ambiguity_detected) then
+      report%status = BATCH_WARN_AMBIGUITY
+      report%status_msg = parse_ast%disambiguation_msg
+    end if
+
+    ! Step 2: Initialize DVI Engine & Define Font
+    call dvi_init(dvi_doc, trim(output_dvi_filename), dvi_stat)
+
+    if (dvi_stat /= 0) then
+      report%status = BATCH_ERR_PDF_FAIL
+      report%status_msg = "Error initializing DVI document."
+    else
+      ! Define default TeX font cmr10 (Font #1)
+      call dvi_define_font(dvi_doc, 1_int32, 1234567_int32, sp_font_11pt, sp_font_11pt, "cmr10", dvi_stat)
+
+      cur_page = 1
+      call dvi_begin_page(dvi_doc, cur_page, dvi_stat)
+      call dvi_select_font(dvi_doc, 1_int32, dvi_stat)
+      call dvi_move_right(dvi_doc, sp_margin_l, dvi_stat)
+      call dvi_move_down(dvi_doc, sp_margin_t, dvi_stat)
+
+      ! Step 3: Layout tokens onto DVI stream
+      if (parse_ast%token_count > 0) then
+        do i = 1, parse_ast%token_count
+          if (parse_ast%tokens(i)%node_type == NODE_TYPE_HEADING .or. &
+              parse_ast%tokens(i)%node_type == NODE_TYPE_PARAGRAPH) then
+            text_str = trim(parse_ast%tokens(i)%content)
+            do j = 1, len_trim(text_str)
+              c_code = iachar(text_str(j:j))
+              call dvi_write_char(dvi_doc, c_code, dvi_stat)
+            end do
+            call dvi_move_down(dvi_doc, sp_line_h, dvi_stat)
+
+          else if (parse_ast%tokens(i)%node_type == NODE_TYPE_INTENT_ANNOT) then
+            if (trim(parse_ast%tokens(i)%parameter) == "page_break") then
+              call dvi_end_page(dvi_doc, dvi_stat)
+              cur_page = cur_page + 1
+              call dvi_begin_page(dvi_doc, cur_page, dvi_stat)
+              call dvi_select_font(dvi_doc, 1_int32, dvi_stat)
+              call dvi_move_right(dvi_doc, sp_margin_l, dvi_stat)
+              call dvi_move_down(dvi_doc, sp_margin_t, dvi_stat)
+            else if (trim(parse_ast%tokens(i)%parameter) == "bigskip") then
+              call dvi_move_down(dvi_doc, int(24.0_real64 * 65536.0_real64, int32), dvi_stat)
+            else if (trim(parse_ast%tokens(i)%parameter) == "medskip") then
+              call dvi_move_down(dvi_doc, int(12.0_real64 * 65536.0_real64, int32), dvi_stat)
+            else if (trim(parse_ast%tokens(i)%parameter) == "smallskip") then
+              call dvi_move_down(dvi_doc, int(6.0_real64 * 65536.0_real64, int32), dvi_stat)
+            end if
+          end if
+        end do
+      end if
+
+      call dvi_end_page(dvi_doc, dvi_stat)
+      call dvi_close(dvi_doc, dvi_stat)
+
+      if (dvi_stat /= 0) then
+        report%status = BATCH_ERR_PDF_FAIL
+        report%status_msg = "Error writing compiled DVI file to disk."
+      else
+        report%pages_generated = dvi_doc%page_count
+      end if
+    end if
+  end subroutine batch_process_dvi
 
 end module iris_batch_engine

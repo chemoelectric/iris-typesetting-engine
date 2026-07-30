@@ -15,7 +15,8 @@ program iris_cmd_tex
                            cli_print_help, cli_free
   use iris_tex, only: tex_engine_type, tex_init, tex_compile_string, tex_free, TEX_OK
   use iris_batch_engine, only: batch_config_type, batch_run_report_type, &
-                               batch_init_config, batch_process_document, BATCH_OK
+                               batch_init_config, batch_process_document, &
+                               batch_process_dvi, BATCH_OK
   use iris_dynamic_string, only: append_string_buffer
   use iris_json, only: json_value_type, json_free
   implicit none
@@ -27,28 +28,32 @@ program iris_cmd_tex
   type(batch_config_type)       :: batch_cfg
   type(batch_run_report_type)   :: batch_report
 
-  character(len=512)            :: out_filename, in_filename, fmt_opt
+  character(len=512)            :: out_filename, in_filename, fmt_opt, out_fmt
   character(len=:), allocatable :: doc_buffer
   character(len=2048)           :: line_buf
-  integer(kind=int32)           :: exit_code, cli_stat, pos_cnt, tex_stat
+  integer(kind=int32)           :: exit_code, cli_stat, pos_cnt, tex_stat, o_len
   integer(kind=int32)           :: file_unit, io_stat, buf_len
-  logical                       :: is_present
+  logical                       :: is_present, use_dvi_mode
 
   exit_code = 0
   out_filename = "output.pdf"
   in_filename = ""
   fmt_opt = ""
+  out_fmt = ""
+  use_dvi_mode = .false.
   buf_len = 0
 
   call batch_init_config(batch_cfg)
 
   call cli_init_parser(parser, "iris-tex", &
     "Iris TeX Engine - TeX Document Compiler\n" // &
-    "Compiles TeX source files (.tex) directly to PDF output using the Iris TeX Engine.\n" // &
+    "Compiles TeX source files (.tex) to PDF or DVI output using the Iris TeX Engine.\n" // &
     "Features on-the-fly macro evaluation and Jaynesian MaxEnt paragraph layout optimization.")
 
-  call cli_add_option(parser, 'o', "output", CLI_REQ_ARG, "FILE", "Output PDF document filename (default: output.pdf)")
+  call cli_add_option(parser, 'o', "output", CLI_REQ_ARG, "FILE", "Output document filename (default: output.pdf or output.dvi)")
   call cli_add_option(parser, 'm', "format", CLI_REQ_ARG, "FMT", "TeX format specification (e.g. plain, latex)")
+  call cli_add_option(parser, 'f', "output-format", CLI_REQ_ARG, "FMT", "Output format: pdf or dvi")
+  call cli_add_option(parser, 'd', "dvi", CLI_NO_ARG, "", "Produce DVI output format instead of PDF")
   call cli_add_option(parser, 'h', "help", CLI_NO_ARG, "", "Display command line options and exit")
 
   call cli_parse(parser, cli_res)
@@ -71,6 +76,21 @@ program iris_cmd_tex
       call cli_has_option(parser, cli_res, "format", is_present)
       if (is_present) then
         call cli_get_option(parser, cli_res, "format", fmt_opt, cli_stat)
+      end if
+
+      call cli_has_option(parser, cli_res, "output-format", is_present)
+      if (is_present) then
+        call cli_get_option(parser, cli_res, "output-format", out_fmt, cli_stat)
+      end if
+
+      call cli_has_option(parser, cli_res, "dvi", is_present)
+      if (is_present .or. trim(out_fmt) == "dvi") then
+        use_dvi_mode = .true.
+      end if
+
+      o_len = len_trim(out_filename)
+      if (o_len >= 4) then
+        if (out_filename(o_len-3:o_len) == ".dvi") use_dvi_mode = .true.
       end if
 
       call cli_positional_count(cli_res, pos_cnt)
@@ -119,7 +139,11 @@ program iris_cmd_tex
         call tex_init(tex_eng, in_filename)
         call tex_compile_string(tex_eng, doc_buffer, tex_ast, tex_stat)
 
-        call batch_process_document(doc_buffer, out_filename, batch_cfg, batch_report)
+        if (use_dvi_mode) then
+          call batch_process_dvi(doc_buffer, out_filename, batch_cfg, batch_report)
+        else
+          call batch_process_document(doc_buffer, out_filename, batch_cfg, batch_report)
+        end if
 
         if (tex_stat == TEX_OK .and. (batch_report%status == BATCH_OK .or. batch_report%status == 1)) then
           if (len_trim(in_filename) > 0) then
