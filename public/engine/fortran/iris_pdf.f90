@@ -10,6 +10,7 @@
 !===============================================================================
 module iris_pdf
   use, intrinsic :: iso_fortran_env, only: int32, int64, real64
+  use iris_c_pdf_io, only: pdf_c_stream_type, pdf_c_open, pdf_c_write_string, pdf_c_get_offset, pdf_c_close
   use iris_dynamic_array, only: ensure_int32_capacity, ensure_int64_capacity
   use iris_dynamic_string, only: append_string_buffer, ensure_string_capacity
   implicit none
@@ -49,6 +50,7 @@ module iris_pdf
   type :: pdf_document_type
     character(len=256) :: filename
     integer(kind=int32) :: unit_num
+    type(pdf_c_stream_type) :: c_stream
     integer(kind=int32) :: object_count
     integer(kind=int64) :: byte_offset
     integer(kind=int64), allocatable, dimension(:) :: xref_offsets
@@ -120,8 +122,7 @@ contains
       pdf%compress_streams = .false.
     end if
 
-    open(unit=pdf%unit_num, file=trim(pdf%filename), status="replace", &
-         action="write", access="stream", iostat=status)
+    call pdf_c_open(pdf%c_stream, pdf%filename, status)
 
     if (status == 0) then
       call write_raw_string(pdf, PDF_HEADER // new_line('a'))
@@ -464,7 +465,7 @@ contains
       call write_xref_table(pdf)
       call write_trailer_dict(pdf, xref_start_offset)
 
-      close(unit=pdf%unit_num, iostat=status)
+      call pdf_c_close(pdf%c_stream, status)
     end if
 
   end subroutine pdf_close
@@ -1191,11 +1192,13 @@ contains
     type(pdf_document_type), intent(inout) :: pdf
     character(len=*), intent(in) :: str
 
-    integer(kind=int32) :: str_len
+    integer(kind=int32) :: str_len, c_stat
 
     str_len = len(str)
-    write(pdf%unit_num) str
-    pdf%byte_offset = pdf%byte_offset + int(str_len, kind=int64)
+    if (str_len > 0) then
+      call pdf_c_write_string(pdf%c_stream, str, c_stat)
+      pdf%byte_offset = pdf_c_get_offset(pdf%c_stream)
+    end if
 
   end subroutine write_raw_string
 

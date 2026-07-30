@@ -2,7 +2,7 @@
 
 ## 1. Overview
 The `iris_pdf` module is a standard Fortran 2008 (ISO/IEC 1539-1:2010) imperative module providing a native interface for:
-1. **PDF 1.7 File Generation**: Direct stream and object table output with C zlib (`ISO_C_BINDING` `compress`) FlateDecode stream compression (`/Filter /FlateDecode`).
+1. **PDF 1.7 File Generation**: Direct stream and object table output with modular ISO C23 binary stream I/O backend (`iris_pdf_io.c` / `iris_c_pdf_io`) and C zlib (`ISO_C_BINDING` `compress`) FlateDecode stream compression (`/Filter /FlateDecode`).
 2. **CFF & TrueType Font Embedding**: Native support for embedding Compact Font Format (`/CIDFontType0` / `/FontFile3` with `/Subtype /CIDFontType0C`) and TrueType (`/TrueType` / `/FontFile2`) font binary streams into PDF Font Descriptor dictionaries.
 3. **`/ToUnicode` CMap Generation**: Automatic `/ToUnicode` character mapping stream object creation for precise Unicode text extraction and searching.
 4. **Tagged PDF Accessibility Structure**: Document Catalog `/MarkInfo << /Marked true >>`, `/StructTreeRoot`, document `/StructElem`, and paragraph `/StructElem` hierarchy with marked content identifier (`/MCID`) tagging operators (`BDC` / `EMC`).
