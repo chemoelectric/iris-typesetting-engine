@@ -120,11 +120,15 @@ contains
     character(len=*), intent(in)         :: str
     integer(kind=int32), intent(out)     :: status
 
-    character(kind=c_char, len=len_trim(str)+1) :: c_str
+    integer(kind=c_size_t) :: s_len
 
     if (c_associated(stream%handle)) then
-      c_str = trim(str) // c_null_char
-      status = int(c_iris_pdf_write_string(stream%handle, c_str), int32)
+      s_len = int(len(str), c_size_t)
+      if (s_len > 0_c_size_t) then
+        status = int(c_iris_pdf_write_bytes(stream%handle, str, s_len), int32)
+      else
+        status = 0
+      end if
     else
       status = -1
     end if

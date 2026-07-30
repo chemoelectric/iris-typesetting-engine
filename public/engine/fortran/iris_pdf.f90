@@ -590,13 +590,12 @@ contains
       "/CMapName /Adobe-Identity-UCS def" // new_line('a') // &
       "/CMapType 2 def" // new_line('a') // &
       "1 begincodespacerange" // new_line('a') // &
-      "<0000> <FFFF>" // new_line('a') // &
+      "<00> <FF>" // new_line('a') // &
       "endcodespacerange" // new_line('a') // &
       "1 beginbfrange" // new_line('a') // &
-      "<0000> <FFFF> <0000>" // new_line('a') // &
+      "<00> <FF> <0000>" // new_line('a') // &
       "endbfrange" // new_line('a') // &
       "endcmap" // new_line('a') // &
-      "CMapName currentdict /CMap defineresource pop" // new_line('a') // &
       "end" // new_line('a') // &
       "end" // new_line('a')
     cmap_len = len_trim(cmap_stream)
