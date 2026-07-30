@@ -11,7 +11,7 @@
 module iris_pdf
   use, intrinsic :: iso_fortran_env, only: int32, int64, real64
   use, intrinsic :: iso_c_binding, only: c_int8_t
-  use iris_c_pdf_io, only: pdf_c_stream_type, pdf_c_open, pdf_c_write_string, pdf_c_get_offset, pdf_c_close, &
+  use iris_c_pdf_io, only: pdf_c_stream_type, pdf_c_open, pdf_c_close, &
                          pdf_c_capy_add_page, pdf_c_capy_write_text, pdf_c_capy_draw_rect, pdf_c_capy_embed_font
   use iris_dynamic_array, only: ensure_int32_capacity, ensure_int64_capacity
   use iris_dynamic_string, only: append_string_buffer, ensure_string_capacity
@@ -80,7 +80,7 @@ contains
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_init
-  ! Purpose: Initializes PDF document context for WRITING, opens file unit.
+  ! Purpose: Initializes PDF document context for WRITING via CapyPDF backend.
   ! Control Structure: Single-entry / single-exit. Complexity <= 4.
   !-----------------------------------------------------------------------------
   subroutine pdf_init(pdf, out_filename, status, compress)
@@ -91,7 +91,7 @@ contains
 
     pdf%filename = trim(out_filename)
     pdf%unit_num = 99
-    pdf%object_count = 3  ! Reserve 1: Catalog, 2: Pages, 3: Font
+    pdf%object_count = 0
     pdf%byte_offset = 0_int64
     allocate(pdf%xref_offsets(64))
     pdf%xref_offsets = 0_int64
@@ -125,11 +125,6 @@ contains
     end if
 
     call pdf_c_open(pdf%c_stream, pdf%filename, status)
-
-    if (status == 0) then
-      call write_raw_string(pdf, PDF_HEADER // new_line('a'))
-      call write_raw_string(pdf, PDF_BINARY_COMMENT // new_line('a'))
-    end if
 
   end subroutine pdf_init
 
@@ -288,18 +283,14 @@ contains
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_add_page
-  ! Purpose: Flushes previous page stream if open, allocates new page context.
-  ! Control Structure: Single-entry / single-exit. Complexity <= 5.
+  ! Purpose: Allocates new page context in CapyPDF generator.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 3.
   !-----------------------------------------------------------------------------
   subroutine pdf_add_page(pdf, width, height)
     type(pdf_document_type), intent(inout) :: pdf
     real(kind=real64), intent(in) :: width
     real(kind=real64), intent(in) :: height
     integer(kind=int32) :: c_stat
-
-    if (pdf%page_count > 0) then
-      call flush_current_page_objects(pdf)
-    end if
 
     pdf%page_count = pdf%page_count + 1
 
@@ -319,8 +310,8 @@ contains
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_write_text
-  ! Purpose: Appends text operator (BT ... ET) wrapped in Tagged PDF Marked Content.
-  ! Control Structure: Single-entry / single-exit. Complexity <= 6.
+  ! Purpose: Sends text primitive rendering commands to CapyPDF.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 5.
   !-----------------------------------------------------------------------------
   subroutine pdf_write_text(pdf, x, y, font_size, text_content)
     type(pdf_document_type), intent(inout) :: pdf
@@ -329,11 +320,9 @@ contains
     real(kind=real64), intent(in) :: font_size
     character(len=*), intent(in) :: text_content
 
-    character(len=2048) :: line_buf, escaped_buf, op_buf
-    character(len=32)   :: f_str, x_str, y_str, mcid_str
-    integer(kind=int32) :: content_len, pos, next_nl, line_len, i, esc_pos, op_len, c_stat
+    character(len=2048) :: line_buf
+    integer(kind=int32) :: content_len, pos, next_nl, line_len, c_stat
     real(kind=real64)   :: cur_y, line_height
-    character(1)        :: ch
 
     content_len = len(text_content)
     cur_y = y
@@ -365,23 +354,6 @@ contains
         end if
       end if
 
-      ! Escape PDF special characters: (, ), \
-      escaped_buf = ""
-      esc_pos = 1
-      do i = 1, line_len
-        ch = line_buf(i:i)
-        if (ch == '(' .or. ch == ')' .or. ch == '\') then
-          if (esc_pos < 2047) then
-            escaped_buf(esc_pos:esc_pos) = '\'
-            esc_pos = esc_pos + 1
-          end if
-        end if
-        if (esc_pos <= 2048) then
-          escaped_buf(esc_pos:esc_pos) = ch
-          esc_pos = esc_pos + 1
-        end if
-      end do
-
       if (cur_y < 50.0_real64) then
         call pdf_add_page(pdf, pdf%current_page_width, pdf%current_page_height)
         cur_y = pdf%current_page_height - 72.0_real64
@@ -392,30 +364,6 @@ contains
         call pdf_c_capy_write_text(pdf%c_stream, x, cur_y, font_size, line_buf(1:line_len), c_stat)
       end if
 
-      if (esc_pos > 1) then
-        write(f_str, '(F6.2)') font_size
-        write(x_str, '(F8.2)') x
-        write(y_str, '(F8.2)') cur_y
-
-        if (pdf%tagged_pdf) then
-          write(mcid_str, '(I0)') pdf%current_mcid
-          op_buf = "/P << /MCID " // trim(mcid_str) // " >> BDC" // new_line('a') // &
-                   "BT /F1 " // adjustl(f_str) // " Tf " // adjustl(x_str) // " " // &
-                   adjustl(y_str) // " Td (" // escaped_buf(1:esc_pos-1) // ") Tj ET" // new_line('a') // &
-                   "EMC" // new_line('a')
-          pdf%mcid_count = pdf%mcid_count + 1
-          call ensure_int32_capacity(pdf%mcid_page_ids, pdf%mcid_count)
-          pdf%mcid_page_ids(pdf%mcid_count) = pdf%page_count
-          pdf%current_mcid = pdf%current_mcid + 1
-        else
-          op_buf = "BT /F1 " // adjustl(f_str) // " Tf " // adjustl(x_str) // " " // &
-                   adjustl(y_str) // " Td (" // escaped_buf(1:esc_pos-1) // ") Tj ET" // new_line('a')
-        end if
-
-        op_len = len_trim(op_buf)
-        call append_to_stream(pdf, op_buf(1:op_len))
-      end if
-
       cur_y = cur_y - line_height
     end do
 
@@ -423,8 +371,8 @@ contains
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_draw_rect
-  ! Purpose: Appends rectangle drawing operators (re f/S) to active stream.
-  ! Control Structure: Single-entry / single-exit. Complexity <= 4.
+  ! Purpose: Sends rectangle drawing primitive commands to CapyPDF.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 3.
   !-----------------------------------------------------------------------------
   subroutine pdf_draw_rect(pdf, x, y, w, h, fill_flag)
     type(pdf_document_type), intent(inout) :: pdf
@@ -434,8 +382,7 @@ contains
     real(kind=real64), intent(in) :: h
     logical, intent(in) :: fill_flag
 
-    character(len=256) :: buffer
-    integer(kind=int32) :: buf_len, fill_val, c_stat
+    integer(kind=int32) :: fill_val, c_stat
 
     if (pdf%page_count == 0) then
       call pdf_add_page(pdf, pdf%current_page_width, pdf%current_page_height)
@@ -447,268 +394,24 @@ contains
     ! CapyPDF 0.21.0 rectangle primitive binding
     call pdf_c_capy_draw_rect(pdf%c_stream, x, y, w, h, fill_val, c_stat)
 
-    if (fill_flag) then
-      write(buffer, '(F8.2,A,F8.2,A,F8.2,A,F8.2,A)') x, " ", y, " ", w, " ", h, " re f" // new_line('a')
-    else
-      write(buffer, '(F8.2,A,F8.2,A,F8.2,A,F8.2,A)') x, " ", y, " ", w, " ", h, " re S" // new_line('a')
-    end if
-
-    buf_len = len_trim(buffer)
-    call append_to_stream(pdf, buffer(1:buf_len))
-
   end subroutine pdf_draw_rect
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_close
-  ! Purpose: Flushes open streams, writes catalog, Tagged PDF tree, fonts, xref & trailer.
-  ! Control Structure: Single-entry / single-exit. Complexity <= 7.
+  ! Purpose: Serializes document via CapyPDF generator and closes stream.
+  ! Control Structure: Single-entry / single-exit. Complexity <= 3.
   !-----------------------------------------------------------------------------
   subroutine pdf_close(pdf, status)
     type(pdf_document_type), intent(inout) :: pdf
     integer(kind=int32), intent(out) :: status
 
-    integer(kind=int32) :: catalog_id, pages_id, font_id, tounicode_id
-    integer(kind=int32) :: font_desc_id, font_file_id, cid_font_id
-    integer(kind=int32) :: struct_tree_root_id, struct_doc_elem_id
-    integer(kind=int64) :: xref_start_offset
-
     if (pdf%is_read_mode) then
       close(unit=pdf%unit_num, iostat=status)
     else
-      if (pdf%page_count > 0) then
-        call flush_current_page_objects(pdf)
-      end if
-
-      struct_tree_root_id = 0
-      struct_doc_elem_id = 0
-      if (pdf%tagged_pdf) then
-        struct_tree_root_id = next_object_id(pdf)
-        struct_doc_elem_id = next_object_id(pdf)
-      end if
-
-      ! Catalog Object (Obj 1)
-      catalog_id = 1
-      call record_object_offset(pdf, catalog_id)
-      if (pdf%tagged_pdf) then
-        call write_catalog_tagged(pdf, struct_tree_root_id)
-      else
-        call write_raw_string(pdf, "1 0 obj" // new_line('a') // "<< /Type /Catalog /Pages 2 0 R >>" // new_line('a') // "endobj" // new_line('a'))
-      end if
-
-      ! Pages Tree Object (Obj 2)
-      pages_id = 2
-      call record_object_offset(pdf, pages_id)
-      call write_pages_tree_object(pdf)
-
-      ! Font Objects, /ToUnicode CMap, FontDescriptor & Font Files (Obj 3+)
-      font_id = 3
-      call record_object_offset(pdf, font_id)
-      call write_font_objects(pdf, font_id, tounicode_id, font_desc_id, font_file_id, cid_font_id)
-
-      ! Tagged PDF StructTreeRoot & StructElem Objects
-      if (pdf%tagged_pdf) then
-        call write_tagged_struct_tree(pdf, struct_tree_root_id, struct_doc_elem_id)
-      end if
-
-      xref_start_offset = pdf%byte_offset
-      call write_xref_table(pdf)
-      call write_trailer_dict(pdf, xref_start_offset)
-
       call pdf_c_close(pdf%c_stream, status)
     end if
 
   end subroutine pdf_close
-
-  !-----------------------------------------------------------------------------
-  ! Subroutine: write_catalog_tagged
-  ! Purpose: Writes Catalog object with /MarkInfo and /StructTreeRoot references.
-  ! Control Structure: Single-entry / single-exit. Complexity <= 2.
-  !-----------------------------------------------------------------------------
-  subroutine write_catalog_tagged(pdf, struct_root_id)
-    type(pdf_document_type), intent(inout) :: pdf
-    integer(kind=int32), intent(in) :: struct_root_id
-    character(len=256) :: buf
-
-    write(buf, '(A,I0,A)') "1 0 obj" // new_line('a') // &
-      "<< /Type /Catalog /Pages 2 0 R /MarkInfo << /Marked true >> /StructTreeRoot ", &
-      struct_root_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
-    call write_raw_string(pdf, trim(buf))
-
-  end subroutine write_catalog_tagged
-
-  !-----------------------------------------------------------------------------
-  ! Subroutine: write_font_objects
-  ! Purpose: Writes Font Object, /ToUnicode CMap Stream, FontDescriptor and Font Data.
-  ! Control Structure: Single-entry / single-exit. Complexity <= 8.
-  !-----------------------------------------------------------------------------
-  subroutine write_font_objects(pdf, font_id, tounicode_id, font_desc_id, font_file_id, cid_font_id)
-    type(pdf_document_type), intent(inout) :: pdf
-    integer(kind=int32), intent(in) :: font_id
-    integer(kind=int32), intent(out) :: tounicode_id
-    integer(kind=int32), intent(out) :: font_desc_id
-    integer(kind=int32), intent(out) :: font_file_id
-    integer(kind=int32), intent(out) :: cid_font_id
-
-    character(len=4096) :: font_buf, cmap_stream
-    character(len=2048) :: widths_str
-    integer(kind=int32) :: cmap_len, i
-
-    tounicode_id = next_object_id(pdf)
-
-    ! Build a standard 224-element /Widths array for characters 32 to 255 (default 600)
-    widths_str = "/Widths ["
-    do i = 32, 255
-      widths_str = trim(widths_str) // " 600"
-    end do
-    widths_str = trim(widths_str) // " ]"
-
-    if (.not. pdf%embedded_font%embedded) then
-      call pdf_embed_font_by_kpsewhich(pdf, "cmr10.pfb", "CMR10", i)
-    end if
-
-    if (pdf%embedded_font%embedded) then
-      font_desc_id = next_object_id(pdf)
-      font_file_id = next_object_id(pdf)
-      cid_font_id = 0
-
-      if (pdf%embedded_font%font_type == 2) then  ! CFF / Type1C
-        write(font_buf, '(I0,A,I0,A,I0,A)') font_id, " 0 obj" // new_line('a') // &
-          "<< /Type /Font /Subtype /Type1 /BaseFont /" // trim(pdf%embedded_font%font_name) // &
-          " /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 255 " // trim(widths_str) // &
-          " /FontDescriptor ", font_desc_id, " 0 R /ToUnicode ", tounicode_id, &
-          " 0 R >>" // new_line('a') // "endobj" // new_line('a')
-        call write_raw_string(pdf, trim(font_buf))
-      else  ! TrueType
-        write(font_buf, '(I0,A,I0,A,I0,A)') font_id, " 0 obj" // new_line('a') // &
-          "<< /Type /Font /Subtype /TrueType /BaseFont /" // trim(pdf%embedded_font%font_name) // &
-          " /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 255 " // trim(widths_str) // &
-          " /FontDescriptor ", font_desc_id, " 0 R /ToUnicode ", tounicode_id, &
-          " 0 R >>" // new_line('a') // "endobj" // new_line('a')
-        call write_raw_string(pdf, trim(font_buf))
-      end if
-
-      ! FontDescriptor Object
-      call record_object_offset(pdf, font_desc_id)
-      if (pdf%embedded_font%font_type == 2) then
-        write(font_buf, '(I0,A,I0,A)') font_desc_id, " 0 obj" // new_line('a') // &
-          "<< /Type /FontDescriptor /FontName /" // trim(pdf%embedded_font%font_name) // &
-          " /Flags 32 /FontBBox [-500 -300 1200 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile3 ", &
-          font_file_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
-      else
-        write(font_buf, '(I0,A,I0,A)') font_desc_id, " 0 obj" // new_line('a') // &
-          "<< /Type /FontDescriptor /FontName /" // trim(pdf%embedded_font%font_name) // &
-          " /Flags 32 /FontBBox [-500 -300 1200 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 ", &
-          font_file_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
-      end if
-      call write_raw_string(pdf, trim(font_buf))
-
-      ! Font File Stream Object
-      call record_object_offset(pdf, font_file_id)
-      if (pdf%embedded_font%font_type == 2) then
-        write(font_buf, '(I0,A,I0,A)') font_file_id, " 0 obj" // new_line('a') // &
-          "<< /Subtype /Type1C /Length ", pdf%embedded_font%font_data_len, &
-          " >>" // new_line('a') // "stream" // new_line('a')
-      else
-        write(font_buf, '(I0,A,I0,A,I0,A)') font_file_id, " 0 obj" // new_line('a') // &
-          "<< /Length ", pdf%embedded_font%font_data_len, &
-          " /Length1 ", pdf%embedded_font%font_data_len, &
-          " >>" // new_line('a') // "stream" // new_line('a')
-      end if
-      call write_raw_string(pdf, trim(font_buf))
-      if (pdf%embedded_font%font_data_len > 0) then
-        call write_raw_string(pdf, pdf%embedded_font%font_data(1:pdf%embedded_font%font_data_len))
-      end if
-      call write_raw_string(pdf, new_line('a') // "endstream" // new_line('a') // "endobj" // new_line('a'))
-
-    else
-      font_desc_id = 0
-      font_file_id = 0
-      cid_font_id = 0
-      write(font_buf, '(I0,A,I0,A)') font_id, " 0 obj" // new_line('a') // &
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /ToUnicode ", &
-        tounicode_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
-      call write_raw_string(pdf, trim(font_buf))
-    end if
-
-    ! /ToUnicode CMap Stream Object
-    call record_object_offset(pdf, tounicode_id)
-    cmap_stream = "/CIDInit /ProcSet findresource begin" // new_line('a') // &
-      "12 dict begin" // new_line('a') // &
-      "begincmap" // new_line('a') // &
-      "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def" // new_line('a') // &
-      "/CMapName /Adobe-Identity-UCS def" // new_line('a') // &
-      "/CMapType 2 def" // new_line('a') // &
-      "1 begincodespacerange" // new_line('a') // &
-      "<00> <FF>" // new_line('a') // &
-      "endcodespacerange" // new_line('a') // &
-      "1 beginbfrange" // new_line('a') // &
-      "<00> <FF> <0000>" // new_line('a') // &
-      "endbfrange" // new_line('a') // &
-      "endcmap" // new_line('a') // &
-      "end" // new_line('a') // &
-      "end" // new_line('a')
-    cmap_len = len_trim(cmap_stream)
-
-    write(font_buf, '(I0,A,I0,A)') tounicode_id, " 0 obj" // new_line('a') // &
-      "<< /Length ", cmap_len, " >>" // new_line('a') // "stream" // new_line('a')
-    call write_raw_string(pdf, trim(font_buf))
-    call write_raw_string(pdf, cmap_stream(1:cmap_len))
-    call write_raw_string(pdf, "endstream" // new_line('a') // "endobj" // new_line('a'))
-
-  end subroutine write_font_objects
-
-  !-----------------------------------------------------------------------------
-  ! Subroutine: write_tagged_struct_tree
-  ! Purpose: Writes Tagged PDF StructTreeRoot and StructElem Objects.
-  ! Control Structure: Single-entry / single-exit. Complexity <= 6.
-  !-----------------------------------------------------------------------------
-  subroutine write_tagged_struct_tree(pdf, struct_root_id, struct_doc_id)
-    type(pdf_document_type), intent(inout) :: pdf
-    integer(kind=int32), intent(in) :: struct_root_id
-    integer(kind=int32), intent(in) :: struct_doc_id
-
-    character(len=4096) :: buf, elem_ref
-    integer(kind=int32) :: i, p_elem_id, page_obj_id
-    integer(kind=int32), allocatable, dimension(:) :: p_elem_ids
-
-    ! Write StructTreeRoot Object
-    call record_object_offset(pdf, struct_root_id)
-    write(buf, '(I0,A,I0,A)') struct_root_id, " 0 obj" // new_line('a') // &
-      "<< /Type /StructTreeRoot /K [", struct_doc_id, " 0 R] >>" // new_line('a') // "endobj" // new_line('a')
-    call write_raw_string(pdf, trim(buf))
-
-    ! Write Document StructElem Object
-    call record_object_offset(pdf, struct_doc_id)
-    buf = ""
-    write(buf, '(I0,A,I0,A)') struct_doc_id, " 0 obj" // new_line('a') // &
-      "<< /Type /StructElem /S /Document /P ", struct_root_id, " 0 R /K ["
-
-    if (pdf%mcid_count > 0) then
-      allocate(p_elem_ids(pdf%mcid_count))
-      do i = 1, pdf%mcid_count
-        p_elem_ids(i) = next_object_id(pdf)
-        write(elem_ref, '(I0,A)') p_elem_ids(i), " 0 R "
-        buf = trim(buf) // " " // trim(elem_ref)
-      end do
-    end if
-    buf = trim(buf) // "] >>" // new_line('a') // "endobj" // new_line('a')
-    call write_raw_string(pdf, trim(buf))
-
-    ! Write Paragraph StructElem Objects
-    if (pdf%mcid_count > 0) then
-      do i = 1, pdf%mcid_count
-        p_elem_id = p_elem_ids(i)
-        call record_object_offset(pdf, p_elem_id)
-        page_obj_id = pdf%page_object_ids(pdf%mcid_page_ids(i))
-        write(buf, '(I0,A,I0,A,I0,A,I0,A)') p_elem_id, " 0 obj" // new_line('a') // &
-          "<< /Type /StructElem /S /P /P ", struct_doc_id, " 0 R /Pg ", page_obj_id, &
-          " 0 R /K ", i - 1, " >>" // new_line('a') // "endobj" // new_line('a')
-        call write_raw_string(pdf, trim(buf))
-      end do
-      deallocate(p_elem_ids)
-    end if
-
-  end subroutine write_tagged_struct_tree
 
   !-----------------------------------------------------------------------------
   ! Subroutine: pdf_open_read
@@ -1021,75 +724,8 @@ contains
   end subroutine parse_pages_metadata
 
   !=============================================================================
-  ! PRIVATE WRITE HELPERS & PURE ZLIB COMPRESSOR
+  ! PRIVATE READ HELPERS & PURE ZLIB DECOMPRESSOR
   !=============================================================================
-
-  function next_object_id(pdf) result(obj_id)
-    type(pdf_document_type), intent(inout) :: pdf
-    integer(kind=int32) :: obj_id
-
-    pdf%object_count = pdf%object_count + 1
-    obj_id = pdf%object_count
-
-  end function next_object_id
-
-  subroutine record_object_offset(pdf, obj_id)
-    type(pdf_document_type), intent(inout) :: pdf
-    integer(kind=int32), intent(in) :: obj_id
-
-    if (obj_id >= 1) then
-      call ensure_int64_capacity(pdf%xref_offsets, obj_id)
-      pdf%xref_offsets(obj_id) = pdf%byte_offset
-    end if
-
-  end subroutine record_object_offset
-
-  subroutine append_to_stream(pdf, str)
-    type(pdf_document_type), intent(inout) :: pdf
-    character(len=*), intent(in) :: str
-
-    call append_string_buffer(pdf%current_stream, pdf%stream_len, str)
-
-  end subroutine append_to_stream
-
-  subroutine zlib_compress_stream(in_bytes, in_len, out_bytes, out_len)
-    use, intrinsic :: iso_c_binding, only: c_char, c_long, c_int
-    character(len=*), intent(in) :: in_bytes
-    integer(kind=int32), intent(in) :: in_len
-    character(len=*), intent(out) :: out_bytes
-    integer(kind=int32), intent(out) :: out_len
-
-    interface
-      function c_zlib_compress(dest, dest_len, source, source_len) &
-          bind(c, name="compress") result(res)
-        use, intrinsic :: iso_c_binding, only: c_char, c_long, c_int
-        implicit none
-        character(kind=c_char), intent(out)   :: dest(*)
-        integer(kind=c_long), intent(inout)   :: dest_len
-        character(kind=c_char), intent(in)    :: source(*)
-        integer(kind=c_long), value, intent(in) :: source_len
-        integer(kind=c_int) :: res
-      end function c_zlib_compress
-    end interface
-
-    integer(kind=c_long) :: d_len, s_len
-    integer(kind=c_int)  :: z_res
-
-    if (in_len > 0) then
-      s_len = int(in_len, kind=c_long)
-      d_len = int(len(out_bytes), kind=c_long)
-      z_res = c_zlib_compress(out_bytes, d_len, in_bytes, s_len)
-      if (z_res == 0) then
-        out_len = int(d_len, kind=int32)
-      else
-        out_bytes(1:in_len) = in_bytes(1:in_len)
-        out_len = in_len
-      end if
-    else
-      out_len = 0
-    end if
-
-  end subroutine zlib_compress_stream
 
   subroutine zlib_decompress_stream(in_bytes, in_len, out_bytes, out_len, status)
     use, intrinsic :: iso_c_binding, only: c_char, c_long, c_int
@@ -1131,122 +767,5 @@ contains
     end if
 
   end subroutine zlib_decompress_stream
-
-  subroutine flush_current_page_objects(pdf)
-    type(pdf_document_type), intent(inout) :: pdf
-
-    integer(kind=int32) :: stream_obj_id
-    integer(kind=int32) :: page_obj_id
-    character(len=256) :: header_buf
-    character(len=:), allocatable :: compressed_buf
-    integer(kind=int32) :: compressed_len
-
-    character(len=32) :: w_str, h_str
-
-    stream_obj_id = next_object_id(pdf)
-    call record_object_offset(pdf, stream_obj_id)
-    pdf%stream_object_ids(pdf%page_count) = stream_obj_id
-
-    if (pdf%compress_streams) then
-      allocate(character(len=pdf%stream_len * 2 + 512) :: compressed_buf)
-      call zlib_compress_stream(pdf%current_stream, pdf%stream_len, compressed_buf, compressed_len)
-      write(header_buf, '(I0,A,I0,A)') stream_obj_id, " 0 obj" // new_line('a') // &
-        "<< /Filter /FlateDecode /Length ", compressed_len, " >>" // new_line('a') // "stream" // new_line('a')
-      call write_raw_string(pdf, trim(header_buf))
-      call write_raw_string(pdf, compressed_buf(1:compressed_len))
-      call write_raw_string(pdf, "endstream" // new_line('a') // "endobj" // new_line('a'))
-      deallocate(compressed_buf)
-    else
-      write(header_buf, '(I0,A,I0,A)') stream_obj_id, " 0 obj" // new_line('a') // &
-        "<< /Length ", pdf%stream_len, " >>" // new_line('a') // "stream" // new_line('a')
-      call write_raw_string(pdf, trim(header_buf))
-      call write_raw_string(pdf, pdf%current_stream(1:pdf%stream_len))
-      call write_raw_string(pdf, "endstream" // new_line('a') // "endobj" // new_line('a'))
-    end if
-
-    page_obj_id = next_object_id(pdf)
-    call record_object_offset(pdf, page_obj_id)
-    pdf%page_object_ids(pdf%page_count) = page_obj_id
-
-    write(w_str, '(F0.2)') pdf%current_page_width
-    write(h_str, '(F0.2)') pdf%current_page_height
-
-    write(header_buf, '(I0,A,A,A,A,A,I0,A)') &
-      page_obj_id, " 0 obj" // new_line('a') // &
-      "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R >> >> /MediaBox [0 0 ", &
-      trim(w_str), " ", trim(h_str), "] /Contents ", stream_obj_id, " 0 R >>" // new_line('a') // &
-      "endobj" // new_line('a')
-
-    call write_raw_string(pdf, trim(header_buf))
-
-  end subroutine flush_current_page_objects
-
-  subroutine write_pages_tree_object(pdf)
-    type(pdf_document_type), intent(inout) :: pdf
-
-    character(len=2048) :: kids_buf
-    character(len=64) :: single_ref
-    integer(kind=int32) :: idx
-
-    kids_buf = "2 0 obj" // new_line('a') // "<< /Type /Pages /Count "
-    write(single_ref, '(I0)') pdf%page_count
-    kids_buf = trim(kids_buf) // trim(single_ref) // " /Kids ["
-
-    do idx = 1, pdf%page_count
-      write(single_ref, '(I0,A)') pdf%page_object_ids(idx), " 0 R"
-      kids_buf = trim(kids_buf) // " " // trim(single_ref)
-    end do
-
-    kids_buf = trim(kids_buf) // " ] >>" // new_line('a') // "endobj" // new_line('a')
-    call write_raw_string(pdf, trim(kids_buf))
-
-  end subroutine write_pages_tree_object
-
-  subroutine write_xref_table(pdf)
-    type(pdf_document_type), intent(inout) :: pdf
-
-    character(len=128) :: entry_buf
-    integer(kind=int32) :: i
-
-    call write_raw_string(pdf, "xref" // new_line('a'))
-    write(entry_buf, '(A,I0)') "0 ", pdf%object_count + 1
-    call write_raw_string(pdf, trim(entry_buf) // new_line('a'))
-
-    call write_raw_string(pdf, "0000000000 65535 f" // char(13) // char(10))
-
-    do i = 1, pdf%object_count
-      write(entry_buf, '(I10.10,A,A)') pdf%xref_offsets(i), " 00000 n", char(13) // char(10)
-      call write_raw_string(pdf, entry_buf(1:20))
-    end do
-
-  end subroutine write_xref_table
-
-  subroutine write_trailer_dict(pdf, xref_offset)
-    type(pdf_document_type), intent(inout) :: pdf
-    integer(kind=int64), intent(in) :: xref_offset
-
-    character(len=256) :: trailer_buf
-
-    write(trailer_buf, '(A,I0,A,I0,A)') &
-      "trailer" // new_line('a') // "<< /Size ", pdf%object_count + 1, " /Root 1 0 R >>" // new_line('a') // &
-      "startxref" // new_line('a'), xref_offset, new_line('a') // "%%EOF" // new_line('a')
-
-    call write_raw_string(pdf, trim(trailer_buf))
-
-  end subroutine write_trailer_dict
-
-  subroutine write_raw_string(pdf, str)
-    type(pdf_document_type), intent(inout) :: pdf
-    character(len=*), intent(in) :: str
-
-    integer(kind=int32) :: str_len, c_stat
-
-    str_len = len(str)
-    if (str_len > 0) then
-      call pdf_c_write_string(pdf%c_stream, str, c_stat)
-      pdf%byte_offset = pdf_c_get_offset(pdf%c_stream)
-    end if
-
-  end subroutine write_raw_string
 
 end module iris_pdf
