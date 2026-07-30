@@ -239,7 +239,7 @@ contains
         status = -1
       end if
     else
-      call generate_fallback_embedded_font(pdf, font_name)
+      pdf%embedded_font%embedded = .false.
       status = 0
     end if
 
@@ -254,17 +254,8 @@ contains
     type(pdf_document_type), intent(inout) :: pdf
     character(len=*), intent(in) :: font_name
 
-    character(len=256) :: dummy_cff
-    character(len=64) :: fname
-
-    fname = trim(font_name)
-    if (len_trim(fname) == 0) fname = "CMR10-Embedded"
-
-    dummy_cff = char(1) // char(0) // char(4) // char(1) // char(0) // char(0) // &
-                char(0) // char(1) // char(1) // char(1) // char(1) // char(27) // &
-                "%!PS-AdobeFont-1.0: " // trim(fname) // " 1.0" // new_line('a')
-
-    call pdf_embed_font_cff(pdf, fname, dummy_cff)
+    pdf%embedded_font%embedded = .false.
+    pdf%embedded_font%font_name = "Helvetica"
 
   end subroutine generate_fallback_embedded_font
 
@@ -1102,6 +1093,8 @@ contains
     character(len=:), allocatable :: compressed_buf
     integer(kind=int32) :: compressed_len
 
+    character(len=32) :: w_str, h_str
+
     stream_obj_id = next_object_id(pdf)
     call record_object_offset(pdf, stream_obj_id)
     pdf%stream_object_ids(pdf%page_count) = stream_obj_id
@@ -1127,10 +1120,13 @@ contains
     call record_object_offset(pdf, page_obj_id)
     pdf%page_object_ids(pdf%page_count) = page_obj_id
 
-    write(header_buf, '(I0,A,F7.2,A,F7.2,A,I0,A)') &
+    write(w_str, '(F0.2)') pdf%current_page_width
+    write(h_str, '(F0.2)') pdf%current_page_height
+
+    write(header_buf, '(I0,A,A,A,A,A,I0,A)') &
       page_obj_id, " 0 obj" // new_line('a') // &
       "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R >> >> /MediaBox [0 0 ", &
-      pdf%current_page_width, " ", pdf%current_page_height, "] /Contents ", stream_obj_id, " 0 R >>" // new_line('a') // &
+      trim(w_str), " ", trim(h_str), "] /Contents ", stream_obj_id, " 0 R >>" // new_line('a') // &
       "endobj" // new_line('a')
 
     call write_raw_string(pdf, trim(header_buf))
