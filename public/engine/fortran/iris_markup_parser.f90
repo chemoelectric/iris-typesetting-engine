@@ -72,7 +72,10 @@ contains
           index(text, "\setupbodyfont") > 0) then
         dialect = DIALECT_CONTEXT
       else if (index(text, "\documentclass") > 0 .or. index(text, "\begin{document}") > 0 .or. &
-               index(text, "\section{") > 0 .or. index(text, "\textbf{") > 0) then
+               index(text, "\section{") > 0 .or. index(text, "\textbf{") > 0 .or. &
+               index(text, "\centerline") > 0 .or. index(text, "\hsize=") > 0 .or. &
+               index(text, "\vsize=") > 0 .or. index(text, "\bye") > 0 .or. &
+               index(text, "\bigskip") > 0 .or. index(text, "\bf ") > 0) then
         dialect = DIALECT_TEX_LATEX
       else if (index(text, ".TH ") == 1 .or. index(text, ".PP") == 1 .or. &
                index(text, ".SH") == 1 .or. index(text, "\fB") > 0 .or. &
@@ -250,28 +253,28 @@ contains
         end if
       end if
 
-      p1 = index(line_buf, "\bf ")
-      if (p1 > 0) then
+      do while (index(line_buf, "\bf ") > 0)
+        p1 = index(line_buf, "\bf ")
         line_buf = line_buf(1:p1-1) // line_buf(p1+4:)
-      end if
+      end do
 
-      p1 = index(line_buf, "{\tt ")
-      if (p1 > 0) then
+      do while (index(line_buf, "{\tt ") > 0)
+        p1 = index(line_buf, "{\tt ")
         line_buf = line_buf(1:p1-1) // line_buf(p1+5:)
         p2 = index(line_buf(p1:), "}")
         if (p2 > 0) then
           line_buf = line_buf(1:p1+p2-2) // line_buf(p1+p2:)
         end if
-      end if
+      end do
 
-      p1 = index(line_buf, "{\bf ")
-      if (p1 > 0) then
+      do while (index(line_buf, "{\bf ") > 0)
+        p1 = index(line_buf, "{\bf ")
         line_buf = line_buf(1:p1-1) // line_buf(p1+5:)
         p2 = index(line_buf(p1:), "}")
         if (p2 > 0) then
           line_buf = line_buf(1:p1+p2-2) // line_buf(p1+p2:)
         end if
-      end if
+      end do
 
       if (len_trim(line_buf) > 0) then
         if (out_pos > 1) then
