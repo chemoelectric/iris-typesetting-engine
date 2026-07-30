@@ -525,6 +525,7 @@ contains
 
     character(len=4096) :: buf, elem_ref
     integer(kind=int32) :: i, p_elem_id, page_obj_id
+    integer(kind=int32), allocatable, dimension(:) :: p_elem_ids
 
     ! Write StructTreeRoot Object
     call record_object_offset(pdf, struct_root_id)
@@ -539,25 +540,30 @@ contains
     write(buf, '(I0,A,I0,A)') struct_doc_id, " 0 obj" // new_line('a') // &
       "<< /Type /StructElem /S /Document /P ", struct_root_id, " 0 R /K ["
 
-    do i = 1, pdf%mcid_count
-      p_elem_id = next_object_id(pdf)
-      write(elem_ref, '(I0,A)') p_elem_id, " 0 R "
-      buf = trim(buf) // " " // trim(elem_ref)
-    end do
+    if (pdf%mcid_count > 0) then
+      allocate(p_elem_ids(pdf%mcid_count))
+      do i = 1, pdf%mcid_count
+        p_elem_ids(i) = next_object_id(pdf)
+        write(elem_ref, '(I0,A)') p_elem_ids(i), " 0 R "
+        buf = trim(buf) // " " // trim(elem_ref)
+      end do
+    end if
     buf = trim(buf) // "] >>" // new_line('a') // "endobj" // new_line('a')
     call write_raw_string(pdf, trim(buf))
 
     ! Write Paragraph StructElem Objects
-    p_elem_id = struct_doc_id + 1
-    do i = 1, pdf%mcid_count
-      call record_object_offset(pdf, p_elem_id)
-      page_obj_id = pdf%page_object_ids(pdf%mcid_page_ids(i))
-      write(buf, '(I0,A,I0,A,I0,A,I0,A)') p_elem_id, " 0 obj" // new_line('a') // &
-        "<< /Type /StructElem /S /P /P ", struct_doc_id, " 0 R /Pg ", page_obj_id, &
-        " 0 R /K ", i - 1, " >>" // new_line('a') // "endobj" // new_line('a')
-      call write_raw_string(pdf, trim(buf))
-      p_elem_id = p_elem_id + 1
-    end do
+    if (pdf%mcid_count > 0) then
+      do i = 1, pdf%mcid_count
+        p_elem_id = p_elem_ids(i)
+        call record_object_offset(pdf, p_elem_id)
+        page_obj_id = pdf%page_object_ids(pdf%mcid_page_ids(i))
+        write(buf, '(I0,A,I0,A,I0,A,I0,A)') p_elem_id, " 0 obj" // new_line('a') // &
+          "<< /Type /StructElem /S /P /P ", struct_doc_id, " 0 R /Pg ", page_obj_id, &
+          " 0 R /K ", i - 1, " >>" // new_line('a') // "endobj" // new_line('a')
+        call write_raw_string(pdf, trim(buf))
+      end do
+      deallocate(p_elem_ids)
+    end if
 
   end subroutine write_tagged_struct_tree
 
@@ -576,13 +582,19 @@ contains
     pdf%unit_num = 98
     pdf%object_count = 0
     pdf%byte_offset = 0_int64
+    allocate(pdf%xref_offsets(64))
     pdf%xref_offsets = 0_int64
     pdf%page_count = 0
+    allocate(pdf%page_object_ids(16))
+    allocate(pdf%stream_object_ids(16))
     pdf%page_object_ids = 0
     pdf%stream_object_ids = 0
+    allocate(character(len=4096) :: pdf%current_stream)
     pdf%current_stream = ""
     pdf%stream_len = 0
     pdf%is_read_mode = .true.
+    allocate(pdf%mcid_page_ids(16))
+    pdf%mcid_page_ids = 0
 
     open(unit=pdf%unit_num, file=trim(pdf%filename), status="old", &
          action="read", access="stream", iostat=status)
@@ -753,16 +765,20 @@ contains
     integer(kind=int64), intent(out) :: offset
 
     character(len=1024) :: tail_buf
-    integer(kind=int32) :: pos, status
-    integer(kind=int64) :: val
+    integer(kind=int32) :: pos, status, read_pos
+    integer(kind=int64) :: val, file_size
 
     offset = 0_int64
-    read(unit=pdf%unit_num, pos=1, iostat=status) tail_buf
-    pos = index(tail_buf, "startxref")
-    if (pos > 0) then
-      read(tail_buf(pos+10:pos+30), *, iostat=status) val
-      if (status == 0) then
-        offset = val
+    inquire(unit=pdf%unit_num, size=file_size)
+    if (file_size > 0_int64) then
+      read_pos = int(max(1_int64, file_size - 1024_int64 + 1_int64), kind=int32)
+      read(unit=pdf%unit_num, pos=read_pos, iostat=status) tail_buf
+      pos = index(tail_buf, "startxref")
+      if (pos > 0) then
+        read(tail_buf(pos+10:pos+30), *, iostat=status) val
+        if (status == 0) then
+          offset = val
+        end if
       end if
     end if
   end subroutine find_startxref_offset
