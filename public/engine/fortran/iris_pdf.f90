@@ -636,65 +636,70 @@ contains
     integer(kind=int32), intent(out) :: stream_len
     integer(kind=int32), intent(out) :: status
 
-    integer(kind=int64) :: offset
+    integer(kind=int64) :: offset, file_sz, avail
     character(len=:), allocatable :: chunk, decomp_buf
-    integer(kind=int32) :: strm_pos, end_pos, raw_len, decomp_len, z_stat
+    integer(kind=int32) :: strm_pos, end_pos, raw_len, decomp_len, z_stat, read_len
     logical :: is_flate
 
     status = 0
     out_stream = ""
     stream_len = 0
 
-    allocate(character(len=65536) :: chunk)
-    allocate(character(len=65536) :: decomp_buf)
-    chunk = ""
-    decomp_buf = ""
-
     if (obj_id >= 1 .and. obj_id <= pdf%object_count) then
       offset = pdf%xref_offsets(obj_id)
-      if (offset > 0_int64) then
-        read(unit=pdf%unit_num, pos=offset, iostat=status) chunk
-        if (status == 0) then
-          is_flate = (index(chunk, "/FlateDecode") > 0)
-          strm_pos = index(chunk, "stream")
-          end_pos = index(chunk, "endstream")
-          if (strm_pos > 0 .and. end_pos > strm_pos) then
-            strm_pos = strm_pos + 6
-            if (chunk(strm_pos:strm_pos) == new_line('a') .or. ichar(chunk(strm_pos:strm_pos)) == 13) then
-              strm_pos = strm_pos + 1
-            end if
-            if (chunk(strm_pos:strm_pos) == new_line('a')) then
-              strm_pos = strm_pos + 1
-            end if
-            raw_len = end_pos - strm_pos
-            if (raw_len > 0) then
-              if (is_flate) then
-                call zlib_decompress_stream(chunk(strm_pos : end_pos - 1), raw_len, decomp_buf, decomp_len, z_stat)
-                if (z_stat == 0 .and. decomp_len > 0 .and. decomp_len <= len(out_stream)) then
-                  out_stream(1:decomp_len) = decomp_buf(1:decomp_len)
-                  stream_len = decomp_len
+      inquire(unit=pdf%unit_num, size=file_sz)
+      if (offset > 0_int64 .and. offset <= file_sz) then
+        avail = file_sz - offset + 1_int64
+        read_len = int(min(65536_int64, avail), kind=int32)
+        if (read_len > 0) then
+          allocate(character(len=read_len) :: chunk)
+          allocate(character(len=65536) :: decomp_buf)
+          chunk = ""
+          decomp_buf = ""
+          read(unit=pdf%unit_num, pos=offset, iostat=status) chunk
+          if (status == 0) then
+            is_flate = (index(chunk, "/FlateDecode") > 0)
+            strm_pos = index(chunk, "stream")
+            end_pos = index(chunk, "endstream")
+            if (strm_pos > 0 .and. end_pos > strm_pos) then
+              strm_pos = strm_pos + 6
+              if (chunk(strm_pos:strm_pos) == new_line('a') .or. ichar(chunk(strm_pos:strm_pos)) == 13) then
+                strm_pos = strm_pos + 1
+              end if
+              if (chunk(strm_pos:strm_pos) == new_line('a')) then
+                strm_pos = strm_pos + 1
+              end if
+              raw_len = end_pos - strm_pos
+              if (raw_len > 0) then
+                if (is_flate) then
+                  call zlib_decompress_stream(chunk(strm_pos : end_pos - 1), raw_len, decomp_buf, decomp_len, z_stat)
+                  if (z_stat == 0 .and. decomp_len > 0 .and. decomp_len <= len(out_stream)) then
+                    out_stream(1:decomp_len) = decomp_buf(1:decomp_len)
+                    stream_len = decomp_len
+                  else
+                    if (raw_len <= len(out_stream)) then
+                      out_stream(1:raw_len) = chunk(strm_pos : end_pos - 1)
+                      stream_len = raw_len
+                    end if
+                  end if
                 else
                   if (raw_len <= len(out_stream)) then
                     out_stream(1:raw_len) = chunk(strm_pos : end_pos - 1)
                     stream_len = raw_len
                   end if
                 end if
-              else
-                if (raw_len <= len(out_stream)) then
-                  out_stream(1:raw_len) = chunk(strm_pos : end_pos - 1)
-                  stream_len = raw_len
-                end if
               end if
             end if
           end if
+          if (allocated(chunk)) deallocate(chunk)
+          if (allocated(decomp_buf)) deallocate(decomp_buf)
         end if
+      else
+        status = -1
       end if
     else
       status = -2
     end if
-
-    if (allocated(chunk)) deallocate(chunk)
-    if (allocated(decomp_buf)) deallocate(decomp_buf)
 
   end subroutine pdf_extract_stream
 
@@ -787,52 +792,80 @@ contains
     type(pdf_document_type), intent(inout) :: pdf
     integer(kind=int64), intent(in) :: offset
 
-    character(len=2048) :: xref_buf
-    integer(kind=int32) :: status, count_objs, i, line_pos
-    integer(kind=int64) :: off_val
+    character(len=:), allocatable :: xref_buf
+    integer(kind=int32) :: status, count_objs, i, cur_p, next_p, read_len
+    integer(kind=int64) :: file_sz, avail, off_val
 
-    read(unit=pdf%unit_num, pos=offset, iostat=status) xref_buf
-    if (status == 0) then
-      line_pos = index(xref_buf, "0 ")
-      if (line_pos > 0) then
-        read(xref_buf(line_pos+2:line_pos+10), *, iostat=status) count_objs
-        if (status == 0 .and. count_objs > 0) then
-          pdf%object_count = count_objs - 1
-          if (allocated(pdf%xref_offsets)) deallocate(pdf%xref_offsets)
-          allocate(pdf%xref_offsets(pdf%object_count + 16))
-          pdf%xref_offsets = 0_int64
-          do i = 1, pdf%object_count
-            line_pos = index(xref_buf, "00000 n")
-            if (line_pos > 10) then
-              read(xref_buf(line_pos-10:line_pos-1), *, iostat=status) off_val
-              if (status == 0) then
-                pdf%xref_offsets(i) = off_val
+    inquire(unit=pdf%unit_num, size=file_sz)
+    if (offset > 0_int64 .and. offset <= file_sz) then
+      avail = file_sz - offset + 1_int64
+      read_len = int(min(4096_int64, avail), kind=int32)
+      if (read_len > 0) then
+        allocate(character(len=read_len) :: xref_buf)
+        read(unit=pdf%unit_num, pos=offset, iostat=status) xref_buf
+        if (status == 0) then
+          cur_p = index(xref_buf, "0 ")
+          if (cur_p > 0) then
+            read(xref_buf(cur_p+2:cur_p+10), *, iostat=status) count_objs
+            if (status == 0 .and. count_objs > 0) then
+              pdf%object_count = count_objs - 1
+              if (allocated(pdf%xref_offsets)) deallocate(pdf%xref_offsets)
+              allocate(pdf%xref_offsets(pdf%object_count + 16))
+              pdf%xref_offsets = 0_int64
+
+              next_p = index(xref_buf(cur_p:read_len), char(10))
+              if (next_p > 0) then
+                cur_p = cur_p + next_p
+                do i = 1, pdf%object_count
+                  next_p = index(xref_buf(cur_p:read_len), "00000 n")
+                  if (next_p > 10) then
+                    read(xref_buf(cur_p + next_p - 11 : cur_p + next_p - 2), *, iostat=status) off_val
+                    if (status == 0) then
+                      pdf%xref_offsets(i) = off_val
+                    end if
+                    cur_p = cur_p + next_p + 7
+                  else
+                    exit
+                  end if
+                end do
               end if
             end if
-          end do
+          end if
         end if
+        deallocate(xref_buf)
       end if
     end if
   end subroutine parse_xref_table
 
   subroutine parse_pages_metadata(pdf)
     type(pdf_document_type), intent(inout) :: pdf
-    character(len=4096) :: page_buf
-    integer(kind=int32) :: status, pos, pcount
+    character(len=:), allocatable :: page_buf
+    integer(kind=int32) :: status, pos, pcount, read_len
+    integer(kind=int64) :: file_sz
 
-    read(unit=pdf%unit_num, pos=1, iostat=status) page_buf
-    if (status == 0) then
-      pos = index(page_buf, "/Count ")
-      if (pos > 0) then
-        read(page_buf(pos+7:pos+15), *, iostat=status) pcount
-        if (status == 0 .and. pcount > 0) then
-          pdf%page_count = pcount
+    inquire(unit=pdf%unit_num, size=file_sz)
+    if (file_sz > 0_int64) then
+      read_len = int(min(8192_int64, file_sz), kind=int32)
+      allocate(character(len=read_len) :: page_buf)
+      read(unit=pdf%unit_num, pos=1, iostat=status) page_buf
+      if (status == 0) then
+        pos = index(page_buf, "/Count ")
+        if (pos > 0) then
+          read(page_buf(pos+7:pos+15), *, iostat=status) pcount
+          if (status == 0 .and. pcount > 0) then
+            pdf%page_count = pcount
+          else
+            pdf%page_count = 1
+          end if
         else
           pdf%page_count = 1
         end if
       else
         pdf%page_count = 1
       end if
+      deallocate(page_buf)
+    else
+      pdf%page_count = 1
     end if
 
     if (allocated(pdf%page_object_ids)) deallocate(pdf%page_object_ids)
