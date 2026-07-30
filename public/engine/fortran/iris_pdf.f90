@@ -626,8 +626,7 @@ contains
     ! Write StructTreeRoot Object
     call record_object_offset(pdf, struct_root_id)
     write(buf, '(I0,A,I0,A)') struct_root_id, " 0 obj" // new_line('a') // &
-      "<< /Type /StructTreeRoot /RoleMap << /P /P /Document /Document >> /K [", &
-      struct_doc_id, " 0 R] >>" // new_line('a') // "endobj" // new_line('a')
+      "<< /Type /StructTreeRoot /K [", struct_doc_id, " 0 R] >>" // new_line('a') // "endobj" // new_line('a')
     call write_raw_string(pdf, trim(buf))
 
     ! Write Document StructElem Object
