@@ -409,37 +409,37 @@ contains
     integer(kind=int32), intent(out) :: font_file_id
     integer(kind=int32), intent(out) :: cid_font_id
 
-    character(len=2048) :: font_buf, cmap_stream
-    integer(kind=int32) :: cmap_len
+    character(len=4096) :: font_buf, cmap_stream
+    character(len=2048) :: widths_str
+    integer(kind=int32) :: cmap_len, i
 
     tounicode_id = next_object_id(pdf)
+
+    ! Build a standard 224-element /Widths array for characters 32 to 255 (default 600)
+    widths_str = "/Widths ["
+    do i = 32, 255
+      widths_str = trim(widths_str) // " 600"
+    end do
+    widths_str = trim(widths_str) // " ]"
 
     if (pdf%embedded_font%embedded) then
       font_desc_id = next_object_id(pdf)
       font_file_id = next_object_id(pdf)
+      cid_font_id = 0
 
-      if (pdf%embedded_font%font_type == 2) then  ! CFF
-        cid_font_id = next_object_id(pdf)
-        ! Type 0 Font
-        write(font_buf, '(I0,A,A,A,I0,A,I0,A)') font_id, " 0 obj" // new_line('a') // &
-          "<< /Type /Font /Subtype /Type0 /BaseFont /", trim(pdf%embedded_font%font_name), &
-          " /Encoding /Identity-H /DescendantFonts [", cid_font_id, " 0 R] /ToUnicode ", &
-          tounicode_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
-        call write_raw_string(pdf, trim(font_buf))
-
-        ! CIDFont Object
-        call record_object_offset(pdf, cid_font_id)
-        write(font_buf, '(I0,A,A,A,I0,A)') cid_font_id, " 0 obj" // new_line('a') // &
-          "<< /Type /Font /Subtype /CIDFontType0 /BaseFont /", trim(pdf%embedded_font%font_name), &
-          " /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor ", &
-          font_desc_id, " 0 R /DW 1000 >>" // new_line('a') // "endobj" // new_line('a')
+      if (pdf%embedded_font%font_type == 2) then  ! CFF / Type1C
+        write(font_buf, '(I0,A,A,A,A,A,I0,A,I0,A)') font_id, " 0 obj" // new_line('a') // &
+          "<< /Type /Font /Subtype /Type1 /BaseFont /", trim(pdf%embedded_font%font_name), &
+          " /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 255 ", trim(widths_str), &
+          " /FontDescriptor ", font_desc_id, " 0 R /ToUnicode ", tounicode_id, &
+          " 0 R >>" // new_line('a') // "endobj" // new_line('a')
         call write_raw_string(pdf, trim(font_buf))
       else  ! TrueType
-        cid_font_id = 0
-        write(font_buf, '(I0,A,A,A,I0,A,I0,A)') font_id, " 0 obj" // new_line('a') // &
+        write(font_buf, '(I0,A,A,A,A,A,I0,A,I0,A)') font_id, " 0 obj" // new_line('a') // &
           "<< /Type /Font /Subtype /TrueType /BaseFont /", trim(pdf%embedded_font%font_name), &
-          " /FirstChar 0 /LastChar 255 /FontDescriptor ", font_desc_id, &
-          " 0 R /ToUnicode ", tounicode_id, " 0 R >>" // new_line('a') // "endobj" // new_line('a')
+          " /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 255 ", trim(widths_str), &
+          " /FontDescriptor ", font_desc_id, " 0 R /ToUnicode ", tounicode_id, &
+          " 0 R >>" // new_line('a') // "endobj" // new_line('a')
         call write_raw_string(pdf, trim(font_buf))
       end if
 
@@ -462,11 +462,12 @@ contains
       call record_object_offset(pdf, font_file_id)
       if (pdf%embedded_font%font_type == 2) then
         write(font_buf, '(I0,A,I0,A)') font_file_id, " 0 obj" // new_line('a') // &
-          "<< /Subtype /CIDFontType0C /Length ", pdf%embedded_font%font_data_len, &
+          "<< /Subtype /Type1C /Length ", pdf%embedded_font%font_data_len, &
           " >>" // new_line('a') // "stream" // new_line('a')
       else
-        write(font_buf, '(I0,A,I0,A)') font_file_id, " 0 obj" // new_line('a') // &
+        write(font_buf, '(I0,A,I0,A,I0,A)') font_file_id, " 0 obj" // new_line('a') // &
           "<< /Length ", pdf%embedded_font%font_data_len, &
+          " /Length1 ", pdf%embedded_font%font_data_len, &
           " >>" // new_line('a') // "stream" // new_line('a')
       end if
       call write_raw_string(pdf, trim(font_buf))
