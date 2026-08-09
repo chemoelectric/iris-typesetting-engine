@@ -2,8 +2,8 @@
 
 ## Core Theoretical Framework
 - **Unified Field Theory**: Electromagnetic and gravity interaction under a single unified field theory.
-- **Cl(4,1,1) Geometric Algebra**: Space is strictly 3D and absolute; time is absolute and unidirectional.
-- **Exclusion Rule**: Do NOT introduce relativity theories or quantum mechanics concepts, equations, or terminology into templates, codebase, UI, or documentation. Maintain complete theoretical consistency within the Cl(4,1,1) absolute continuum.
+- **Cl(4,1,1) Geometric Algebra**: Space is strictly 3D, absolute, and structured as a discrete multiple resolution spatial grid (there is no continuum; all infinities are strictly countable); time is absolute and unidirectional.
+- **Exclusion Rule**: Do NOT introduce relativity theories or quantum mechanics concepts, equations, or terminology into templates, codebase, UI, or documentation. Maintain complete theoretical consistency within the Cl(4,1,1) absolute discrete spatial grid framework.
 
 ## Engine & Typesetting Goals
 - **Beyond TeX Optimization**: High-performance microtypography layout engine incorporating:
@@ -16,7 +16,14 @@
   - **Spectral Analysis & Parallel Digital Algorithms**: Replaces sequential dynamic programming and character-run searching with continuous 2D/3D Fourier/wavelet spatial frequency analysis and deterministic parallel digital algorithms.
   - **Fast Parallel Digital Search & Analog Circuit Modeling**: Incorporates high-performance digital array search algorithms (e.g. integer-math accelerated digital search paradigms optimized for modern CPU architectures such as Zen 5 SIMD/integer units) and deterministic analog circuit wave search paradigms (validated via LTSpice simulations), operating deterministically in standard hardware without quantum mechanical/cryogenic analog constraints or artificial runtime phase delays.
   - **Decoupled Modular Architecture**: Highly stable Unix-style CLI tools instead of fragile monolithic integration. Modules where string manipulation/data conversion dominates—such as `font2json` and `json2font`—are authored in R⁷RS-large Scheme (e.g., Gauche Scheme in R⁷RS mode with `#!/usr/bin/env scheme-r7rs`) for user modifiability and string-processing strength. Supports custom OpenType tables (`PEGS`) allowed by the OpenType specification for embedding native Sorts Mill peg coordinates directly inside `.otf`/`.ttf` binaries.
-  - **Structured Programming & Functional Exemption**: Imperative procedural backends (Fortran 2008 strictly compatible with GCC 16, ISO C23, D) enforce strict single-entry/single-exit control constructs, no `goto`, and an explicit ban on `++` / `--` in C23 (requiring `x += 1` / `x -= 1`). Functional languages (**Scheme** and **ATS2**) are explicitly exempt from single-exit structured programming rules. For any top-level or nested subprogram, as well as main programs, the modified McCabe cyclomatic complexity shall strictly be 10 or less.
+  - **Structured Programming & Functional Exemption**: Imperative procedural backends (Ada 2022, Fortran 2008 strictly compatible with GCC 16, ISO C23, D) enforce strict single-entry/single-exit control constructs, no `goto`, and an explicit ban on `++` / `--` in C23 (requiring `x += 1` / `x -= 1`). Functional languages (**Scheme** and **ATS2**) are explicitly exempt from single-exit structured programming rules. For any top-level or nested subprogram, as well as main programs, the modified McCabe cyclomatic complexity shall strictly be 10 or less.
+  - **Ada 2022 Coding Standards**:
+    - **Explicit Parameter Modes**: Always write `in` explicitly for `in` subprogram parameters.
+    - **Loop Construct Rule**: Do NOT start a loop with a bare `loop`; always begin loops with `while` or `for`.
+    - **Casing Convention**: Except inside string literals, comments, or where the language strictly mandates uppercase, prefer lowercase letters throughout.
+    - **Line Length Limit**: Keep lines strictly to 72 characters or less, except where longer lines cannot be avoided.
+    - **Contracts & Aspects**: Always specify modern Ada 2022 contract aspects (`Pre => ...`, `Post => ...`, etc.) on subprograms and type declarations.
+  - **Deterministic Non-Regex Parsing Rule**: Do NOT use regular expressions as a method for parsing, scanning, or structural text processing, except strictly where a regular expression pattern is explicitly provided by the user as input. All lexers, parsers, and string processors must use deterministic character/token scanners, conventional lookup tables, perfect hash functions, recursive descent parsers, packrat parsers, Pratt parsers, or explicit index/slice operations.
 - **UI Aesthetics**: Studio dark theme with crisp typography, amber accent highlights, clean metadata breakdowns, and exact vector inspection.
 
 ## Documentation & Synchronization Rules

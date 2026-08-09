@@ -1,0 +1,31 @@
+Document Reference: Iris Number System - Volume I: Fundamentals
+URL: https://archive.org/download/iris-number-system-01-volume-i-fundamentals/Iris_Number_System-01-Volume_I_Fundamentals.pdf
+
+Topics Incorporated:
+- Counting-Iris Number System and Coordinate Engine (sub-pixel multi-scale logarithmic coordinates with zero floating-point drift)
+- Master Field Equation under Cl(4,1,1) Geometric Algebra
+- Unified Field Theory (electromagnetic and gravitational interaction in 3D absolute space with unidirectional time)
+
+Document Reference: Iris Number System - Volume II: Applications to Number Theory, Analysis, Probability Theory, Statistics
+URL: https://archive.org/download/iris-number-system-02-volume-ii-number-theory-etc/Iris_Number_System-02-Volume_II_Number_Theory_etc.pdf
+
+Topics Incorporated:
+- Discrete Countable Foundation for Number Theory & Analysis (Elimination of Uncountable Infinities)
+- Jaynesian Maximum Entropy & Probability as Logic
+- Information Theory, Shannon Channel Capacity, & Number Line Transmission Representations (Primes as Orthogonal Signal Basis)
+
+Document Reference: Iris Number System - Volume III: Applications to Geometry, Algebra, Representations, Topology, Lattices, Categories, Combinatorics
+URL: https://archive.org/download/iris-number-system-03-volume-iii-geometry-algebra-etc/Iris_Number_System-03-Volume_III_Geometry_Algebra_etc.pdf
+
+Topics Incorporated:
+- Discrete Geometric Algebra, Multivector Rotors, & Conformal Transformations in 3D Absolute Space
+- Topology of Surface Contact & Physical Multi-Medium Interaction
+- Countable Lattices, Discrete Categories, & Combinatorial Foundations
+
+Document Reference: Iris Number System - Volume IV: Applications to Physics, Chemistry, Astronomy, Engineering, Communications, Time-Binding
+URL: https://archive.org/download/iris-number-system-04-volume-iv-physics-etc/Iris_Number_System-04-Volume_IV_Physics_etc.pdf
+
+Topics Incorporated:
+- First-Principles Applications of the Counting-Iris Framework and Master Field Equation
+- Physical & Chemical Discrete Field Interactions (Physics, Chemistry, Astronomy)
+- Multi-Medium Engineering Optics, Signal Processing, Communications, & Time-Binding

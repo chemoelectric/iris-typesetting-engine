@@ -171,7 +171,11 @@ function getSyntheticMathGlyphPath(char: string, fontSize: number, x: number, y:
   }
 
   // Default text character width heuristics
-  const charWidth = char.length === 1 ? fontSize * (char.match(/[iI1l|\.,;!]/) ? 0.3 : char.match(/[wWMm]/) ? 0.85 : 0.55) : fontSize * 0.6 * char.length;
+  const narrowChars = "iI1l|.,;!";
+  const wideChars = "wWMm";
+  const charWidth = char.length === 1
+    ? fontSize * (narrowChars.includes(char) ? 0.3 : wideChars.includes(char) ? 0.85 : 0.55)
+    : fontSize * 0.6 * char.length;
   
   return {
     pathSvg: '',

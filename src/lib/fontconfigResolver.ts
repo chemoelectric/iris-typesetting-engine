@@ -154,7 +154,14 @@ export function resolveFontWithFontconfig(query: string): FontResolutionResult {
       resolvedPath: normalizedQuery,
       candidates: [{
         path: normalizedQuery,
-        family: normalizedQuery.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, ''),
+        family: (() => {
+          let name = normalizedQuery;
+          const slashIdx = Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
+          if (slashIdx !== -1) name = name.substring(slashIdx + 1);
+          const dotIdx = name.lastIndexOf('.');
+          if (dotIdx !== -1) name = name.substring(0, dotIdx);
+          return name;
+        })(),
         style: 'Direct File',
         byteSize: 184500,
         hash: 'direct_file_hash',

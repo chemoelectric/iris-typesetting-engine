@@ -182,15 +182,23 @@ export async function fetchGoogleFontBinary(
         });
         if (cssRes.ok) {
           const cssText = await cssRes.text();
-          // Match url(...) inside src:
-          const matches = cssText.match(/url\((https:\/\/[^)]+)\)/gi);
-          if (matches && matches.length > 0) {
-            // Pick first URL and strip url() wrapper
-            const rawUrl = matches[0].replace(/^url\(['"]?/, '').replace(/['"]?\)$/, '');
+          const urlPrefix = 'url(';
+          let searchPos = 0;
+          while (searchPos < cssText.length) {
+            const urlIdx = cssText.indexOf(urlPrefix, searchPos);
+            if (urlIdx === -1) break;
+            let start = urlIdx + urlPrefix.length;
+            if (cssText[start] === "'" || cssText[start] === '"') start += 1;
+            const endParen = cssText.indexOf(')', start);
+            if (endParen === -1) break;
+            let end = endParen;
+            if (cssText[end - 1] === "'" || cssText[end - 1] === '"') end -= 1;
+            const rawUrl = cssText.substring(start, end).trim();
             if (rawUrl.startsWith('https://')) {
               targetUrl = rawUrl;
               break;
             }
+            searchPos = endParen + 1;
           }
         }
       } catch (e) {
