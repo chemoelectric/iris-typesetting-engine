@@ -144,7 +144,7 @@ AC_ARG_WITH([capypdf],
 
 AS_IF([test "x$with_capypdf" != "xno"], [
   AC_CHECK_LIB([capypdf], [capy_generator_new], [CAPYPDF_LIBS="-lcapypdf"], [
-    AC_CHECK_LIB([capypdf], [capy_doc_properties_new], [CAPYPDF_LIBS="-lcapypdf"], [
+    AC_CHECK_LIB([capypdf], [capy_document_properties_new], [CAPYPDF_LIBS="-lcapypdf"], [
       AS_IF([test "x$with_capypdf" = "xyes"], [
         AC_MSG_ERROR([CapyPDF library requested but not found])
       ])
