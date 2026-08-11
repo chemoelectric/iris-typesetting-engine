@@ -95,6 +95,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = iris$(EXEEXT)
+check_PROGRAMS = test_capypdf$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -114,18 +115,22 @@ DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES = atlocal testsuite.at
+CONFIG_CLEAN_FILES = atconfig
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__objects_1 =
-am_iris_OBJECTS = $(am__objects_1) $(am__objects_1)
+am__objects_2 = $(am__objects_1)
+am_iris_OBJECTS = $(am__objects_2) $(am__objects_2)
 iris_OBJECTS = $(am_iris_OBJECTS)
 iris_LDADD = $(LDADD)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+test_capypdf_SOURCES = test_capypdf.c
+test_capypdf_OBJECTS = test_capypdf.$(OBJEXT)
+test_capypdf_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -139,6 +144,10 @@ am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
 am__v_at_0 = @
 am__v_at_1 = 
 DEFAULT_INCLUDES = -I.@am__isrc@
+depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
+am__maybe_remake_depfiles = depfiles
+am__depfiles_remade = ./$(DEPDIR)/test_capypdf.Po
+am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -157,8 +166,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(iris_SOURCES)
-DIST_SOURCES = $(iris_SOURCES)
+SOURCES = $(iris_SOURCES) test_capypdf.c
+DIST_SOURCES = $(iris_SOURCES) test_capypdf.c
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -182,14 +191,15 @@ am__define_uniq_tagged_files = \
     if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
   done | $(am__uniquify_input)`
 AM_RECURSIVE_TARGETS = cscope
-am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/atlocal.in \
-	$(srcdir)/testsuite.at.in $(top_srcdir)/build-aux/compile \
+am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/atconfig.in \
+	$(top_srcdir)/build-aux/compile \
 	$(top_srcdir)/build-aux/config.guess \
 	$(top_srcdir)/build-aux/config.sub \
+	$(top_srcdir)/build-aux/depcomp \
 	$(top_srcdir)/build-aux/install-sh \
 	$(top_srcdir)/build-aux/ltmain.sh \
 	$(top_srcdir)/build-aux/missing COPYING build-aux/compile \
-	build-aux/config.guess build-aux/config.sub \
+	build-aux/config.guess build-aux/config.sub build-aux/depcomp \
 	build-aux/install-sh build-aux/ltmain.sh build-aux/missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
@@ -353,18 +363,22 @@ ACLOCAL_AMFLAGS = -I m4 --install
 #---------------------------------------------------------------------
 MOSTLYCLEANFILES = 
 CLEANFILES = 
-DISTCLEANFILES = $(DEP_FILES) Makefile GNUmakefile
+DISTCLEANFILES = $(DEP_FILES) Makefile GNUmakefile testsuite \
+	testsuite.log
 
 #---------------------------------------------------------------------
-EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4
+EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS)
 
 #---------------------------------------------------------------------
-#AM_ADAFLAGS += -gnatwa
-AM_ADAFLAGS = -gnat2022 -I$(builddir) -I$(srcdir)
+AM_ADAFLAGS = -gnat2022 -gnatwa -I$(builddir) -I$(srcdir)
 ADB_FILES = $(IRIS_ADB_FILES)
 ADS_FILES = $(IRIS_ADS_FILES)
+TESTS_ADB = capypdf_tests.adb test_capypdf.adb
+TESTS_ADS = capypdf_tests.ads
 DEP_FILES = $(ADB_FILES:%.adb=.deps/%.adbdep) \
-	$(ADS_FILES:%.ads=.deps/%.adsdep)
+	$(ADS_FILES:%.ads=.deps/%.adsdep) \
+	$(TESTS_ADB:%.adb=.deps/%.adbdep) \
+	$(TESTS_ADS:%.ads=.deps/%.adsdep)
 ADALD = $(ADA)
 LTADACOMPILE = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=compile $(ADA) $(AM_ADAFLAGS) $(ADAFLAGS)
@@ -376,12 +390,23 @@ ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 		$(AM_LDFLAGS) $(LDFLAGS) -o $(@)
 
 iris_SOURCES = $(IRIS_ADB_FILES) $(IRIS_ADS_FILES)
-IRIS_ADB_FILES = iris.adb capypdf.adb
-IRIS_ADS_FILES = capypdf.ads
+IRIS_ADB_COMMON = capypdf.adb
+IRIS_ADS_COMMON = capypdf.ads
+IRIS_ADB_FILES = $(IRIS_ADB_COMMON) iris.adb
+IRIS_ADS_FILES = $(IRIS_ADS_COMMON)
 IRIS_OBJ_FILES = $(IRIS_ADB_FILES:%.adb=%.lo)
+AUTOM4TE = $(SHELL) $(srcdir)/build-aux/missing --run autom4te
+TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
+	$(srcdir)/testsuite.at
+ALL_THE_CHECK_FLAGS = $(color-flag) $(jobs-flag) $(TESTSUITEFLAGS)
+test_capypdf_SOURCE = $(test_capypdf_ADB) $(test_capypdf_ADS) \
+	test_capypdf.adb
+test_capypdf_ADB = $(IRIS_ADB_COMMON) capypdf_tests.adb
+test_capypdf_ADS = $(IRIS_ADB_COMMON) capypdf_tests.ads
 all: all-am
 
 .SUFFIXES:
+.SUFFIXES: .c .lo .o .obj
 am--refresh: GNUmakefile
 	@:
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
@@ -415,9 +440,7 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
-atlocal: $(top_builddir)/config.status $(srcdir)/atlocal.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-testsuite.at: $(top_builddir)/config.status $(srcdir)/testsuite.at.in
+atconfig: $(top_builddir)/config.status $(srcdir)/atconfig.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
@@ -464,11 +487,44 @@ clean-binPROGRAMS:
 	$(am__rm_f) $(bin_PROGRAMS)
 	test -z "$(EXEEXT)" || $(am__rm_f) $(bin_PROGRAMS:$(EXEEXT)=)
 
+clean-checkPROGRAMS:
+	$(am__rm_f) $(check_PROGRAMS)
+	test -z "$(EXEEXT)" || $(am__rm_f) $(check_PROGRAMS:$(EXEEXT)=)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
+
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_capypdf.Po@am__quote@ # am--include-marker
+
+$(am__depfiles_remade):
+	@$(MKDIR_P) $(@D)
+	@: >>$@
+
+am--depfiles: $(am__depfiles_remade)
+
+.c.o:
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
+
+.c.obj:
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+.c.lo:
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -716,6 +772,8 @@ distcleancheck: distclean
 	       $(distcleancheck_listfiles) ; \
 	       exit 1; } >&2
 check-am: all-am
+	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
+	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: check-am
 all-am: GNUmakefile $(PROGRAMS)
 installdirs:
@@ -757,11 +815,12 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic clean-libtool clean-local \
-	mostlyclean-am
+clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
+	clean-libtool clean-local mostlyclean-am
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
+	-rm -f ./$(DEPDIR)/test_capypdf.Po
 	-rm -f GNUmakefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-libtool distclean-tags
@@ -804,11 +863,12 @@ install-ps: install-ps-am
 
 install-ps-am:
 
-installcheck-am:
+installcheck-am: installcheck-local
 
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
+	-rm -f ./$(DEPDIR)/test_capypdf.Po
 	-rm -f GNUmakefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -827,10 +887,11 @@ ps-am:
 
 uninstall-am: uninstall-binPROGRAMS
 
-.MAKE: install-am install-strip
+.MAKE: check-am install-am install-strip
 
-.PHONY: CTAGS GTAGS TAGS all all-am am--refresh check check-am clean \
-	clean-binPROGRAMS clean-cscope clean-generic clean-libtool \
+.PHONY: CTAGS GTAGS TAGS all all-am am--depfiles am--refresh check \
+	check-am check-local clean clean-binPROGRAMS \
+	clean-checkPROGRAMS clean-cscope clean-generic clean-libtool \
 	clean-local cscope cscopelist-am ctags ctags-am dist dist-all \
 	dist-bzip2 dist-bzip3 dist-gzip dist-lzip dist-shar dist-tarZ \
 	dist-xz dist-zip dist-zstd distcheck distclean \
@@ -841,11 +902,11 @@ uninstall-am: uninstall-binPROGRAMS
 	install-dvi-am install-exec install-exec-am install-html \
 	install-html-am install-info install-info-am install-man \
 	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-binPROGRAMS
+	install-strip installcheck installcheck-am installcheck-local \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-binPROGRAMS
 
 .PRECIOUS: GNUmakefile
 
@@ -872,6 +933,31 @@ uninstall-am: uninstall-binPROGRAMS
 @GNU@printf ")\n" >> .deps/$(1)$(2)
 @GNU@endef
 
+@GNU@define link-ada
+@GNU@$(GNATBIND) -x $(1).ali
+@GNU@$(LTADACOMPILE) -c b~$(1).adb
+@GNU@$(ADALINK) $(IRIS_OBJ_FILES) b~$(1).lo \
+@GNU@	-L$(call get-adalib) \
+@GNU@	-R$(call get-adalib) \
+@GNU@	-lgnat $(2)
+@GNU@endef
+
+@GNU@define color-flag
+@GNU@$(shell \
+@GNU@  if test "${enable_color}" = no; then \
+@GNU@    printf '%s' "--color=never"; \
+@GNU@  else \
+@GNU@    printf '%s' "--color=auto"; \
+@GNU@  fi)
+@GNU@endef
+
+@GNU@define jobs-flag
+@GNU@$(shell \
+@GNU@  printf "%s\n" "$(MAKEFLAGS) $(MFLAGS)" | \
+@GNU@    $(SED) -n 's/.*?\(-j[0-9]*\|--jobs=[0-9]*\).*/\1/p' | \
+@GNU@    $(SED) 's/--jobs=/ -j/')
+@GNU@endef
+
 %.lo %.ali: %.adb
 	$(call v,ADA)set -e; $(call compile-ada,$(<),$(@)); \
 		$(call make-ada-dep,$(*),.adbdep)
@@ -884,12 +970,7 @@ clean-local::
 	-rm -f *.ali b~* b__*
 
 iris$(EXEEXT): $(IRIS_OBJ_FILES)
-	$(GNATBIND) -x iris.ali
-	$(LTADACOMPILE) -c b~iris.adb
-	$(ADALINK) $(IRIS_OBJ_FILES) b~iris.lo \
-		-L$(call get-adalib) \
-		-R$(call get-adalib) \
-		-lgnat $(CAPYPDF_LIBS)
+	$(call link-ada,iris,$(CAPYPDF_LIBS))
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac $(srcdir)/Makefile.am
 	$(AWK) \
 	  'BEGIN{printf "# Signature of the current package.\n"; \
@@ -905,6 +986,20 @@ $(srcdir)/package.m4: $(top_srcdir)/configure.ac $(srcdir)/Makefile.am
 		 printf "[$(PACKAGE_BUGREPORT)])\n"; \
 		 printf "m4_define([AT_PACKAGE_URL],"; \
 		 printf "[$(PACKAGE_URL)])\n"}' > $(@)
+testsuite: $(TESTSUITE_DEPS)
+	$(AUTOM4TE) --language=autotest \
+		-I '$(srcdir)' -o $(@) $(srcdir)/$(@).at
+
+check-local:: atconfig testsuite
+	$(SHELL) testsuite $(ALL_THE_CHECK_FLAGS)
+
+installcheck-local:: atconfig testsuite
+	@if false; then \
+		$(SHELL) testsuite AUTOTEST_PATH='$(bindir)' \
+			$(ALL_THE_CHECK_FLAGS); \
+	fi							# installcheck is disabled.
+test_capypdf$(EXEEXT): test_capypdf.lo $(test_capypdf_ADB:%.adb=%.lo)
+	$(call link-ada,test_capypdf,$(CAPYPDF_LIBS))
 
 #---------------------------------------------------------------------
 # local variables:

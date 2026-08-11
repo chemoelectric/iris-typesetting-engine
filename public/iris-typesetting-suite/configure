@@ -15823,9 +15823,7 @@ printf "%s\n" "$as_me: WARNING: Please consider installing and using GNU Make:
    ac_config_files="$ac_config_files GNUmakefile:Makefile.in"
 
 }
-ac_config_files="$ac_config_files atlocal"
-
-ac_config_files="$ac_config_files testsuite.at"
+ac_config_files="$ac_config_files atconfig"
 
 
 cat >confcache <<\_ACEOF
@@ -16873,8 +16871,7 @@ do
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "GNUmakefile") CONFIG_FILES="$CONFIG_FILES GNUmakefile:Makefile.in" ;;
-    "atlocal") CONFIG_FILES="$CONFIG_FILES atlocal" ;;
-    "testsuite.at") CONFIG_FILES="$CONFIG_FILES testsuite.at" ;;
+    "atconfig") CONFIG_FILES="$CONFIG_FILES atconfig" ;;
 
   *) as_fn_error $? "invalid argument: '$ac_config_target'" "$LINENO" 5;;
   esac
