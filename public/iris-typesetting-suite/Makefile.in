@@ -370,7 +370,8 @@ DISTCLEANFILES = $(DEP_FILES) Makefile GNUmakefile testsuite \
 EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS)
 
 #---------------------------------------------------------------------
-AM_ADAFLAGS = -gnat2022 -gnatwa -I$(builddir) -I$(srcdir)
+AM_ADAFLAGS = -gnat2022 -gnatwa -I$(call get-adainclude) -I$(builddir) \
+	-I$(srcdir)
 ADB_FILES = $(IRIS_ADB_FILES)
 ADS_FILES = $(IRIS_ADS_FILES)
 TESTS_ADB = capypdf_tests.adb test_capypdf.adb
@@ -915,6 +916,10 @@ uninstall-am: uninstall-binPROGRAMS
 
 @GNU@include $(top_srcdir)/silent-rules.mk
 @GNU@-include $(DEP_FILES)
+
+@GNU@define get-adainclude
+@GNU@$(shell $(ADA) --print-file-name=adainclude)
+@GNU@endef
 
 @GNU@define get-adalib
 @GNU@$(shell $(ADA) --print-file-name=adalib)

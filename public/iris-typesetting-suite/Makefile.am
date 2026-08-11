@@ -42,6 +42,10 @@ ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 		$(AM_ADAFLAGS) $(ADAFLAGS) \
 		$(AM_LDFLAGS) $(LDFLAGS) -o $(@)
 
+@GNU@define get-adainclude
+@GNU@$(shell $(ADA) --print-file-name=adainclude)
+@GNU@endef
+
 @GNU@define get-adalib
 @GNU@$(shell $(ADA) --print-file-name=adalib)
 @GNU@endef
@@ -88,6 +92,7 @@ ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 
 AM_ADAFLAGS += -gnat2022
 AM_ADAFLAGS += -gnatwa
+AM_ADAFLAGS += -I$(call get-adainclude)
 AM_ADAFLAGS += -I$(builddir)
 AM_ADAFLAGS += -I$(srcdir)
 
@@ -175,8 +180,10 @@ check_PROGRAMS =
 check_PROGRAMS += test_capypdf
 test_capypdf_SOURCE = $(test_capypdf_ADB) $(test_capypdf_ADS)
 test_capypdf_SOURCE += test_capypdf.adb
+#
 test_capypdf$(EXEEXT): test_capypdf.lo $(test_capypdf_ADB:%.adb=%.lo)
 	$(call link-ada,test_capypdf,$(CAPYPDF_LIBS))
+#
 test_capypdf_ADB = $(IRIS_ADB_COMMON)
 test_capypdf_ADS = $(IRIS_ADB_COMMON)
 test_capypdf_ADB += capypdf_tests.adb
