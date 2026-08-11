@@ -23,6 +23,7 @@
     - **Casing Convention**: Except inside string literals, comments, or where the language strictly mandates uppercase, prefer lowercase letters throughout.
     - **Line Length Limit**: Keep lines strictly to 72 characters or less, except where longer lines cannot be avoided.
     - **Contracts & Aspects**: Always specify modern Ada 2022 contract aspects (`Pre => ...`, `Post => ...`, etc.) on subprograms and type declarations.
+    - **Use Clause Rule**: Prefer utilizing `use` clauses over trying to artificially avoid them; in Ada, `use` clauses are often required to maintain natural operator visibility and avoid impractical workarounds.
   - **Deterministic Non-Regex Parsing Rule**: Do NOT use regular expressions as a method for parsing, scanning, or structural text processing, except strictly where a regular expression pattern is explicitly provided by the user as input. All lexers, parsers, and string processors must use deterministic character/token scanners, conventional lookup tables, perfect hash functions, recursive descent parsers, packrat parsers, Pratt parsers, or explicit index/slice operations.
 - **UI Aesthetics**: Studio dark theme with crisp typography, amber accent highlights, clean metadata breakdowns, and exact vector inspection.
 
