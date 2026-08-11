@@ -25,6 +25,7 @@ typedef struct { int32_t id; } CapyPDF_FontId;
 extern "C" {
 #endif
 CapyPDF_Options *capy_options_new(void) __attribute__((weak));
+CapyPDF_Options *capy_generator_options_new(void) __attribute__((weak));
 int32_t capy_options_set_title(CapyPDF_Options *opt, const char *utf8_title) __attribute__((weak));
 int32_t capy_options_free(CapyPDF_Options *opt) __attribute__((weak));
 
@@ -48,8 +49,12 @@ CapyPDF_FontId capy_generator_embed_font(CapyPDF_Generator *gen, const char *nam
 /* Private Helper: Initializes CapyPDF Generator Instance */
 static void iris_pdf_capy_init_generator(iris_pdf_stream_t *stream, const char *filename) {
     if (stream != nullptr && filename != nullptr) {
-        if (capy_options_new != nullptr && capy_generator_new != nullptr) {
-            stream->options = (void *)capy_options_new();
+        if (capy_generator_new != nullptr) {
+            if (capy_generator_options_new != nullptr) {
+                stream->options = (void *)capy_generator_options_new();
+            } else if (capy_options_new != nullptr) {
+                stream->options = (void *)capy_options_new();
+            }
             if (stream->options != nullptr) {
                 if (capy_options_set_title != nullptr) {
                     capy_options_set_title((CapyPDF_Options *)stream->options, "Iris Engine CapyPDF Output");
