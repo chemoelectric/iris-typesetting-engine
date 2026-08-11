@@ -11,7 +11,7 @@
 --   - mccabe cyclomatic complexity <= 10 per subprogram.
 -- =====================================================================
 
-with interfaces.c;
+with interfaces.c; use interfaces.c;
 with interfaces.c.strings;
 
 package capypdf is
@@ -86,7 +86,7 @@ package capypdf is
       height_pt : in interfaces.c.double) return page_config
    with
      pre  => width_pt > 0.0 and then height_pt > 0.0,
-     post => page_config'result.prop /= null_page_properties;
+     post => create_page_config'result.prop /= null_page_properties;
 
    procedure destroy_page_config
      (config : in out page_config)
@@ -97,7 +97,7 @@ package capypdf is
      (doc : in pdf_document) return pdf_draw_context
    with
      pre  => is_valid (doc),
-     post => pdf_draw_context'result.active;
+     post => create_draw_context'result.active;
 
    function draw_rectangle
      (dc     : in pdf_draw_context;

@@ -1,0 +1,6 @@
+.*~$
+.*\.orig$
+
+.*/___build___.*$
+
+.*/autom4te\.cache$
