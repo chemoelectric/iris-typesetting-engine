@@ -6,6 +6,9 @@ ACLOCAL_AMFLAGS = -I m4 --install
 
 #---------------------------------------------------------------------
 
+MOSTLYCLEANFILES =
+CLEANFILES =
+DISTCLEANFILES =
 EXTRA_DIST =
 bin_PROGRAMS =
 
@@ -14,11 +17,14 @@ ADS_FILES =
 DEP_FILES =
 DEP_FILES += $(ADB_FILES:%.adb=.deps/%.adbdep)
 DEP_FILES += $(ADS_FILES:%.ads=.deps/%.adsdep)
+DISTCLEANFILES += $(DEP_FILES)
 
 @GNU@include $(top_srcdir)/silent-rules.mk
 @GNU@-include $(DEP_FILES)
 
 EXTRA_DIST += silent-rules.mk
+
+DISTCLEANFILES += Makefile GNUmakefile
 
 #---------------------------------------------------------------------
 

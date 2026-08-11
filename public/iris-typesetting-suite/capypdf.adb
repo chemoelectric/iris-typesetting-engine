@@ -21,7 +21,7 @@ package body capypdf is
       opt_res  : capy_error;
       gen_res  : capy_error;
    begin
-      opt_res := capy_doc_properties_new (doc.opt);
+      opt_res := capy_document_properties_new (doc.opt);
       if opt_res /= capy_err_ok then
          doc.is_open := false;
          return doc;
@@ -54,7 +54,7 @@ package body capypdf is
 
       write_res   := capy_generator_write (doc.gen);
       gen_dst_res := capy_generator_destroy (doc.gen);
-      opt_dst_res := capy_doc_properties_destroy (doc.opt);
+      opt_dst_res := capy_document_properties_destroy (doc.opt);
 
       doc.gen     := null_generator;
       doc.opt     := null_options;

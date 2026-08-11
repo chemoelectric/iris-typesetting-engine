@@ -352,6 +352,9 @@ top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4 --install
 
 #---------------------------------------------------------------------
+MOSTLYCLEANFILES = 
+CLEANFILES = 
+DISTCLEANFILES = $(DEP_FILES) Makefile GNUmakefile
 EXTRA_DIST = silent-rules.mk
 ADB_FILES = $(IRIS_ADB_FILES)
 ADS_FILES = $(IRIS_ADS_FILES)
@@ -720,12 +723,15 @@ install-strip:
 	    "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'" install; \
 	fi
 mostlyclean-generic:
+	-$(am__rm_f) $(MOSTLYCLEANFILES)
 
 clean-generic:
+	-$(am__rm_f) $(CLEANFILES)
 
 distclean-generic:
 	-$(am__rm_f) $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || $(am__rm_f) $(CONFIG_CLEAN_VPATH_FILES)
+	-$(am__rm_f) $(DISTCLEANFILES)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"

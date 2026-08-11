@@ -1,7 +1,7 @@
 # Ada CapyPDF Binding & Module Documentation
 
 ## Overview
-`capypdf` is a high-level Ada 2022 binding package for the CapyPDF document generation engine. It wraps CapyPDF C library primitives (`capy_generator_new`, `capy_options_new`, `capy_dc_cmd_re`, etc.) into type-safe Ada records with pre- and post-condition contracts.
+`capypdf` is a high-level Ada 2022 binding package for the CapyPDF document generation engine. It wraps CapyPDF C library primitives (`capy_generator_new`, `capy_document_properties_new`, `capy_page_draw_context_new`, `capy_dc_cmd_re`, etc.) into type-safe Ada records with pre- and post-condition contracts.
 
 ## Architecture & Location
 - **Package Spec**: `/public/ada/capypdf.ads`

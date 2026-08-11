@@ -26,6 +26,7 @@ extern "C" {
 #endif
 CapyPDF_Options *capy_options_new(void) __attribute__((weak));
 CapyPDF_Options *capy_doc_properties_new(void) __attribute__((weak));
+int32_t capy_document_properties_new(void **out_ptr) __attribute__((weak));
 int32_t capy_options_set_title(CapyPDF_Options *opt, const char *utf8_title) __attribute__((weak));
 int32_t capy_options_free(CapyPDF_Options *opt) __attribute__((weak));
 
@@ -50,7 +51,9 @@ CapyPDF_FontId capy_generator_embed_font(CapyPDF_Generator *gen, const char *nam
 static void iris_pdf_capy_init_generator(iris_pdf_stream_t *stream, const char *filename) {
     if (stream != nullptr && filename != nullptr) {
         if (capy_generator_new != nullptr) {
-            if (capy_doc_properties_new != nullptr) {
+            if (capy_document_properties_new != nullptr) {
+                capy_document_properties_new(&stream->options);
+            } else if (capy_doc_properties_new != nullptr) {
                 stream->options = (void *)capy_doc_properties_new();
             } else if (capy_options_new != nullptr) {
                 stream->options = (void *)capy_options_new();
