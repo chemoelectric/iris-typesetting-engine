@@ -131,19 +131,19 @@ private
    -- low-level foreign c imports for capypdf shared library
    -- ------------------------------------------------------------------
 
-   function capy_options_new
+   function capy_doc_properties_new
      (opt_out : out options_handle) return capy_error
    with
      import        => true,
      convention    => c,
-     external_name => "capy_generator_options_new";
+     external_name => "capy_doc_properties_new";
 
-   function capy_options_destroy
+   function capy_doc_properties_destroy
      (opt : in options_handle) return capy_error
    with
      import        => true,
      convention    => c,
-     external_name => "capy_generator_options_destroy";
+     external_name => "capy_doc_properties_destroy";
 
    function capy_generator_new
      (filename : in interfaces.c.strings.chars_ptr;
@@ -190,13 +190,13 @@ private
      convention    => c,
      external_name => "capy_page_properties_destroy";
 
-   function capy_dc_new
+   function capy_page_draw_context_new
      (gen    : in generator_handle;
       dc_out : out draw_context_handle) return capy_error
    with
      import        => true,
      convention    => c,
-     external_name => "capy_generator_new_page_draw_context";
+     external_name => "capy_page_draw_context_new";
 
    function capy_dc_destroy
      (dc : in draw_context_handle) return capy_error
