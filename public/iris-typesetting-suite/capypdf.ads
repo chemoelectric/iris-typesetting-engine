@@ -1,6 +1,7 @@
 -- =====================================================================
 -- package capypdf
 -- standard: ada 2022
+-- SPDX-License-Identifier: MIT
 -- description: low-level and thick ada 2022 binding layer for capypdf.
 -- rules:
 --   - explicit 'in' parameter modes on subprograms.

@@ -1,6 +1,7 @@
 -- =====================================================================
 -- procedure test_capypdf
 -- standard: ada 2022
+-- SPDX-License-Identifier: MIT
 -- description: main regression test runner for capypdf ada binding.
 -- rules:
 --   - explicit 'in' parameter modes on subprograms.

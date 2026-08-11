@@ -616,7 +616,7 @@ PACKAGE_STRING='iris-typesetting-suite 0.0.0'
 PACKAGE_BUGREPORT=''
 PACKAGE_URL=''
 
-ac_unique_file="iris_main.adb"
+ac_unique_file="iris.adb"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stddef.h>
@@ -2616,7 +2616,7 @@ build_os=$*
 IFS=$ac_save_IFS
 case $build_os in *\ *) build_os=`echo "$build_os" | sed 's/ /-/g'`;; esac
 
-                 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking host system type" >&5
+       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking host system type" >&5
 printf %s "checking host system type... " >&6; }
 if test ${ac_cv_host+y}
 then :
@@ -4968,7 +4968,7 @@ fi
 
 
 
-AM_DEFAULT_VERBOSITY=0
+AM_DEFAULT_VERBOSITY=1
 
 
 
@@ -15256,7 +15256,7 @@ fi
   test -n "$GNATLINK" && break
 done
 
-test -n "${GNATLINK}" || as_fn_error $? "gnatlink is missing" "$LINENO" 5ss
+test -n "${GNATLINK}" || as_fn_error $? "gnatlink is missing" "$LINENO" 5
 
 : "${ADA:=${CC}}"
 
@@ -15823,7 +15823,10 @@ printf "%s\n" "$as_me: WARNING: Please consider installing and using GNU Make:
    ac_config_files="$ac_config_files GNUmakefile:Makefile.in"
 
 }
-#AC_CONFIG_FILES([tests/atlocal])
+ac_config_files="$ac_config_files atlocal"
+
+ac_config_files="$ac_config_files testsuite.at"
+
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -16870,6 +16873,8 @@ do
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "GNUmakefile") CONFIG_FILES="$CONFIG_FILES GNUmakefile:Makefile.in" ;;
+    "atlocal") CONFIG_FILES="$CONFIG_FILES atlocal" ;;
+    "testsuite.at") CONFIG_FILES="$CONFIG_FILES testsuite.at" ;;
 
   *) as_fn_error $? "invalid argument: '$ac_config_target'" "$LINENO" 5;;
   esac

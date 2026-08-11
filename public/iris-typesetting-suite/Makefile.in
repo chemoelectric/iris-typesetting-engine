@@ -15,6 +15,8 @@
 @SET_MAKE@
 
 #---------------------------------------------------------------------
+# SPDX-License-Identifier: MIT
+#---------------------------------------------------------------------
 
 VPATH = @srcdir@
 am__is_gnu_make = { \
@@ -112,7 +114,7 @@ DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = atlocal testsuite.at
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
@@ -180,14 +182,14 @@ am__define_uniq_tagged_files = \
     if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
   done | $(am__uniquify_input)`
 AM_RECURSIVE_TARGETS = cscope
-am__DIST_COMMON = $(srcdir)/Makefile.in \
-	$(top_srcdir)/build-aux/compile \
+am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/atlocal.in \
+	$(srcdir)/testsuite.at.in $(top_srcdir)/build-aux/compile \
 	$(top_srcdir)/build-aux/config.guess \
 	$(top_srcdir)/build-aux/config.sub \
 	$(top_srcdir)/build-aux/install-sh \
 	$(top_srcdir)/build-aux/ltmain.sh \
-	$(top_srcdir)/build-aux/missing build-aux/compile \
-	build-aux/config.guess build-aux/config.sub build-aux/depcomp \
+	$(top_srcdir)/build-aux/missing COPYING build-aux/compile \
+	build-aux/config.guess build-aux/config.sub \
 	build-aux/install-sh build-aux/ltmain.sh build-aux/missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
@@ -212,10 +214,7 @@ distcleancheck_listfiles = \
             \( -name .nfs* -o -name .smb* -o -name .__afs* \) \) -print
 ACLOCAL = @ACLOCAL@
 ADA = @ADA@
-
-#---------------------------------------------------------------------
-#ADAFLAGS += -gnatwa
-ADAFLAGS = @ADAFLAGS@ -gnat2022 -I$(builddir) -I$(srcdir)
+ADAFLAGS = @ADAFLAGS@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AR = @AR@
@@ -355,15 +354,31 @@ ACLOCAL_AMFLAGS = -I m4 --install
 MOSTLYCLEANFILES = 
 CLEANFILES = 
 DISTCLEANFILES = $(DEP_FILES) Makefile GNUmakefile
-EXTRA_DIST = silent-rules.mk
+
+#---------------------------------------------------------------------
+EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4
+
+#---------------------------------------------------------------------
+#AM_ADAFLAGS += -gnatwa
+AM_ADAFLAGS = -gnat2022 -I$(builddir) -I$(srcdir)
 ADB_FILES = $(IRIS_ADB_FILES)
 ADS_FILES = $(IRIS_ADS_FILES)
 DEP_FILES = $(ADB_FILES:%.adb=.deps/%.adbdep) \
 	$(ADS_FILES:%.ads=.deps/%.adsdep)
+ADALD = $(ADA)
+LTADACOMPILE = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(ADA) $(AM_ADAFLAGS) $(ADAFLAGS)
+
+ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
+        $(LIBTOOLFLAGS) --mode=link $(ADALD) \
+		$(AM_CFLAGS) $(CFLAGS) \
+		$(AM_ADAFLAGS) $(ADAFLAGS) \
+		$(AM_LDFLAGS) $(LDFLAGS) -o $(@)
+
 iris_SOURCES = $(IRIS_ADB_FILES) $(IRIS_ADS_FILES)
-IRIS_ADB_FILES = iris_main.adb capypdf.adb
+IRIS_ADB_FILES = iris.adb capypdf.adb
 IRIS_ADS_FILES = capypdf.ads
-IRIS_OBJ_FILES = $(IRIS_ADB_FILES:%.adb=%.$(OBJEXT))
+IRIS_OBJ_FILES = $(IRIS_ADB_FILES:%.adb=%.lo)
 all: all-am
 
 .SUFFIXES:
@@ -400,6 +415,10 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
+atlocal: $(top_builddir)/config.status $(srcdir)/atlocal.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+testsuite.at: $(top_builddir)/config.status $(srcdir)/testsuite.at.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
@@ -836,32 +855,56 @@ uninstall-am: uninstall-binPROGRAMS
 @GNU@include $(top_srcdir)/silent-rules.mk
 @GNU@-include $(DEP_FILES)
 
-%.$(OBJEXT) %.ali: %.adb
-	$(call v,ADA)set -e; \
-		$(ADA) -c $(ADAFLAGS) $(<) -o $(@); \
-		$(MKDIR_P) .deps; \
-		printf "$(*).$(OBJEXT) $(*).ali: \$$(wildcard " \
-			> .deps/$(*).adbdep; \
-		$(GREP) '^D ' $(*).ali | $(AWK) '{print $$2}' | tr '\n' ' ' \
-			>> .deps/$(*).adbdep; \
-		printf ")\n" >> .deps/$(*).adbdep
+@GNU@define get-adalib
+@GNU@$(shell $(ADA) --print-file-name=adalib)
+@GNU@endef
 
-%.$(OBJEXT) %.ali: %.ads
-	$(call v,ADA)set -e; \s
-		$(ADA) -c $(ADAFLAGS) $(<) -o $(@); \
-		$(MKDIR_P) .deps; \
-		printf "$(*).$(OBJEXT) $(*).ali: \$$(wildcard " \
-			> .deps/$(*).adsdep; \
-		$(GREP) '^D ' $(*).ali | $(AWK) '{print $$2}' | tr '\n' ' ' \
-			>> .deps/$(*).adsdep; \
-		printf ")\n" >> .deps/$(*).adsdep
+@GNU@define compile-ada
+@GNU@$(LTADACOMPILE) -c $(1) -o $(2)
+@GNU@endef
+
+@GNU@define make-ada-dep
+@GNU@$(MKDIR_P) .deps; \
+@GNU@printf "$(1).lo $(1).ali: \$$(wildcard " \
+@GNU@  > .deps/$(1)$(2); \
+@GNU@$(GREP) '^D ' $(1).ali | $(AWK) '{print $$2}' | tr '\n' ' ' \
+@GNU@  >> .deps/$(1)$(2); \
+@GNU@printf ")\n" >> .deps/$(1)$(2)
+@GNU@endef
+
+%.lo %.ali: %.adb
+	$(call v,ADA)set -e; $(call compile-ada,$(<),$(@)); \
+		$(call make-ada-dep,$(*),.adbdep)
+
+%.lo %.ali: %.ads
+	$(call v,ADA)set -e; $(call compile-ada,$(<),$(@)); \
+		$(call make-ada-dep,$(*),.adsdep)
 
 clean-local::
-	-rm -f *.o *.ali b~* b__*
+	-rm -f *.ali b~* b__*
 
 iris$(EXEEXT): $(IRIS_OBJ_FILES)
-	$(GNATBIND) -x iris_main.ali
-	$(GNATLINK) iris_main.ali -o $(@) $(CAPYPDF_LIBS)
+	$(GNATBIND) -x iris.ali
+	$(LTADACOMPILE) -c b~iris.adb
+	$(ADALINK) $(IRIS_OBJ_FILES) b~iris.lo \
+		-L$(call get-adalib) \
+		-R$(call get-adalib) \
+		-lgnat $(CAPYPDF_LIBS)
+$(srcdir)/package.m4: $(top_srcdir)/configure.ac $(srcdir)/Makefile.am
+	$(AWK) \
+	  'BEGIN{printf "# Signature of the current package.\n"; \
+		 printf "m4_define([AT_PACKAGE_NAME],"; \
+		 printf "[$(PACKAGE_NAME)])\n"; \
+		 printf "m4_define([AT_PACKAGE_TARNAME],"; \
+		 printf "[$(PACKAGE_TARNAME)])\n"; \
+		 printf "m4_define([AT_PACKAGE_VERSION],"; \
+		 printf "[$(PACKAGE_VERSION)])\n"; \
+		 printf "m4_define([AT_PACKAGE_STRING],"; \
+		 printf "[$(PACKAGE_STRING)])\n"; \
+		 printf "m4_define([AT_PACKAGE_BUGREPORT],"; \
+		 printf "[$(PACKAGE_BUGREPORT)])\n"; \
+		 printf "m4_define([AT_PACKAGE_URL],"; \
+		 printf "[$(PACKAGE_URL)])\n"}' > $(@)
 
 #---------------------------------------------------------------------
 # local variables:

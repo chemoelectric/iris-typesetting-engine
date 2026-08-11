@@ -1,16 +1,20 @@
+#---------------------------------------------------------------------
+# SPDX-License-Identifier: MIT
+#---------------------------------------------------------------------
+
 AC_PREREQ([2.72])
 AC_INIT([iris-typesetting-suite],[0.0.0])
 
-AC_CONFIG_SRCDIR([iris_main.adb])
+AC_CONFIG_SRCDIR([iris.adb])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
-AC_CANONICAL_BUILD                 dnl On what platform are we compiling?
-AC_CANONICAL_HOST                  dnl For what platform are we compiling?
-AC_USE_SYSTEM_EXTENSIONS           dnl Define such macros as _GNU_SOURCE.
+AC_CANONICAL_BUILD       dnl On what platform are we compiling?
+AC_CANONICAL_HOST        dnl For what platform are we compiling?
+AC_USE_SYSTEM_EXTENSIONS dnl Define such macros as _GNU_SOURCE.
 
-AM_INIT_AUTOMAKE([foreign subdir-objects tar-pax no-dist-gzip dist-xz])
-AM_SILENT_RULES([yes])
+AM_INIT_AUTOMAKE([foreign tar-pax no-dist-gzip dist-xz])
+AM_SILENT_RULES([no])
 AM_MAINTAINER_MODE
 
 LT_PREREQ([2.5.4])
@@ -37,7 +41,7 @@ AC_PROG_EGREP
 AC_CHECK_PROGS([GNATBIND],[gnatbind])
 test -n "${GNATBIND}" || AC_MSG_ERROR([gnatbind is missing])
 AC_CHECK_PROGS([GNATLINK],[gnatlink])
-test -n "${GNATLINK}" || AC_MSG_ERROR([gnatlink is missing])ss
+test -n "${GNATLINK}" || AC_MSG_ERROR([gnatlink is missing])
 
 : "${ADA:=${CC}}"
 AC_ARG_VAR([ADA],[Ada compiler [CC]])
@@ -59,7 +63,8 @@ AC_SUBST([GNU],[])
 
 CHEM_REQUIRE_GNU_MAKE_IN_PATH
 CHEM_CONFIG_MAKEFILES
-#AC_CONFIG_FILES([tests/atlocal])
+AC_CONFIG_FILES([atlocal])
+AC_CONFIG_FILES([testsuite.at])
 
 AC_OUTPUT
 
