@@ -14,13 +14,7 @@ iris$(EXEEXT): $(IRIS_OBJ_FILES)
 ADB_FILES += $(IRIS_ADB_FILES)
 ADS_FILES += $(IRIS_ADS_FILES)
 
-IRIS_ADB_COMMON =
-IRIS_ADS_COMMON =
-IRIS_C_COMMON =
-IRIS_ADB_COMMON += capypdf.adb
-IRIS_ADS_COMMON += capypdf.ads
-IRIS_ADS_COMMON += gauche_binding.ads
-IRIS_C_COMMON += gauche_runtime_init.c
+include common-source-files.am
 
 IRIS_ADB_FILES = $(IRIS_ADB_COMMON)
 IRIS_ADS_FILES = $(IRIS_ADS_COMMON)

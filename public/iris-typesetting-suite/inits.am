@@ -14,6 +14,10 @@ EXTRA_DIST =
 bin_PROGRAMS =
 AM_ADAFLAGS =
 
+IRIS_ADB_COMMON =
+IRIS_ADS_COMMON =
+IRIS_C_COMMON =
+
 DISTCLEANFILES += Makefile GNUmakefile
 
 #---------------------------------------------------------------------

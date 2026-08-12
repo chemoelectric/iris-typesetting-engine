@@ -45,35 +45,8 @@ installcheck-local:: atconfig testsuite
 
 check_PROGRAMS =
 
-check_PROGRAMS += test_capypdf
-test_capypdf_SOURCES = test_capypdf.adb	
-test_capypdf_SOURCES += $(test_capypdf_ADB)
-test_capypdf_SOURCES += $(test_capypdf_ADS)
-test_capypdf_SOURCES += $(test_capypdf_C)
-test_capypdf_ADB = $(IRIS_ADB_COMMON)
-test_capypdf_ADS = $(IRIS_ADS_COMMON)
-test_capypdf_C = $(IRIS_ADS_COMMON)
-test_capypdf_ADB += capypdf_tests.adb
-test_capypdf_ADS += capypdf_tests.ads
-TESTS_ADB += test_capypdf.adb
-TESTS_ADB += capypdf_tests.adb
-TESTS_ADS += capypdf_tests.ads
-test_capypdf$(EXEEXT): \
-		$(addsuffix .lo,$(basename $(test_capypdf_SOURCES)))
-	$(call link-ada,test_capypdf,$(^),$(LIBS))
-
-check_PROGRAMS += test_gauche_binding
-test_gauche_binding_SOURCES = test_gauche_binding.adb	
-test_gauche_binding_SOURCES += $(test_gauche_binding_ADB)
-test_gauche_binding_SOURCES += $(test_gauche_binding_ADS)
-test_gauche_binding_SOURCES += $(test_gauche_binding_C)
-test_gauche_binding_ADB = $(IRIS_ADB_COMMON)
-test_gauche_binding_ADS = $(IRIS_ADS_COMMON)
-test_gauche_binding_C = $(IRIS_C_COMMON)
-TESTS_ADB += test_gauche_binding.adb
-test_gauche_binding$(EXEEXT): \
-		$(addsuffix .lo,$(basename $(test_gauche_binding_SOURCES)))
-	$(call link-ada,test_gauche_binding,$(^),$(LIBS))
+include test_capypdf.am
+include test_gauche_binding.am
 
 #---------------------------------------------------------------------
 # local variables:
