@@ -1,0 +1,61 @@
+#---------------------------------------------------------------------
+# SPDX-License-Identifier: MIT
+#---------------------------------------------------------------------
+
+ADALD = $(ADA)
+LTADACOMPILE = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(ADA) $(AM_ADAFLAGS) $(ADAFLAGS)
+ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(ADALD) \
+	$(AM_CFLAGS) $(CFLAGS) \
+	$(AM_ADAFLAGS) $(ADAFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $(@)
+
+@GNU@define get-adainclude
+@GNU@$(shell $(ADA) --print-file-name=adainclude)
+@GNU@endef
+
+@GNU@define get-adalib
+@GNU@$(shell $(ADA) --print-file-name=adalib)
+@GNU@endef
+
+@GNU@define compile-ada
+@GNU@$(LTADACOMPILE) -c $(1) -o $(2)
+@GNU@endef
+
+@GNU@define make-ada-dep
+@GNU@$(MKDIR_P) .deps; \
+@GNU@printf "$(1).lo $(1).ali: \$$(wildcard " \
+@GNU@  > .deps/$(1)$(2); \
+@GNU@$(GREP) '^D ' $(1).ali | $(AWK) '{print $$2}' | tr '\n' ' ' \
+@GNU@  >> .deps/$(1)$(2); \
+@GNU@printf ")\n" >> .deps/$(1)$(2)
+@GNU@endef
+
+@GNU@define link-ada
+@GNU@$(call v,LINK)$(GNATBIND) $(1).ali -o b__$(1).adb && \
+@GNU@$(LTADACOMPILE) -c b__$(1).adb && \
+@GNU@$(ADALINK) $(2) b__$(1).lo \
+@GNU@	-L$(call get-adalib) \
+@GNU@	-R$(call get-adalib) \
+@GNU@	-lgnat $(3)
+@GNU@endef
+
+@GNU@define color-flag
+@GNU@$(shell \
+@GNU@  if test "${enable_color}" = no; then \
+@GNU@    printf '%s' "--color=never"; \
+@GNU@  else \
+@GNU@    printf '%s' "--color=auto"; \
+@GNU@  fi)
+@GNU@endef
+
+@GNU@define jobs-flag
+@GNU@$(filter -j%,$(MAKEFLAGS))
+@GNU@endef
+
+#---------------------------------------------------------------------
+# local variables:
+# coding: utf-8
+# tab-width: 4
+# end:

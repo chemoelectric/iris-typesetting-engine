@@ -1,0 +1,42 @@
+#---------------------------------------------------------------------
+# SPDX-License-Identifier: MIT
+#---------------------------------------------------------------------
+
+bin_PROGRAMS += iris
+iris_SOURCES =
+iris_SOURCES += $(IRIS_ADB_FILES)
+iris_SOURCES += $(IRIS_ADS_FILES)
+iris_SOURCES += $(IRIS_C_FILES)
+
+iris$(EXEEXT): $(IRIS_OBJ_FILES)
+	$(call link-ada,iris,$(^),$(LIBS))
+
+ADB_FILES += $(IRIS_ADB_FILES)
+ADS_FILES += $(IRIS_ADS_FILES)
+
+IRIS_ADB_COMMON =
+IRIS_ADS_COMMON =
+IRIS_C_COMMON =
+IRIS_ADB_COMMON += capypdf.adb
+IRIS_ADS_COMMON += capypdf.ads
+IRIS_ADS_COMMON += gauche_binding.ads
+IRIS_C_COMMON += gauche_runtime_init.c
+
+IRIS_ADB_FILES = $(IRIS_ADB_COMMON)
+IRIS_ADS_FILES = $(IRIS_ADS_COMMON)
+IRIS_ADB_FILES += iris.adb
+
+IRIS_C_FILES = $(IRIS_C_COMMON)
+
+IRIS_SRC_FILES =
+IRIS_SRC_FILES += $(IRIS_ADB_FILES)
+IRIS_SRC_FILES += $(IRIS_ADS_FILES)
+IRIS_SRC_FILES += $(IRIS_C_FILES)
+
+IRIS_OBJ_FILES = $(addsuffix .lo,$(basename $(IRIS_SRC_FILES)))
+
+#---------------------------------------------------------------------
+# local variables:
+# coding: utf-8
+# tab-width: 4
+# end:

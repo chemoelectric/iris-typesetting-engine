@@ -2,18 +2,14 @@
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
 
-.DELETE_ON_ERROR:
+@GNU@include $(top_srcdir)/silent-rules.mk
+EXTRA_DIST += silent-rules.mk
 
-ACLOCAL_AMFLAGS = -I m4 --install
-
-#---------------------------------------------------------------------
-
-include inits.am
-include definitions.am
-include mk-includes.am
-include rules.am
-include iris.am
-include tests.am
+DEP_FILES += $(ADB_FILES:%.adb=.deps/%.adbdep)
+DEP_FILES += $(ADS_FILES:%.ads=.deps/%.adsdep)
+DEP_FILES += $(TESTS_ADB:%.adb=.deps/%.adbdep)
+DEP_FILES += $(TESTS_ADS:%.ads=.deps/%.adsdep)
+@GNU@-include $(DEP_FILES)
 
 #---------------------------------------------------------------------
 # local variables:

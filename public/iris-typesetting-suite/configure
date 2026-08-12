@@ -657,6 +657,8 @@ ifnGNUmake
 ifGNUmake
 GNU_MAKE
 GNU
+GAUCHE_LIBS
+GAUCHE_CFLAGS
 CAPYPDF_LIBS
 CAPYPDF_CFLAGS
 PKG_CONFIG_LIBDIR
@@ -822,6 +824,8 @@ PKG_CONFIG_PATH
 PKG_CONFIG_LIBDIR
 CAPYPDF_CFLAGS
 CAPYPDF_LIBS
+GAUCHE_CFLAGS
+GAUCHE_LIBS
 GNU_MAKE'
 
 
@@ -1500,6 +1504,9 @@ Some influential environment variables:
               C compiler flags for CAPYPDF, overriding pkg-config
   CAPYPDF_LIBS
               linker flags for CAPYPDF, overriding pkg-config
+  GAUCHE_CFLAGS
+              C flags to link with Gauche Scheme
+  GAUCHE_LIBS linker flags to link with Gauche Scheme
   GNU_MAKE    GNU Make command
 
 Use these variables to override the choices made by 'configure' or to help
@@ -15636,6 +15643,23 @@ printf "%s\n" "yes" >&6; }
 
 fi
 CFLAGS="${CFLAGS}${CFLAGS+ }${CAPYPDF_CFLAGS}"
+LIBS="${LIBS}${LIBS+ }${CAPYPDF_LIBS}"
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking C flags to link with Gauche Scheme" >&5
+printf %s "checking C flags to link with Gauche Scheme... " >&6; }
+: "${GAUCHE_CFLAGS=`gauche-config -I | tr '\r\n' '  '`}"
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${GAUCHE_CFLAGS}" >&5
+printf "%s\n" "${GAUCHE_CFLAGS}" >&6; }
+CFLAGS="${CFLAGS}${CFLAGS+ }${GAUCHE_CFLAGS}"
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking linker flags to link with Gauche Scheme" >&5
+printf %s "checking linker flags to link with Gauche Scheme... " >&6; }
+: "${GAUCHE_LIBS=`(gauche-config -L && gauche-config -l) | tr '\r\n' '  '`}"
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: ${GAUCHE_LIBS}" >&5
+printf "%s\n" "${GAUCHE_LIBS}" >&6; }
+LIBS="${LIBS}${LIBS+ }${GAUCHE_LIBS}"
 
 # You can use ‘@GNU@’ to make GNU Make constructs unbothersome to
 # Automake. (Often you can use ‘$(eval ...)’ instead, but @GNU@ is

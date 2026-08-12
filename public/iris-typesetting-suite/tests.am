@@ -1,0 +1,82 @@
+#---------------------------------------------------------------------
+# SPDX-License-Identifier: MIT
+#---------------------------------------------------------------------
+
+EXTRA_DIST += $(srcdir)/package.m4
+$(srcdir)/package.m4: $(top_srcdir)/configure.ac $(srcdir)/Makefile.am
+	$(AWK) \
+	  'BEGIN{printf "# Signature of the current package.\n"; \
+		 printf "m4_define([AT_PACKAGE_NAME],"; \
+		 printf "[$(PACKAGE_NAME)])\n"; \
+		 printf "m4_define([AT_PACKAGE_TARNAME],"; \
+		 printf "[$(PACKAGE_TARNAME)])\n"; \
+		 printf "m4_define([AT_PACKAGE_VERSION],"; \
+		 printf "[$(PACKAGE_VERSION)])\n"; \
+		 printf "m4_define([AT_PACKAGE_STRING],"; \
+		 printf "[$(PACKAGE_STRING)])\n"; \
+		 printf "m4_define([AT_PACKAGE_BUGREPORT],"; \
+		 printf "[$(PACKAGE_BUGREPORT)])\n"; \
+		 printf "m4_define([AT_PACKAGE_URL],"; \
+		 printf "[$(PACKAGE_URL)])\n"}' > $(@)
+
+AUTOM4TE = $(SHELL) $(srcdir)/build-aux/missing --run autom4te
+
+EXTRA_DIST += $(TESTSUITE_DEPS)
+TESTSUITE_DEPS =
+TESTSUITE_DEPS += $(srcdir)/atconfig.in
+TESTSUITE_DEPS += $(srcdir)/package.m4
+TESTSUITE_DEPS += $(srcdir)/testsuite.at
+
+DISTCLEANFILES += testsuite testsuite.log
+testsuite: $(TESTSUITE_DEPS)
+	$(AUTOM4TE) --language=autotest \
+		-I '$(srcdir)' -o $(@) $(srcdir)/$(@).at
+
+ALL_THE_CHECK_FLAGS = $(color-flag) $(jobs-flag) $(TESTSUITEFLAGS)
+
+check-local:: atconfig testsuite
+	$(SHELL) testsuite $(ALL_THE_CHECK_FLAGS)
+
+installcheck-local:: atconfig testsuite
+	@if false; then \
+		$(SHELL) testsuite AUTOTEST_PATH='$(bindir)' \
+			$(ALL_THE_CHECK_FLAGS); \
+	fi							# installcheck is disabled.
+
+check_PROGRAMS =
+
+check_PROGRAMS += test_capypdf
+test_capypdf_SOURCES = test_capypdf.adb	
+test_capypdf_SOURCES += $(test_capypdf_ADB)
+test_capypdf_SOURCES += $(test_capypdf_ADS)
+test_capypdf_SOURCES += $(test_capypdf_C)
+test_capypdf_ADB = $(IRIS_ADB_COMMON)
+test_capypdf_ADS = $(IRIS_ADS_COMMON)
+test_capypdf_C = $(IRIS_ADS_COMMON)
+test_capypdf_ADB += capypdf_tests.adb
+test_capypdf_ADS += capypdf_tests.ads
+TESTS_ADB += test_capypdf.adb
+TESTS_ADB += capypdf_tests.adb
+TESTS_ADS += capypdf_tests.ads
+test_capypdf$(EXEEXT): \
+		$(addsuffix .lo,$(basename $(test_capypdf_SOURCES)))
+	$(call link-ada,test_capypdf,$(^),$(LIBS))
+
+check_PROGRAMS += test_gauche_binding
+test_gauche_binding_SOURCES = test_gauche_binding.adb	
+test_gauche_binding_SOURCES += $(test_gauche_binding_ADB)
+test_gauche_binding_SOURCES += $(test_gauche_binding_ADS)
+test_gauche_binding_SOURCES += $(test_gauche_binding_C)
+test_gauche_binding_ADB = $(IRIS_ADB_COMMON)
+test_gauche_binding_ADS = $(IRIS_ADS_COMMON)
+test_gauche_binding_C = $(IRIS_C_COMMON)
+TESTS_ADB += test_gauche_binding.adb
+test_gauche_binding$(EXEEXT): \
+		$(addsuffix .lo,$(basename $(test_gauche_binding_SOURCES)))
+	$(call link-ada,test_gauche_binding,$(^),$(LIBS))
+
+#---------------------------------------------------------------------
+# local variables:
+# coding: utf-8
+# tab-width: 4
+# end:

@@ -2,18 +2,19 @@
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
 
-.DELETE_ON_ERROR:
+ADB_FILES =
+ADS_FILES =
+TESTS_ADB =
+TESTS_ADS =
+DEP_FILES =
+MOSTLYCLEANFILES =
+CLEANFILES =
+DISTCLEANFILES =
+EXTRA_DIST =
+bin_PROGRAMS =
+AM_ADAFLAGS =
 
-ACLOCAL_AMFLAGS = -I m4 --install
-
-#---------------------------------------------------------------------
-
-include inits.am
-include definitions.am
-include mk-includes.am
-include rules.am
-include iris.am
-include tests.am
+DISTCLEANFILES += Makefile GNUmakefile
 
 #---------------------------------------------------------------------
 # local variables:

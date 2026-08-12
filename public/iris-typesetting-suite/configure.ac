@@ -53,6 +53,21 @@ CFLAGS="${CFLAGS}${CFLAGS+ }${c23_flags}"
 
 PKG_CHECK_MODULES([CAPYPDF],[capypdf])
 CFLAGS="${CFLAGS}${CFLAGS+ }${CAPYPDF_CFLAGS}"
+LIBS="${LIBS}${LIBS+ }${CAPYPDF_LIBS}"
+
+AC_MSG_CHECKING([C flags to link with Gauche Scheme])
+: "${GAUCHE_CFLAGS=`gauche-config -I | tr '\r\n' '  '`}"
+AC_ARG_VAR([GAUCHE_CFLAGS],
+  [C flags to link with Gauche Scheme])
+AC_MSG_RESULT([${GAUCHE_CFLAGS}])
+CFLAGS="${CFLAGS}${CFLAGS+ }${GAUCHE_CFLAGS}"
+
+AC_MSG_CHECKING([linker flags to link with Gauche Scheme])
+: "${GAUCHE_LIBS=`(gauche-config -L && gauche-config -l) | tr '\r\n' '  '`}"
+AC_ARG_VAR([GAUCHE_LIBS],
+  [linker flags to link with Gauche Scheme])
+AC_MSG_RESULT([${GAUCHE_LIBS}])
+LIBS="${LIBS}${LIBS+ }${GAUCHE_LIBS}"
 
 # You can use ‘@GNU@’ to make GNU Make constructs unbothersome to
 # Automake. (Often you can use ‘$(eval ...)’ instead, but @GNU@ is
