@@ -59,10 +59,10 @@ ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 @GNU@define link-ada
 @GNU@$(GNATBIND) $(1).ali -o b__$(1).adb
 @GNU@$(LTADACOMPILE) -c b__$(1).adb
-@GNU@$(ADALINK) $(IRIS_OBJ_FILES) b__$(1).lo \
+@GNU@$(ADALINK) $(2) b__$(1).lo \
 @GNU@	-L$(call get-adalib) \
 @GNU@	-R$(call get-adalib) \
-@GNU@	-lgnat $(2)
+@GNU@	-lgnat $(3)
 @GNU@endef
 
 @GNU@define color-flag
@@ -108,7 +108,7 @@ iris_SOURCES += $(IRIS_ADB_FILES)
 iris_SOURCES += $(IRIS_ADS_FILES)
 
 iris$(EXEEXT): $(IRIS_OBJ_FILES)
-	$(call link-ada,iris,$(CAPYPDF_LIBS))
+	$(call link-ada,iris,$(^),$(CAPYPDF_LIBS))
 
 ADB_FILES += $(IRIS_ADB_FILES)
 ADS_FILES += $(IRIS_ADS_FILES)
@@ -171,11 +171,11 @@ installcheck-local:: atconfig testsuite
 check_PROGRAMS =
 
 check_PROGRAMS += test_capypdf
-test_capypdf_SOURCE = $(test_capypdf_ADB) $(test_capypdf_ADS)
-test_capypdf_SOURCE += test_capypdf.adb
+test_capypdf_SOURCES = test_capypdf.adb	
+test_capypdf_SOURCES += $(test_capypdf_ADB) $(test_capypdf_ADS)
 #
 test_capypdf$(EXEEXT): test_capypdf.lo $(test_capypdf_ADB:%.adb=%.lo)
-	$(call link-ada,test_capypdf,$(CAPYPDF_LIBS))
+	$(call link-ada,test_capypdf,$(^),$(CAPYPDF_LIBS))
 #
 test_capypdf_ADB = $(IRIS_ADB_COMMON)
 test_capypdf_ADS = $(IRIS_ADB_COMMON)
