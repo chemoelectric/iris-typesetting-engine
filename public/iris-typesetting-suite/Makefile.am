@@ -75,10 +75,7 @@ ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 @GNU@endef
 
 @GNU@define jobs-flag
-@GNU@$(shell \
-@GNU@  printf "%s\n" "$(MAKEFLAGS) $(MFLAGS)" | \
-@GNU@    $(SED) -n 's/.*?\(-j[0-9]*\|--jobs=[0-9]*\).*/\1/p' | \
-@GNU@    $(SED) 's/--jobs=/ -j/')
+@GNU@$(filter -j%,$(MAKEFLAGS))
 @GNU@endef
 
 #---------------------------------------------------------------------
