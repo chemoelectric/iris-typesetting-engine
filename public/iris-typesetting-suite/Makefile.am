@@ -8,6 +8,11 @@ ACLOCAL_AMFLAGS = -I m4 --install
 
 #---------------------------------------------------------------------
 
+ADB_FILES =
+ADS_FILES =
+TESTS_ADB =
+TESTS_ADS =
+DEP_FILES =
 MOSTLYCLEANFILES =
 CLEANFILES =
 DISTCLEANFILES =
@@ -15,19 +20,7 @@ EXTRA_DIST =
 bin_PROGRAMS =
 AM_ADAFLAGS =
 
-ADB_FILES =
-ADS_FILES =
-TESTS_ADB =
-TESTS_ADS =
-DEP_FILES =
-DEP_FILES += $(ADB_FILES:%.adb=.deps/%.adbdep)
-DEP_FILES += $(ADS_FILES:%.ads=.deps/%.adsdep)
-DEP_FILES += $(TESTS_ADB:%.adb=.deps/%.adbdep)
-DEP_FILES += $(TESTS_ADS:%.ads=.deps/%.adsdep)
-DISTCLEANFILES += $(DEP_FILES)
-
 @GNU@include $(top_srcdir)/silent-rules.mk
-@GNU@-include $(DEP_FILES)
 
 EXTRA_DIST += silent-rules.mk
 
@@ -64,9 +57,9 @@ ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 @GNU@endef
 
 @GNU@define link-ada
-@GNU@$(GNATBIND) -x $(1).ali
-@GNU@$(LTADACOMPILE) -c b~$(1).adb
-@GNU@$(ADALINK) $(IRIS_OBJ_FILES) b~$(1).lo \
+@GNU@$(GNATBIND) $(1).ali -o b__$(1).adb
+@GNU@$(LTADACOMPILE) -c b__$(1).adb
+@GNU@$(ADALINK) $(IRIS_OBJ_FILES) b__$(1).lo \
 @GNU@	-L$(call get-adalib) \
 @GNU@	-R$(call get-adalib) \
 @GNU@	-lgnat $(2)
@@ -105,7 +98,7 @@ AM_ADAFLAGS += -I$(srcdir)
 		$(call make-ada-dep,$(*),.adsdep)
 
 clean-local::
-	-rm -f *.ali b~* b__*
+	-rm -f *.ali b__*
 
 #---------------------------------------------------------------------
 
@@ -190,6 +183,15 @@ test_capypdf_ADB += capypdf_tests.adb
 test_capypdf_ADS += capypdf_tests.ads
 TESTS_ADB += capypdf_tests.adb test_capypdf.adb
 TESTS_ADS += capypdf_tests.ads
+
+#---------------------------------------------------------------------
+
+DISTCLEANFILES += $(DEP_FILES)
+DEP_FILES += $(ADB_FILES:%.adb=.deps/%.adbdep)
+DEP_FILES += $(ADS_FILES:%.ads=.deps/%.adsdep)
+DEP_FILES += $(TESTS_ADB:%.adb=.deps/%.adbdep)
+DEP_FILES += $(TESTS_ADS:%.ads=.deps/%.adsdep)
+@GNU@-include $(DEP_FILES)
 
 #---------------------------------------------------------------------
 # local variables:

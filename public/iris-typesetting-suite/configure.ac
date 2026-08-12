@@ -40,8 +40,6 @@ AC_PROG_FGREP
 AC_PROG_EGREP
 AC_CHECK_PROGS([GNATBIND],[gnatbind])
 test -n "${GNATBIND}" || AC_MSG_ERROR([gnatbind is missing])
-AC_CHECK_PROGS([GNATLINK],[gnatlink])
-test -n "${GNATLINK}" || AC_MSG_ERROR([gnatlink is missing])
 
 : "${ADA:=${CC}}"
 AC_ARG_VAR([ADA],[Ada compiler [CC]])

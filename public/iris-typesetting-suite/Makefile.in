@@ -255,7 +255,6 @@ EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 FILECMD = @FILECMD@
 GNATBIND = @GNATBIND@
-GNATLINK = @GNATLINK@
 GNU = @GNU@
 GNU_MAKE = @GNU_MAKE@
 GREP = @GREP@
@@ -361,17 +360,6 @@ top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4 --install
 
 #---------------------------------------------------------------------
-MOSTLYCLEANFILES = 
-CLEANFILES = 
-DISTCLEANFILES = $(DEP_FILES) Makefile GNUmakefile testsuite \
-	testsuite.log
-
-#---------------------------------------------------------------------
-EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS)
-
-#---------------------------------------------------------------------
-AM_ADAFLAGS = -gnat2022 -gnatwa -I$(call get-adainclude) -I$(builddir) \
-	-I$(srcdir)
 ADB_FILES = $(IRIS_ADB_FILES)
 ADS_FILES = $(IRIS_ADS_FILES)
 TESTS_ADB = capypdf_tests.adb test_capypdf.adb
@@ -380,6 +368,19 @@ DEP_FILES = $(ADB_FILES:%.adb=.deps/%.adbdep) \
 	$(ADS_FILES:%.ads=.deps/%.adsdep) \
 	$(TESTS_ADB:%.adb=.deps/%.adbdep) \
 	$(TESTS_ADS:%.ads=.deps/%.adsdep)
+MOSTLYCLEANFILES = 
+CLEANFILES = 
+
+#---------------------------------------------------------------------
+DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log \
+	$(DEP_FILES)
+
+#---------------------------------------------------------------------
+EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS)
+
+#---------------------------------------------------------------------
+AM_ADAFLAGS = -gnat2022 -gnatwa -I$(call get-adainclude) -I$(builddir) \
+	-I$(srcdir)
 ADALD = $(ADA)
 LTADACOMPILE = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=compile $(ADA) $(AM_ADAFLAGS) $(ADAFLAGS)
@@ -402,6 +403,7 @@ TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
 ALL_THE_CHECK_FLAGS = $(color-flag) $(jobs-flag) $(TESTSUITEFLAGS)
 test_capypdf_SOURCE = $(test_capypdf_ADB) $(test_capypdf_ADS) \
 	test_capypdf.adb
+#
 test_capypdf_ADB = $(IRIS_ADB_COMMON) capypdf_tests.adb
 test_capypdf_ADS = $(IRIS_ADB_COMMON) capypdf_tests.ads
 all: all-am
@@ -915,7 +917,6 @@ uninstall-am: uninstall-binPROGRAMS
 .DELETE_ON_ERROR:
 
 @GNU@include $(top_srcdir)/silent-rules.mk
-@GNU@-include $(DEP_FILES)
 
 @GNU@define get-adainclude
 @GNU@$(shell $(ADA) --print-file-name=adainclude)
@@ -939,9 +940,9 @@ uninstall-am: uninstall-binPROGRAMS
 @GNU@endef
 
 @GNU@define link-ada
-@GNU@$(GNATBIND) -x $(1).ali
-@GNU@$(LTADACOMPILE) -c b~$(1).adb
-@GNU@$(ADALINK) $(IRIS_OBJ_FILES) b~$(1).lo \
+@GNU@$(GNATBIND) $(1).ali -o b__$(1).adb
+@GNU@$(LTADACOMPILE) -c b__$(1).adb
+@GNU@$(ADALINK) $(IRIS_OBJ_FILES) b__$(1).lo \
 @GNU@	-L$(call get-adalib) \
 @GNU@	-R$(call get-adalib) \
 @GNU@	-lgnat $(2)
@@ -972,7 +973,7 @@ uninstall-am: uninstall-binPROGRAMS
 		$(call make-ada-dep,$(*),.adsdep)
 
 clean-local::
-	-rm -f *.ali b~* b__*
+	-rm -f *.ali b__*
 
 iris$(EXEEXT): $(IRIS_OBJ_FILES)
 	$(call link-ada,iris,$(CAPYPDF_LIBS))
@@ -1003,8 +1004,10 @@ installcheck-local:: atconfig testsuite
 		$(SHELL) testsuite AUTOTEST_PATH='$(bindir)' \
 			$(ALL_THE_CHECK_FLAGS); \
 	fi							# installcheck is disabled.
+#
 test_capypdf$(EXEEXT): test_capypdf.lo $(test_capypdf_ADB:%.adb=%.lo)
 	$(call link-ada,test_capypdf,$(CAPYPDF_LIBS))
+@GNU@-include $(DEP_FILES)
 
 #---------------------------------------------------------------------
 # local variables:
