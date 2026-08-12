@@ -1,0 +1,29 @@
+#!/usr/bin/env -S gosh -r7
+;;; iris-findfont --- Iris font lookup command-line tool
+;;;
+;;; SPDX-License-Identifier: MIT
+
+(import (scheme base)
+        (scheme process-context)
+        (scheme write)
+        (gauche base)
+        (iris kpsewhich))
+
+;; Ensure local r7rs directory is in Scheme load path
+(add-load-path "r7rs" :relative)
+(add-load-path "./r7rs" :relative)
+
+(define (main args)
+  (let ((queries (cdr args)))
+    (if (null? queries)
+        (begin
+          (display "Usage: iris-findfont <font-query> ...\n")
+          1)
+        (begin
+          (for-each
+           (lambda (q)
+             (let ((result (kpsewhich-find-font q)))
+               (write result)
+               (newline)))
+           queries)
+          0))))
