@@ -3,8 +3,13 @@
 #---------------------------------------------------------------------
 # Configurable variable values for Autoconf test suite.
 
+SED='@SED@'
+AWK='@AWK@'
+
+abs_srcdir='@abs_srcdir@'
+abs_builddir='@abs_builddir@'
+
 #---------------------------------------------------------------------
 # local variables:
 # mode: shell-script
 # end:
-
