@@ -4,3 +4,4 @@ IRIS_ADS_COMMON += capypdf.ads
 IRIS_ADS_COMMON += gauche_binding.ads
 
 IRIS_C_COMMON += gauche_runtime_init.c
+IRIS_C_COMMON += gauche_c_macros.c
