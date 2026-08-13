@@ -91,21 +91,21 @@
                     (let ((res (kpsewhich-lookup (string-append "-format=" (car formats)) name)))
                       (if (not (null? res))
                         res
-                        (loop (cdr formats)))))))))
-        (direct (kpsewhich-lookup font-name)))
-      (if (not (null? direct))
-        direct
-        (let ((fmt-res (try-formats font-name)))
-          (if (not (null? fmt-res))
-            fmt-res
-            ;; Strip extension if present and try base name
-            (let loop-ext ((i (- (string-length font-name) 1)))
-              (cond
-                ((< i 0) '())
-                ((char=? (string-ref font-name i) #\.)
-                 (try-formats (substring font-name 0 i)))
-                ((char=? (string-ref font-name i) #\/) '())
-                (else (loop-ext (- i 1)))))))))
+                        (loop (cdr formats))))))))
+             (direct (kpsewhich-lookup font-name)))
+        (if (not (null? direct))
+          direct
+          (let ((fmt-res (try-formats font-name)))
+            (if (not (null? fmt-res))
+              fmt-res
+              ;; Strip extension if present and try base name
+              (let loop-ext ((i (- (string-length font-name) 1)))
+                (cond
+                  ((< i 0) '())
+                  ((char=? (string-ref font-name i) #\.)
+                   (try-formats (substring font-name 0 i)))
+                  ((char=? (string-ref font-name i) #\/) '())
+                  (else (loop-ext (- i 1))))))))))
 
   ;; Search for companion files (e.g. .pfb for .afm)
   (define (find-companion-files path)
