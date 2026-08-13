@@ -1,0 +1,29 @@
+#---------------------------------------------------------------------
+# SPDX-License-Identifier: MIT
+#---------------------------------------------------------------------
+
+AC_MSG_CHECKING([if the current and source directories are different])
+if test "${srcdir}" = "."; then
+  AC_MSG_RESULT([no])
+  AC_MSG_ERROR([
+--------------------------------------------------------
+
+The Iris Typesetter can be built only out-of-source.
+
+Create a directory and run configure from there.
+
+For example:
+
+  mkdir build
+  cd build
+  ../configure
+
+--------------------------------------------------------])
+else
+  AC_MSG_RESULT([yes])
+fi
+
+# local variables:
+# mode: autoconf
+# coding: utf-8
+# end:

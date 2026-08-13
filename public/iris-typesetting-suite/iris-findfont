@@ -9,10 +9,6 @@
         (gauche base)
         (iris kpsewhich))
 
-;; Ensure local r7rs directory is in Scheme load path
-(add-load-path "r7rs" :relative)
-(add-load-path "./r7rs" :relative)
-
 (define (main args)
   (let ((queries (cdr args)))
     (if (null? queries)
@@ -27,3 +23,9 @@
                (newline)))
            queries)
           0))))
+
+(main (command-line))
+
+;;; local variables:
+;;; mode: scheme
+;;; end:

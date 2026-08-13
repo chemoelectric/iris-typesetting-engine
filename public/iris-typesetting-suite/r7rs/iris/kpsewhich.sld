@@ -3,13 +3,17 @@
 ;;; SPDX-License-Identifier: MIT
 
 (define-library (iris kpsewhich)
+
   (import (scheme base)
           (scheme char)
           (scheme process-context)
-          (gauche process))
+          (gauche process)
+          (iris kpsewhich kpsewhich-process))
+
   (export kpsewhich-find-font
           kpsewhich-lookup
           path->file-uri)
+
   (begin
 
     ;; Helper: check if prefix is a prefix of str
@@ -57,18 +61,19 @@
     ;; Run kpsewhich with arguments and return list of output lines
     (define (kpsewhich-lookup . args)
       (guard (ex (else '()))
-        (let* ((proc (run-process `("kpsewhich" ,@args) :output :pipe))
+        (let* ((proc (run-process `(,kpsewhich-executable ,@args)
+                                  :output :pipe))
                (out (process-output proc))
                (lines (let loop ((acc '()))
                         (let ((line (read-line out)))
                           (if (eof-object? line)
-                              (reverse acc)
-                              (let ((trimmed (string-trim-trailing-newline line)))
-                                (if (string=? trimmed "")
-                                    (loop acc)
-                                    (loop (cons trimmed acc)))))))))
-               (status (process-wait proc)))
-          (if (equal? status 0) lines '()))))
+                            (reverse acc)
+                            (let ((trimmed (string-trim-trailing-newline line)))
+                              (if (string=? trimmed "")
+                                (loop acc)
+                                (loop (cons trimmed acc)))))))))
+          (status (process-wait proc)))
+        (if (equal? status 0) lines '())))
 
     ;; Search for font files by font name across common TeX font formats
     (define (kpsewhich-search-name font-name)
@@ -79,23 +84,23 @@
                           ((char=? (string-ref font-name i) #\/) #f)
                           (else (loop (- i 1)))))))
         (if has-ext?
-            (kpsewhich-lookup font-name)
-            (let ((res1 (kpsewhich-lookup "-format=opentype fonts" font-name)))
-              (if (not (null? res1))
-                  res1
-                  (let ((res2 (kpsewhich-lookup "-format=truetype fonts" font-name)))
-                    (if (not (null? res2))
-                        res2
-                        (let ((res3 (kpsewhich-lookup "-format=type1 fonts" font-name)))
-                          (if (not (null? res3))
-                              res3
-                              (let ((res4 (kpsewhich-lookup "-format=tfm" font-name)))
-                                (if (not (null? res4))
-                                    res4
-                                    (let ((res5 (kpsewhich-lookup "-format=ofm" font-name)))
-                                      (if (not (null? res5))
-                                          res5
-                                          (kpsewhich-lookup font-name))))))))))))))
+          (kpsewhich-lookup font-name)
+          (let ((res1 (kpsewhich-lookup "-format=opentype fonts" font-name)))
+            (if (not (null? res1))
+              res1
+              (let ((res2 (kpsewhich-lookup "-format=truetype fonts" font-name)))
+                (if (not (null? res2))
+                  res2
+                  (let ((res3 (kpsewhich-lookup "-format=type1 fonts" font-name)))
+                    (if (not (null? res3))
+                      res3
+                      (let ((res4 (kpsewhich-lookup "-format=tfm" font-name)))
+                        (if (not (null? res4))
+                          res4
+                          (let ((res5 (kpsewhich-lookup "-format=ofm" font-name)))
+                            (if (not (null? res5))
+                              res5
+                              (kpsewhich-lookup font-name))))))))))))))
 
     ;; Search for companion files (e.g. .pfb for .afm)
     (define (find-companion-files path)
@@ -105,8 +110,8 @@
          (let ((pfb-name (replace-extension path ".pfb")))
            (let ((found (kpsewhich-lookup pfb-name)))
              (if (not (null? found))
-                 found
-                 '()))))
+               found
+               '()))))
         (else '())))
 
     ;; Main font finder entry point
@@ -124,18 +129,18 @@
                 (else
                  (let ((direct (kpsewhich-lookup query)))
                    (if (not (null? direct))
-                       direct
-                       (kpsewhich-search-name query))))))
+                     direct
+                     (kpsewhich-search-name query))))))
              (all-paths
               (if (null? raw-paths)
-                  '()
-                  (let loop ((pts raw-paths) (acc '()))
-                    (if (null? pts)
-                        (reverse acc)
-                        (let* ((p (car pts))
-                               (companions (find-companion-files p)))
-                          (loop (cdr pts)
-                                (append (reverse (cons p companions)) acc)))))))
+                '()
+                (let loop ((pts raw-paths) (acc '()))
+                  (if (null? pts)
+                    (reverse acc)
+                    (let* ((p (car pts))
+                           (companions (find-companion-files p)))
+                      (loop (cdr pts)
+                            (append (reverse (cons p companions)) acc)))))))
              (uris (map path->file-uri all-paths)))
         `((query . ,query)
           (uris . ,uris))))))

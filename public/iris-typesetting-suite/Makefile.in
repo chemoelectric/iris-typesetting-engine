@@ -50,6 +50,10 @@
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
 
+#---------------------------------------------------------------------
+# SPDX-License-Identifier: MIT
+#---------------------------------------------------------------------
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -139,7 +143,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/pkg.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/enforce-out-of-source.ac \
+	$(top_srcdir)/find-kpsewhich.ac $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
@@ -237,7 +242,7 @@ AM_RECURSIVE_TARGETS = cscope
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/atconfig.in \
 	$(srcdir)/common-source-files.am $(srcdir)/definitions.am \
 	$(srcdir)/inits.am $(srcdir)/iris.am $(srcdir)/mk-includes.am \
-	$(srcdir)/rules.am $(srcdir)/test_capypdf.am \
+	$(srcdir)/r7rs.am $(srcdir)/rules.am $(srcdir)/test_capypdf.am \
 	$(srcdir)/test_gauche_binding.am $(srcdir)/tests.am \
 	$(top_srcdir)/build-aux/compile \
 	$(top_srcdir)/build-aux/config.guess \
@@ -302,7 +307,9 @@ EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 FILECMD = @FILECMD@
 GAUCHE_CFLAGS = @GAUCHE_CFLAGS@
+GAUCHE_CONFIG = @GAUCHE_CONFIG@
 GAUCHE_LIBS = @GAUCHE_LIBS@
+GAUCHE_SITELIBDIR = @GAUCHE_SITELIBDIR@
 GNATBIND = @GNATBIND@
 GNU = @GNU@
 GNU_MAKE = @GNU_MAKE@
@@ -312,6 +319,7 @@ INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+KPSEWHICH = @KPSEWHICH@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
@@ -375,6 +383,7 @@ docdir = @docdir@
 dvidir = @dvidir@
 enable_color = @enable_color@
 exec_prefix = @exec_prefix@
+gauche_sitelibdir = @gauche_sitelibdir@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -418,7 +427,9 @@ DEP_FILES = $(ADB_FILES:%.adb=.deps/%.adbdep) \
 MOSTLYCLEANFILES = 
 CLEANFILES = 
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
-EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS)
+EXTRA_DIST = silent-rules.mk r7rs/iris/kpsewhich.sld \
+	r7rs/iris/kpsewhich.md iris-findfont $(srcdir)/package.m4 \
+	$(TESTSUITE_DEPS)
 AM_ADAFLAGS = -gnat2022 -I$(call get-adainclude) -I$(builddir) \
 	-I$(srcdir)
 IRIS_ADB_COMMON = capypdf.adb
@@ -443,6 +454,10 @@ IRIS_OBJ_FILES = $(addsuffix .lo,$(basename $(IRIS_SRC_FILES)))
 AUTOM4TE = $(SHELL) $(srcdir)/build-aux/missing --run autom4te
 TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
 	$(srcdir)/testsuite.at
+AM_DISTCHECK_CONFIGURE_FLAGS =  \
+	GAUCHE_SITELIBDIR=${prefix}/gauche_sitelibdir
+AM_TESTS_ENVIRONMENT = export \
+	GAUCHE_LOAD_PATH="${abs_builddir}/r7rs${GAUCHE_LOAD_PATH+:}${GAUCHE_LOAD_PATH}";
 ALL_THE_CHECK_FLAGS = $(color-flag) $(jobs-flag) $(TESTSUITEFLAGS)
 test_capypdf_SOURCES = test_capypdf.adb $(test_capypdf_ADB) \
 	$(test_capypdf_ADS) $(test_capypdf_C)
@@ -461,7 +476,7 @@ all: all-am
 .SUFFIXES: .c .lo .o .obj
 am--refresh: GNUmakefile
 	@:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/inits.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/iris.am $(srcdir)/common-source-files.am $(srcdir)/tests.am $(srcdir)/test_capypdf.am $(srcdir)/test_gauche_binding.am $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/inits.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/iris.am $(srcdir)/common-source-files.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/test_capypdf.am $(srcdir)/test_gauche_binding.am $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -483,7 +498,7 @@ GNUmakefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__maybe_remake_depfiles)'; \
 	    cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__maybe_remake_depfiles);; \
 	esac;
-$(srcdir)/inits.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/iris.am $(srcdir)/common-source-files.am $(srcdir)/tests.am $(srcdir)/test_capypdf.am $(srcdir)/test_gauche_binding.am $(am__empty):
+$(srcdir)/inits.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/iris.am $(srcdir)/common-source-files.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/test_capypdf.am $(srcdir)/test_gauche_binding.am $(am__empty):
 
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
@@ -892,7 +907,7 @@ info: info-am
 
 info-am:
 
-install-data-am:
+install-data-am: install-data-local
 
 install-dvi: install-dvi-am
 
@@ -941,7 +956,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS
+uninstall-am: uninstall-binPROGRAMS uninstall-local
 
 .MAKE: check-am install-am install-strip
 
@@ -955,15 +970,15 @@ uninstall-am: uninstall-binPROGRAMS
 	distclean-local distclean-tags distcleancheck distdir \
 	distuninstallcheck dvi dvi-am html html-am info info-am \
 	install install-am install-binPROGRAMS install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installcheck-local installdirs \
+	install-data-am install-data-local install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installcheck-local installdirs \
 	maintainer-clean maintainer-clean-generic mostlyclean \
 	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
 	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-binPROGRAMS
+	uninstall-binPROGRAMS uninstall-local
 
 .PRECIOUS: GNUmakefile
 
@@ -1061,6 +1076,26 @@ iris$(EXEEXT): $(IRIS_OBJ_FILES)
 # local variables:
 # coding: utf-8
 # tab-width: 4
+# end:
+
+distclean-local::
+	-rm -R -f ${builddir}/r7rs
+
+install-data-local::
+	(cd $(builddir)/r7rs && \
+		find . -type d \
+			-exec ${MKDIR_P} $(DESTDIR)${gauche_sitelibdir}/{} ';')
+	(cd $(builddir)/r7rs && \
+		find . -name '*.sld' \
+			-exec cp {} $(DESTDIR)${gauche_sitelibdir}/{} ';')
+
+uninstall-local::
+	-rm -rf $(DESTDIR)${gauche_sitelibdir}
+
+#---------------------------------------------------------------------
+# local variables:
+# coding: utf-8
+# tab-width: 4d
 # end:
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac $(srcdir)/Makefile.am
 	$(AWK) \

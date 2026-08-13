@@ -32,6 +32,14 @@ testsuite: $(TESTSUITE_DEPS)
 	$(AUTOM4TE) --language=autotest \
 		-I '$(srcdir)' -o $(@) $(srcdir)/$(@).at
 
+AM_DISTCHECK_CONFIGURE_FLAGS =
+AM_DISTCHECK_CONFIGURE_FLAGS += \
+	GAUCHE_SITELIBDIR=${prefix}/gauche_sitelibdir
+
+AM_TESTS_ENVIRONMENT =
+AM_TESTS_ENVIRONMENT += \
+	export GAUCHE_LOAD_PATH="${abs_builddir}/r7rs${GAUCHE_LOAD_PATH+:}${GAUCHE_LOAD_PATH}";
+
 ALL_THE_CHECK_FLAGS = $(color-flag) $(jobs-flag) $(TESTSUITEFLAGS)
 
 check-local:: atconfig testsuite
