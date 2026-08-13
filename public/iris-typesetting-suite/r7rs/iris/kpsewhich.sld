@@ -61,7 +61,7 @@
     ;; Run kpsewhich with arguments and return list of output lines
     (define (kpsewhich-lookup . args)
       (guard (ex (else '()))
-        (let* ((proc (run-process `(,kpsewhich-executable ,@args)
+        (let* ((proc (run-process (apply kpsewhich-process args)
                                   :output :pipe))
                (out (process-output proc))
                (lines (let loop ((acc '()))
@@ -71,36 +71,41 @@
                             (let ((trimmed (string-trim-trailing-newline line)))
                               (if (string=? trimmed "")
                                 (loop acc)
-                                (loop (cons trimmed acc)))))))))
-          (status (process-wait proc)))
-        (if (equal? status 0) lines '())))
+                                (loop (cons trimmed acc))))))))
+               (status (process-wait proc)))
+          (if (equal? status 0) lines '()))))
 
     ;; Search for font files by font name across common TeX font formats
     (define (kpsewhich-search-name font-name)
-      (let ((has-ext? (let loop ((i (- (string-length font-name) 1)))
-                        (cond
-                          ((< i 0) #f)
-                          ((char=? (string-ref font-name i) #\.) #t)
-                          ((char=? (string-ref font-name i) #\/) #f)
-                          (else (loop (- i 1)))))))
-        (if has-ext?
-          (kpsewhich-lookup font-name)
-          (let ((res1 (kpsewhich-lookup "-format=opentype fonts" font-name)))
-            (if (not (null? res1))
-              res1
-              (let ((res2 (kpsewhich-lookup "-format=truetype fonts" font-name)))
-                (if (not (null? res2))
-                  res2
-                  (let ((res3 (kpsewhich-lookup "-format=type1 fonts" font-name)))
-                    (if (not (null? res3))
-                      res3
-                      (let ((res4 (kpsewhich-lookup "-format=tfm" font-name)))
-                        (if (not (null? res4))
-                          res4
-                          (let ((res5 (kpsewhich-lookup "-format=ofm" font-name)))
-                            (if (not (null? res5))
-                              res5
-                              (kpsewhich-lookup font-name))))))))))))))
+      (let* ((try-formats
+              (lambda (name)
+                (let loop ((formats '("opentype fonts"
+                                      "truetype fonts"
+                                      "type1 fonts"
+                                      "afm"
+                                      "tfm"
+                                      "pk"
+                                      "ofm")))
+                  (if (null? formats)
+                    '()
+                    (let ((res (kpsewhich-lookup (string-append "-format=" (car formats)) name)))
+                      (if (not (null? res))
+                        res
+                        (loop (cdr formats)))))))))
+             (direct (kpsewhich-lookup font-name)))
+        (if (not (null? direct))
+          direct
+          (let ((fmt-res (try-formats font-name)))
+            (if (not (null? fmt-res))
+              fmt-res
+              ;; Strip extension if present and try base name
+              (let loop-ext ((i (- (string-length font-name) 1)))
+                (cond
+                  ((< i 0) '())
+                  ((char=? (string-ref font-name i) #\.)
+                   (try-formats (substring font-name 0 i)))
+                  ((char=? (string-ref font-name i) #\/) '())
+                  (else (loop-ext (- i 1))))))))))
 
     ;; Search for companion files (e.g. .pfb for .afm)
     (define (find-companion-files path)
