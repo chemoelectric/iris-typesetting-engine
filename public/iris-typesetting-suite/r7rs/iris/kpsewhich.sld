@@ -8,6 +8,7 @@
           (scheme char)
           (scheme process-context)
           (gauche process)
+          (gauche keyword)
           (iris kpsewhich kpsewhich-process))
 
   (export kpsewhich-find-font
@@ -60,20 +61,20 @@
 
     ;; Run kpsewhich with arguments and return list of output lines
     (define (kpsewhich-lookup . args)
-      (guard (ex (else '()))
-        (let* ((proc (run-process (apply kpsewhich-process args)
-                                  :output :pipe))
-               (out (process-output proc))
-               (lines (let loop ((acc '()))
-                        (let ((line (read-line out)))
-                          (if (eof-object? line)
-                            (reverse acc)
-                            (let ((trimmed (string-trim-trailing-newline line)))
-                              (if (string=? trimmed "")
-                                (loop acc)
-                                (loop (cons trimmed acc))))))))
-               (status (process-wait proc)))
-          (if (equal? status 0) lines '()))))
+      (let ((process (apply kpsewhich-process args)))
+        (guard (ex (else '()))
+          (let* ((proc (run-process process :output :pipe))
+                 (out (process-output proc))
+                 (lines (let loop ((acc '()))
+                          (let ((line (read-line out)))
+                            (if (eof-object? line)
+                              (reverse acc)
+                              (let ((trimmed (string-trim-trailing-newline line)))
+                                (if (string=? trimmed "")
+                                  (loop acc)
+                                  (loop (cons trimmed acc))))))))
+                 (status (process-wait proc)))
+            (if status lines '())))))
 
     ;; Search for font files by font name across common TeX font formats
     (define (kpsewhich-search-name font-name)

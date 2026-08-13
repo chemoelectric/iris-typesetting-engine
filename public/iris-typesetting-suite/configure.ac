@@ -91,10 +91,6 @@ CHEM_REQUIRE_GNU_MAKE_IN_PATH
 CHEM_CONFIG_MAKEFILES
 AC_CONFIG_FILES([atconfig])
 
-#
-# FIXME: HANDLE kpsewhich THAT IS MORE THAN JUST AN EXECUTABLE.
-#        IOW, IF IT IS A MULTIPLE PARTS STRING, TREAT PARTS AS ARGS.
-#
 AC_CONFIG_COMMANDS([r7rs],[
   AS_MKDIR_P(["${r7rs_dst}/iris/kpsewhich"])
   (cd "${r7rs_src}" && tar cf - .) | (cd "${r7rs_dst}" && tar xf -)
@@ -102,16 +98,20 @@ AC_CONFIG_COMMANDS([r7rs],[
   cat > "${r7rs_dst}/iris/kpsewhich/kpsewhich-process.sld" <<EOF
 (define-library (iris kpsewhich kpsewhich-process)
   (export kpsewhich-process)
-  (import (scheme base))
+  (import (scheme base)
+          (srfi 13)
+          (srfi 14))
   (begin
     (define (kpsewhich-process . args)
-      (cons "${kpsewhich_process}" args))
+      \`(,@(map string->symbol
+               (string-tokenize "${kpsewhich_command}"))
+        ,@(map string->symbol args)))
     ))
 EOF
 ],[
   r7rs_src="${srcdir}/r7rs"
   r7rs_dst="r7rs"
-  kpsewhich_process="${KPSEWHICH}"
+  kpsewhich_command="${KPSEWHICH}"
 ])
 
 AC_OUTPUT

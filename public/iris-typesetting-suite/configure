@@ -1499,7 +1499,7 @@ Some influential environment variables:
               you have headers in a nonstandard directory <include dir>
   LT_SYS_LIBRARY_PATH
               User-defined run-time library search path.
-  KPSEWHICH   kpsewhich executable for finding TeX files
+  KPSEWHICH   kpsewhich command for finding TeX files
   ADA         Ada compiler command [default is: same command as CC]
   ADAFLAGS    Ada compiler flags [-g -O3 -march=native -mtune=native]
   PKG_CONFIG  path to pkg-config utility
@@ -15365,8 +15365,8 @@ fi
 printf "%s\n" "$as_me: WARNING: -------------------------------------------------------------" >&2;}
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: kpsewhich is missing. Consider installing TeXLive or similar." >&5
 printf "%s\n" "$as_me: WARNING: kpsewhich is missing. Consider installing TeXLive or similar." >&2;}
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: Using “/bin/false” as the kpsewhich executable." >&5
-printf "%s\n" "$as_me: WARNING: Using “/bin/false” as the kpsewhich executable." >&2;}
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: Using “/bin/false” as the kpsewhich command." >&5
+printf "%s\n" "$as_me: WARNING: Using “/bin/false” as the kpsewhich command." >&2;}
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: -------------------------------------------------------------" >&5
 printf "%s\n" "$as_me: WARNING: -------------------------------------------------------------" >&2;}
     KPSEWHICH="/bin/false"
@@ -15979,10 +15979,6 @@ printf "%s\n" "$as_me: WARNING: Please consider installing and using GNU Make:
 ac_config_files="$ac_config_files atconfig"
 
 
-#
-# FIXME: HANDLE kpsewhich THAT IS MORE THAN JUST AN EXECUTABLE.
-#        IOW, IF IT IS A MULTIPLE PARTS STRING, TREAT PARTS AS ARGS.
-#
 ac_config_commands="$ac_config_commands r7rs"
 
 
@@ -17021,7 +17017,7 @@ fi
 
   r7rs_src="${srcdir}/r7rs"
   r7rs_dst="r7rs"
-  kpsewhich_process="${KPSEWHICH}"
+  kpsewhich_command="${KPSEWHICH}"
 
 
 _ACEOF
@@ -18133,10 +18129,14 @@ EOF
   cat > "${r7rs_dst}/iris/kpsewhich/kpsewhich-process.sld" <<EOF
 (define-library (iris kpsewhich kpsewhich-process)
   (export kpsewhich-process)
-  (import (scheme base))
+  (import (scheme base)
+          (srfi 13)
+          (srfi 14))
   (begin
     (define (kpsewhich-process . args)
-      (cons "${kpsewhich_process}" args))
+      \`(,@(map string->symbol
+               (string-tokenize "${kpsewhich_command}"))
+        ,@(map string->symbol args)))
     ))
 EOF
  ;;
