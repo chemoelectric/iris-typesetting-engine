@@ -1,0 +1,27 @@
+dnl find-fontconfig.ac --- Find fc-list executable and configure it
+dnl
+dnl SPDX-License-Identifier: MIT
+
+AC_PATH_PROG([FCLIST], [fc-list])
+AS_IF([test -z "$FCLIST"],
+  [AC_MSG_WARN([fc-list was not found.])])
+
+AC_MSG_CHECKING([how to run fc-list from Gauche Scheme])
+AC_SUBST([FCLIST_PROCESS])
+AS_IF([test -n "$FCLIST"],
+  [FCLIST_PROCESS="'(\"$FCLIST\")'"],
+  [FCLIST_PROCESS="'(\"fc-list\")'"])
+AC_MSG_RESULT([$FCLIST_PROCESS])
+
+AC_CONFIG_FILES([r7rs/iris/fontconfig/fontconfig-process.sld:r7rs/iris/fontconfig/fontconfig-process.sld.in])
+
+AC_CONFIG_COMMANDS_POST([
+  AS_IF([test -d r7rs/iris/fontconfig],
+    [AS_IF([test -f r7rs/iris/fontconfig/fontconfig-process.sld],
+       [AS_IF([test -d "$srcdir/r7rs/iris/fontconfig"],
+	  [cp -f "$srcdir/r7rs/iris/fontconfig/fontconfig-process.sld" r7rs/iris/fontconfig/])])])
+])
+
+AC_CONFIG_COMMANDS_POST([
+  mkdir -p r7rs/iris && cp -f "$srcdir/r7rs/iris/fontconfig.sld" r7rs/iris/
+])

@@ -1,0 +1,10 @@
+;;; r7rs/iris/fontconfig/fontconfig-process.sld.in --- Generated fc-list process configuration
+;;;
+;;; SPDX-License-Identifier: MIT
+
+(define-library (iris fontconfig fontconfig-process)
+  (export fontconfig-process)
+  (import (scheme base))
+  (begin
+    (define (fontconfig-process . args)
+      (append @FCLIST_PROCESS@ args))))

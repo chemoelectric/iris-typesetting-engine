@@ -1,4 +1,4 @@
-#!/usr/bin/env -S gosh -r7
+#!/usr/bin/env -S gosh -r7 -I ./r7rs
 ;;; iris-findfont --- Iris font lookup command-line tool
 ;;;
 ;;; SPDX-License-Identifier: MIT
@@ -7,7 +7,29 @@
         (scheme process-context)
         (scheme write)
         (gauche base)
-        (iris kpsewhich))
+        (iris kpsewhich)
+        (iris fontconfig))
+
+(define (uris-of font-entry)
+  (let ((pair (assoc 'uris font-entry)))
+    (if pair (cdr pair) '())))
+
+(define (same-font? f1 f2)
+  (equal? (uris-of f1) (uris-of f2)))
+
+(define (merge-font-lists l1 l2)
+  (let loop ((rest l2) (acc (reverse l1)))
+    (if (null? rest)
+        (reverse acc)
+        (let ((item (car rest)))
+          (if (any (lambda (existing) (same-font? existing item)) acc)
+              (loop (cdr rest) acc)
+              (loop (cdr rest) (cons item acc)))))))
+
+(define (find-font query)
+  (let ((fk (kpsewhich-find-font query))
+        (ff (fontconfig-find-font query)))
+    (merge-font-lists fk ff)))
 
 (define (main args)
   (let ((queries (cdr args)))
@@ -18,14 +40,12 @@
         (begin
           (for-each
            (lambda (q)
-             (let ((result (kpsewhich-find-font q)))
+             (let ((result (find-font q)))
                (write result)
                (newline)))
            queries)
           0))))
 
-(main (command-line))
-
-;;; local variables:
-;;; mode: scheme
-;;; end:
+;; Local Variables:
+;; mode: scheme
+;; End:
