@@ -92,60 +92,60 @@
                       (if (not (null? res))
                         res
                         (loop (cdr formats)))))))))
-             (direct (kpsewhich-lookup font-name)))
-        (if (not (null? direct))
-          direct
-          (let ((fmt-res (try-formats font-name)))
-            (if (not (null? fmt-res))
-              fmt-res
-              ;; Strip extension if present and try base name
-              (let loop-ext ((i (- (string-length font-name) 1)))
-                (cond
-                  ((< i 0) '())
-                  ((char=? (string-ref font-name i) #\.)
-                   (try-formats (substring font-name 0 i)))
-                  ((char=? (string-ref font-name i) #\/) '())
-                  (else (loop-ext (- i 1))))))))))
-
-    ;; Search for companion files (e.g. .pfb for .afm)
-    (define (find-companion-files path)
-      (cond
-        ((and (>= (string-length path) 4)
-              (string-prefix? ".afm" (substring path (- (string-length path) 4) (string-length path))))
-         (let ((pfb-name (replace-extension path ".pfb")))
-           (let ((found (kpsewhich-lookup pfb-name)))
-             (if (not (null? found))
-               found
-               '()))))
-        (else '())))
-
-    ;; Main font finder entry point
-    ;; Returns S-expression list:
-    ;; ((query . "query") (uris . ("file:///path1" ...)))
-    (define (kpsewhich-find-font query)
-      (let* ((raw-paths
+        (direct (kpsewhich-lookup font-name)))
+      (if (not (null? direct))
+        direct
+        (let ((fmt-res (try-formats font-name)))
+          (if (not (null? fmt-res))
+            fmt-res
+            ;; Strip extension if present and try base name
+            (let loop-ext ((i (- (string-length font-name) 1)))
               (cond
-                ((string-prefix? "file:" query)
-                 (let ((fname (substring query 5 (string-length query))))
-                   (kpsewhich-lookup fname)))
-                ((string-prefix? "name:" query)
-                 (let ((mname (substring query 5 (string-length query))))
-                   (kpsewhich-search-name mname)))
-                (else
-                 (let ((direct (kpsewhich-lookup query)))
-                   (if (not (null? direct))
-                     direct
-                     (kpsewhich-search-name query))))))
-             (all-paths
-              (if (null? raw-paths)
-                '()
-                (let loop ((pts raw-paths) (acc '()))
-                  (if (null? pts)
-                    (reverse acc)
-                    (let* ((p (car pts))
-                           (companions (find-companion-files p)))
-                      (loop (cdr pts)
-                            (append (reverse (cons p companions)) acc)))))))
-             (uris (map path->file-uri all-paths)))
-        `((query . ,query)
-          (uris . ,uris))))))
+                ((< i 0) '())
+                ((char=? (string-ref font-name i) #\.)
+                 (try-formats (substring font-name 0 i)))
+                ((char=? (string-ref font-name i) #\/) '())
+                (else (loop-ext (- i 1)))))))))
+
+  ;; Search for companion files (e.g. .pfb for .afm)
+  (define (find-companion-files path)
+    (cond
+      ((and (>= (string-length path) 4)
+            (string-prefix? ".afm" (substring path (- (string-length path) 4) (string-length path))))
+       (let ((pfb-name (replace-extension path ".pfb")))
+         (let ((found (kpsewhich-lookup pfb-name)))
+           (if (not (null? found))
+             found
+             '()))))
+      (else '())))
+
+  ;; Main font finder entry point
+  ;; Returns S-expression list:
+  ;; ((query . "query") (uris . ("file:///path1" ...)))
+  (define (kpsewhich-find-font query)
+    (let* ((raw-paths
+            (cond
+              ((string-prefix? "file:" query)
+               (let ((fname (substring query 5 (string-length query))))
+                 (kpsewhich-lookup fname)))
+              ((string-prefix? "name:" query)
+               (let ((mname (substring query 5 (string-length query))))
+                 (kpsewhich-search-name mname)))
+              (else
+               (let ((direct (kpsewhich-lookup query)))
+                 (if (not (null? direct))
+                   direct
+                   (kpsewhich-search-name query))))))
+           (all-paths
+            (if (null? raw-paths)
+              '()
+              (let loop ((pts raw-paths) (acc '()))
+                (if (null? pts)
+                  (reverse acc)
+                  (let* ((p (car pts))
+                         (companions (find-companion-files p)))
+                    (loop (cdr pts)
+                          (append (reverse (cons p companions)) acc)))))))
+           (uris (map path->file-uri all-paths)))
+      `((query . ,query)
+        (uris . ,uris))))))
