@@ -108,17 +108,50 @@
                   ((char=? (string-ref font-name i) #\/) '())
                   (else (loop-ext (- i 1))))))))))
 
-  ;; Search for companion files (e.g. .pfb for .afm)
-  (define (find-companion-files path)
-    (cond
-      ((and (>= (string-length path) 4)
-            (string-prefix? ".afm" (substring path (- (string-length path) 4) (string-length path))))
-       (let ((pfb-name (replace-extension path ".pfb")))
-         (let ((found (kpsewhich-lookup pfb-name)))
-           (if (not (null? found))
-             found
-             '()))))
-      (else '())))
+  ;; Extract filename from path (strip leading directory components)
+  (define (basename path)
+    (let loop ((i (- (string-length path) 1)))
+      (cond
+        ((< i 0) path)
+        ((char=? (string-ref path i) #\/)
+         (substring path (+ i 1) (string-length path)))
+        (else (loop (- i 1))))))
+
+  ;; Extract stem (strip directory path AND extension)
+  (define (extract-stem path)
+    (let* ((name (basename path))
+           (len (string-length name)))
+      (let loop ((i (- len 1)))
+        (cond
+          ((< i 0) name)
+          ((char=? (string-ref name i) #\.)
+           (substring name 0 i))
+          (else (loop (- i 1)))))))
+
+  ;; Remove duplicate elements from list while preserving order
+  (define (remove-duplicates lst)
+    (let loop ((rest lst) (acc '()))
+      (if (null? rest)
+        (reverse acc)
+        (if (member (car rest) acc)
+          (loop (cdr rest) acc)
+          (loop (cdr rest) (cons (car rest) acc))))))
+
+  ;; Find all associated files for a given font stem across extensions and formats
+  (define (find-all-associated-files stem)
+    (let* ((extensions '(".tfm" ".afm" ".pfb" ".pfa" ".otf" ".ttf" ".vf" ".ofm"))
+           (formats '("tfm" "afm" "type1 fonts" "opentype fonts" "truetype fonts" "vf" "ofm"))
+           (ext-results
+            (apply append
+                   (map (lambda (ext)
+                          (kpsewhich-lookup (string-append stem ext)))
+                        extensions)))
+           (fmt-results
+            (apply append
+                   (map (lambda (fmt)
+                          (kpsewhich-lookup (string-append "-format=" fmt) stem))
+                        formats))))
+      (remove-duplicates (append ext-results fmt-results))))
 
   ;; Main font finder entry point
   ;; Returns S-expression list:
@@ -137,16 +170,14 @@
                  (if (not (null? direct))
                    direct
                    (kpsewhich-search-name query))))))
+           (stems
+            (remove-duplicates
+             (cons (extract-stem query)
+                   (map extract-stem raw-paths))))
            (all-paths
-            (if (null? raw-paths)
-              '()
-              (let loop ((pts raw-paths) (acc '()))
-                (if (null? pts)
-                  (reverse acc)
-                  (let* ((p (car pts))
-                         (companions (find-companion-files p)))
-                    (loop (cdr pts)
-                          (append (reverse (cons p companions)) acc)))))))
+            (remove-duplicates
+             (append raw-paths
+                     (apply append (map find-all-associated-files stems)))))
            (uris (map path->file-uri all-paths)))
       `((query . ,query)
         (uris . ,uris))))))
