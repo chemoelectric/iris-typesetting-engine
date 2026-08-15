@@ -46,7 +46,6 @@ AC_CHECK_PROGS([GAUCHE_CONFIG],[gauche-config])
 test -n "${GAUCHE_CONFIG}" || AC_MSG_ERROR([gauche-config is missing])
 
 m4_include([find-kpsewhich.ac])
-m4_include([find-fontconfig.ac])
 
 : "${ADA:=${CC}}"
 AC_ARG_VAR([ADA],[Ada compiler command [default is: same command as CC]])
