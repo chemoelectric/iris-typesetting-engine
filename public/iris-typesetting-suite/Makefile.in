@@ -1229,12 +1229,6 @@ installcheck-local:: atconfig testsuite
 			$(ALL_THE_CHECK_FLAGS); \
 	fi
 
-#######################################################################################################################
-#include test_capypdf.am
-#include test_gauche_binding.am
-#include test_fontconfig.am
-#include test_tkrzw.am
-
 #---------------------------------------------------------------------
 # local variables:
 # coding: utf-8
@@ -1242,8 +1236,6 @@ installcheck-local:: atconfig testsuite
 # end:
 
 #---------------------------------------------------------------------
-
-#include iris.am
 
 #---------------------------------------------------------------------
 # local variables:
