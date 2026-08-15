@@ -164,7 +164,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am__objects_1 =
 am__objects_2 = $(am__objects_1)
 am__objects_3 = gauche_runtime_init.$(OBJEXT) \
-	gauche_c_macros.$(OBJEXT)
+	gauche_c_macros.$(OBJEXT) gauche_tkrzw.$(OBJEXT)
 am__objects_4 = $(am__objects_3)
 am_iris_OBJECTS = $(am__objects_2) $(am__objects_2) $(am__objects_4)
 iris_OBJECTS = $(am_iris_OBJECTS)
@@ -201,7 +201,7 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/gauche_c_macros.Po \
-	./$(DEPDIR)/gauche_runtime_init.Po
+	./$(DEPDIR)/gauche_runtime_init.Po ./$(DEPDIR)/gauche_tkrzw.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -366,6 +366,8 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+TKRZW_CFLAGS = @TKRZW_CFLAGS@
+TKRZW_LIBS = @TKRZW_LIBS@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -439,15 +441,17 @@ DEP_FILES = $(ADB_FILES:%.adb=.deps/%.adbdep) \
 MOSTLYCLEANFILES = 
 CLEANFILES = 
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
-EXTRA_DIST = silent-rules.mk r7rs/iris/kpsewhich.sld \
+EXTRA_DIST = silent-rules.mk tkrzw_langc.h r7rs/iris/kpsewhich.sld \
 	r7rs/iris/kpsewhich.md r7rs/iris/fontconfig.sld \
-	r7rs/iris/fontconfig.md doc/md/fontconfig.md iris-findfont \
-	$(srcdir)/package.m4 $(TESTSUITE_DEPS)
+	r7rs/iris/fontconfig.md r7rs/iris/tkrzw.sld r7rs/iris/tkrzw.md \
+	r7rs/iris/dbm/tkrzw.sld doc/md/fontconfig.md doc/md/tkrzw.md \
+	iris-findfont $(srcdir)/package.m4 $(TESTSUITE_DEPS)
 AM_ADAFLAGS = -gnat2022 -I$(call get-adainclude) -I$(builddir) \
 	-I$(srcdir)
-IRIS_ADB_COMMON = capypdf.adb fontconfig.adb
-IRIS_ADS_COMMON = capypdf.ads gauche_binding.ads fontconfig.ads
-IRIS_C_COMMON = gauche_runtime_init.c gauche_c_macros.c
+IRIS_ADB_COMMON = capypdf.adb fontconfig.adb tkrzw.adb
+IRIS_ADS_COMMON = capypdf.ads gauche_binding.ads fontconfig.ads \
+	tkrzw.ads
+IRIS_C_COMMON = gauche_runtime_init.c gauche_c_macros.c gauche_tkrzw.c
 ADALD = $(ADA)
 LTADACOMPILE = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=compile $(ADA) $(AM_ADAFLAGS) $(ADAFLAGS)
@@ -585,6 +589,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_c_macros.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_runtime_init.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_tkrzw.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -909,6 +914,7 @@ distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -f ./$(DEPDIR)/gauche_c_macros.Po
 	-rm -f ./$(DEPDIR)/gauche_runtime_init.Po
+	-rm -f ./$(DEPDIR)/gauche_tkrzw.Po
 	-rm -f GNUmakefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-libtool distclean-local distclean-tags
@@ -958,6 +964,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -rf $(top_srcdir)/autom4te.cache
 	-rm -f ./$(DEPDIR)/gauche_c_macros.Po
 	-rm -f ./$(DEPDIR)/gauche_runtime_init.Po
+	-rm -f ./$(DEPDIR)/gauche_tkrzw.Po
 	-rm -f GNUmakefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
