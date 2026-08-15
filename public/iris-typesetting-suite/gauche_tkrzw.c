@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "tkrzw_langc.h"
+#include <tkrzw_langc.h>
 
 // Open database with path, writable flag, and tuning parameters
 TkrzwDBM*

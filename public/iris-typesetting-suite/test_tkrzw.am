@@ -1,0 +1,22 @@
+#---------------------------------------------------------------------
+# SPDX-License-Identifier: MIT
+#---------------------------------------------------------------------
+
+check_PROGRAMS += test_tkrzw
+test_tkrzw_SOURCES = test_tkrzw.adb	
+test_tkrzw_SOURCES += $(test_tkrzw_ADB)
+test_tkrzw_SOURCES += $(test_tkrzw_ADS)
+test_tkrzw_SOURCES += $(test_tkrzw_C)
+test_tkrzw_ADB = $(IRIS_ADB_COMMON)
+test_tkrzw_ADS = $(IRIS_ADS_COMMON)
+test_tkrzw_C = $(IRIS_C_COMMON)
+TESTS_ADB += test_tkrzw.adb
+test_tkrzw$(EXEEXT): \
+		$(addsuffix .lo,$(basename $(test_tkrzw_SOURCES)))
+	$(call link-ada,test_tkrzw,$(^),$(LIBS))
+
+#---------------------------------------------------------------------
+# local variables:
+# coding: utf-8
+# tab-width: 4
+# end:
