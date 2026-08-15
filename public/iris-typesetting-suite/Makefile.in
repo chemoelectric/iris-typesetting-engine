@@ -54,6 +54,10 @@
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
 
+#---------------------------------------------------------------------
+# SPDX-License-Identifier: MIT
+#---------------------------------------------------------------------
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -131,7 +135,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = iris$(EXEEXT)
-check_PROGRAMS = test_capypdf$(EXEEXT) test_gauche_binding$(EXEEXT)
+check_PROGRAMS = test_capypdf$(EXEEXT) test_gauche_binding$(EXEEXT) \
+	test_fontconfig$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -144,8 +149,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/pkg.m4 \
 	$(top_srcdir)/enforce-out-of-source.ac \
-	$(top_srcdir)/find-kpsewhich.ac \
-	$(top_srcdir)/find-fontconfig.ac $(top_srcdir)/configure.ac
+	$(top_srcdir)/find-kpsewhich.ac $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
@@ -153,8 +157,7 @@ DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES = r7rs/iris/fontconfig/fontconfig-process.sld \
-	atconfig
+CONFIG_CLEAN_FILES = atconfig
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
@@ -174,6 +177,10 @@ am_test_capypdf_OBJECTS = $(am__objects_2) $(am__objects_2) \
 	$(am__objects_2)
 test_capypdf_OBJECTS = $(am_test_capypdf_OBJECTS)
 test_capypdf_LDADD = $(LDADD)
+am_test_fontconfig_OBJECTS = $(am__objects_2) $(am__objects_2) \
+	$(am__objects_4)
+test_fontconfig_OBJECTS = $(am_test_fontconfig_OBJECTS)
+test_fontconfig_LDADD = $(LDADD)
 am_test_gauche_binding_OBJECTS = $(am__objects_2) $(am__objects_2) \
 	$(am__objects_4)
 test_gauche_binding_OBJECTS = $(am_test_gauche_binding_OBJECTS)
@@ -215,9 +222,9 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(iris_SOURCES) $(test_capypdf_SOURCES) \
-	$(test_gauche_binding_SOURCES)
+	$(test_fontconfig_SOURCES) $(test_gauche_binding_SOURCES)
 DIST_SOURCES = $(iris_SOURCES) $(test_capypdf_SOURCES) \
-	$(test_gauche_binding_SOURCES)
+	$(test_fontconfig_SOURCES) $(test_gauche_binding_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -245,18 +252,16 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/atconfig.in \
 	$(srcdir)/common-source-files.am $(srcdir)/definitions.am \
 	$(srcdir)/inits.am $(srcdir)/iris.am $(srcdir)/mk-includes.am \
 	$(srcdir)/r7rs.am $(srcdir)/rules.am $(srcdir)/test_capypdf.am \
-	$(srcdir)/test_gauche_binding.am $(srcdir)/tests.am \
-	$(top_srcdir)/build-aux/compile \
+	$(srcdir)/test_fontconfig.am $(srcdir)/test_gauche_binding.am \
+	$(srcdir)/tests.am $(top_srcdir)/build-aux/compile \
 	$(top_srcdir)/build-aux/config.guess \
 	$(top_srcdir)/build-aux/config.sub \
 	$(top_srcdir)/build-aux/depcomp \
 	$(top_srcdir)/build-aux/install-sh \
 	$(top_srcdir)/build-aux/ltmain.sh \
-	$(top_srcdir)/build-aux/missing \
-	$(top_srcdir)/r7rs/iris/fontconfig/fontconfig-process.sld.in \
-	COPYING build-aux/compile build-aux/config.guess \
-	build-aux/config.sub build-aux/depcomp build-aux/install-sh \
-	build-aux/ltmain.sh build-aux/missing
+	$(top_srcdir)/build-aux/missing COPYING build-aux/compile \
+	build-aux/config.guess build-aux/config.sub build-aux/depcomp \
+	build-aux/install-sh build-aux/ltmain.sh build-aux/missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -308,8 +313,6 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 ETAGS = @ETAGS@
 EXEEXT = @EXEEXT@
-FCLIST = @FCLIST@
-FCLIST_PROCESS = @FCLIST_PROCESS@
 FGREP = @FGREP@
 FILECMD = @FILECMD@
 FONTCONFIG_CFLAGS = @FONTCONFIG_CFLAGS@
@@ -426,7 +429,8 @@ top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4 --install
 ADB_FILES = $(IRIS_ADB_FILES)
 ADS_FILES = $(IRIS_ADS_FILES)
-TESTS_ADB = test_capypdf.adb capypdf_tests.adb test_gauche_binding.adb
+TESTS_ADB = test_capypdf.adb capypdf_tests.adb test_gauche_binding.adb \
+	test_fontconfig.adb
 TESTS_ADS = capypdf_tests.ads
 DEP_FILES = $(ADB_FILES:%.adb=.deps/%.adbdep) \
 	$(ADS_FILES:%.ads=.deps/%.adsdep) \
@@ -437,12 +441,12 @@ CLEANFILES =
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
 EXTRA_DIST = silent-rules.mk r7rs/iris/kpsewhich.sld \
 	r7rs/iris/kpsewhich.md r7rs/iris/fontconfig.sld \
-	r7rs/iris/fontconfig.md find-fontconfig.ac iris-findfont \
+	r7rs/iris/fontconfig.md doc/md/fontconfig.md iris-findfont \
 	$(srcdir)/package.m4 $(TESTSUITE_DEPS)
 AM_ADAFLAGS = -gnat2022 -I$(call get-adainclude) -I$(builddir) \
 	-I$(srcdir)
-IRIS_ADB_COMMON = capypdf.adb
-IRIS_ADS_COMMON = capypdf.ads gauche_binding.ads
+IRIS_ADB_COMMON = capypdf.adb fontconfig.adb
+IRIS_ADS_COMMON = capypdf.ads gauche_binding.ads fontconfig.ads
 IRIS_C_COMMON = gauche_runtime_init.c gauche_c_macros.c
 ADALD = $(ADA)
 LTADACOMPILE = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
@@ -479,13 +483,18 @@ test_gauche_binding_SOURCES = test_gauche_binding.adb \
 test_gauche_binding_ADB = $(IRIS_ADB_COMMON)
 test_gauche_binding_ADS = $(IRIS_ADS_COMMON)
 test_gauche_binding_C = $(IRIS_C_COMMON)
+test_fontconfig_SOURCES = test_fontconfig.adb $(test_fontconfig_ADB) \
+	$(test_fontconfig_ADS) $(test_fontconfig_C)
+test_fontconfig_ADB = $(IRIS_ADB_COMMON)
+test_fontconfig_ADS = $(IRIS_ADS_COMMON)
+test_fontconfig_C = $(IRIS_C_COMMON)
 all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
 am--refresh: GNUmakefile
 	@:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/inits.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/iris.am $(srcdir)/common-source-files.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/test_capypdf.am $(srcdir)/test_gauche_binding.am $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/inits.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/iris.am $(srcdir)/common-source-files.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/test_capypdf.am $(srcdir)/test_gauche_binding.am $(srcdir)/test_fontconfig.am $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -507,7 +516,7 @@ GNUmakefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__maybe_remake_depfiles)'; \
 	    cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__maybe_remake_depfiles);; \
 	esac;
-$(srcdir)/inits.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/iris.am $(srcdir)/common-source-files.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/test_capypdf.am $(srcdir)/test_gauche_binding.am $(am__empty):
+$(srcdir)/inits.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/iris.am $(srcdir)/common-source-files.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/test_capypdf.am $(srcdir)/test_gauche_binding.am $(srcdir)/test_fontconfig.am $(am__empty):
 
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
@@ -517,8 +526,6 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
-r7rs/iris/fontconfig/fontconfig-process.sld: $(top_builddir)/config.status $(top_srcdir)/r7rs/iris/fontconfig/fontconfig-process.sld.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
 atconfig: $(top_builddir)/config.status $(srcdir)/atconfig.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-binPROGRAMS: $(bin_PROGRAMS)
@@ -1147,6 +1154,15 @@ test_capypdf$(EXEEXT): \
 test_gauche_binding$(EXEEXT): \
 		$(addsuffix .lo,$(basename $(test_gauche_binding_SOURCES)))
 	$(call link-ada,test_gauche_binding,$(^),$(LIBS))
+
+#---------------------------------------------------------------------
+# local variables:
+# coding: utf-8
+# tab-width: 4
+# end:
+test_fontconfig$(EXEEXT): \
+		$(addsuffix .lo,$(basename $(test_fontconfig_SOURCES)))
+	$(call link-ada,test_fontconfig,$(^),$(LIBS))
 
 #---------------------------------------------------------------------
 # local variables:

@@ -14,6 +14,7 @@
 
 with interfaces.c; use interfaces.c;
 with interfaces.c.strings; use interfaces.c.strings;
+with system; use system;
 
 package fontconfig is
 
@@ -73,12 +74,12 @@ package fontconfig is
    -- font property constants
    -- ------------------------------------------------------------------
 
-   fc_family_prop    : constant string := "family" & interfaces.c.nul;
-   fc_style_prop     : constant string := "style" & interfaces.c.nul;
-   fc_file_prop      : constant string := "file" & interfaces.c.nul;
-   fc_index_prop     : constant string := "index" & interfaces.c.nul;
-   fc_fullname_prop  : constant string := "fullname" & interfaces.c.nul;
-   fc_postscript_prop: constant string := "postscriptname" & interfaces.c.nul;
+   fc_family_prop    : constant char_array := "family" & interfaces.c.nul;
+   fc_style_prop     : constant char_array := "style" & interfaces.c.nul;
+   fc_file_prop      : constant char_array := "file" & interfaces.c.nul;
+   fc_index_prop     : constant char_array := "index" & interfaces.c.nul;
+   fc_fullname_prop  : constant char_array := "fullname" & interfaces.c.nul;
+   fc_postscript_prop: constant char_array := "postscriptname" & interfaces.c.nul;
 
    -- ------------------------------------------------------------------
    -- high-level ada 2022 subprogram specifications with contracts
