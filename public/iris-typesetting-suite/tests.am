@@ -55,6 +55,7 @@ check_PROGRAMS =
 
 include test_capypdf.am
 include test_gauche_binding.am
+include test_fontconfig.am
 
 #---------------------------------------------------------------------
 # local variables:

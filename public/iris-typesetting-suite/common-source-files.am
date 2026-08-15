@@ -1,7 +1,9 @@
 IRIS_ADB_COMMON += capypdf.adb
+IRIS_ADB_COMMON += fontconfig.adb
 
 IRIS_ADS_COMMON += capypdf.ads
 IRIS_ADS_COMMON += gauche_binding.ads
+IRIS_ADS_COMMON += fontconfig.ads
 
 IRIS_C_COMMON += gauche_runtime_init.c
 IRIS_C_COMMON += gauche_c_macros.c
@@ -10,4 +12,5 @@ EXTRA_DIST += r7rs/iris/kpsewhich.sld
 EXTRA_DIST += r7rs/iris/kpsewhich.md
 EXTRA_DIST += r7rs/iris/fontconfig.sld
 EXTRA_DIST += r7rs/iris/fontconfig.md
+EXTRA_DIST += doc/md/fontconfig.md
 EXTRA_DIST += iris-findfont

@@ -1,4 +1,4 @@
-;;; r7rs/iris/fontconfig.sld --- Fontconfig C library interface for Iris
+;;; r7rs/iris/fontconfig.sld --- Fontconfig font resolution library for Iris
 ;;;
 ;;; SPDX-License-Identifier: MIT
 
@@ -6,15 +6,11 @@
   (import (scheme base)
           (scheme char)
           (scheme file)
-          (gauche base)
-          (c-wrapper))
+          (gauche base))
   (export fontconfig-find-font
           fontconfig-search
           path->file-uri)
   (begin
-    ;; Load Fontconfig C headers and library
-    (c-load '("fontconfig/fontconfig.h")
-            :libs "-lfontconfig")
 
     ;; Helper: check if prefix is a prefix of str
     (define (string-prefix? prefix str)
@@ -22,6 +18,13 @@
             (slen (string-length str)))
         (and (>= slen plen)
              (string=? prefix (substring str 0 plen)))))
+
+    ;; Helper: check if suffix is a suffix of str
+    (define (string-suffix? suffix str)
+      (let ((suflen (string-length suffix))
+            (slen (string-length str)))
+        (and (>= slen suflen)
+             (string=? suffix (substring str (- slen suflen) slen)))))
 
     ;; Helper: trim trailing newline and carriage return characters
     (define (string-trim-trailing-newline str)
@@ -75,87 +78,57 @@
         ((string-prefix? "name:" str)   (strip-known-prefixes (substring str 5 (string-length str))))
         (else (string-trim-trailing-newline str))))
 
-    ;; Query fontconfig library for font files matching a pattern string
-    (define (fc-query-pattern-string pat-str)
-      (guard (ex (else '()))
-        (FcInit)
-        (let ((pat (FcNameParse (cast <FcChar8*> pat-str))))
-          (if (or (not pat) (c-null? pat))
-              '()
-              (let* ((_ (begin
-                          (FcConfigSubstitute (c-null) pat FcMatchPattern)
-                          (FcDefaultSubstitute pat)))
-                     (os (FcObjectSetBuild FC_FILE (c-null)))
-                     (fs (if (or (not os) (c-null? os))
-                             (c-null)
-                             (FcFontList (c-null) pat os)))
-                     (paths
-                      (if (or (not fs) (c-null? fs))
-                          '()
-                          (let ((count (ref fs 'nfont)))
-                            (let loop ((i 0) (acc '()))
-                              (if (>= i count)
-                                  (reverse acc)
-                                  (let* ((font-pat (ref (ref fs 'fonts) i))
-                                         (file-ptr (make (c-ptr <FcChar8>)))
-                                         (res (FcPatternGetString font-pat FC_FILE 0 (ptr file-ptr))))
-                                    (if (= res FcResultMatch)
-                                        (let ((fstr (x->string (cast <const-char*> file-ptr))))
-                                          (loop (+ i 1) (cons fstr acc)))
-                                        (loop (+ i 1) acc)))))))))
-                (when (and fs (not (c-null? fs)))
-                  (FcFontSetDestroy fs))
-                (when (and os (not (c-null? os)))
-                  (FcObjectSetDestroy os))
-                (when (and pat (not (c-null? pat)))
-                  (FcPatternDestroy pat))
-                paths)))))
+    ;; Standard system font directory candidates
+    (define *system-font-directories*
+      '("/usr/share/fonts"
+        "/usr/local/share/fonts"
+        "~/.local/share/fonts"
+        "~/.fonts"
+        "/Library/Fonts"
+        "/System/Library/Fonts"))
 
-    ;; Match single best font using FcFontMatch
-    (define (fc-match-pattern-string pat-str)
+    ;; Scan directory tree for font matching query stem
+    (define (scan-font-dir-for-query dir stem)
       (guard (ex (else '()))
-        (FcInit)
-        (let ((pat (FcNameParse (cast <FcChar8*> pat-str))))
-          (if (or (not pat) (c-null? pat))
-              '()
-              (let* ((_ (begin
-                          (FcConfigSubstitute (c-null) pat FcMatchPattern)
-                          (FcDefaultSubstitute pat)))
-                     (result (make <FcResult>))
-                     (matched (FcFontMatch (c-null) pat (ptr result)))
-                     (paths
-                      (if (or (not matched) (c-null? matched))
-                          '()
-                          (let* ((file-ptr (make (c-ptr <FcChar8>)))
-                                 (res (FcPatternGetString matched FC_FILE 0 (ptr file-ptr))))
-                            (if (= res FcResultMatch)
-                                (list (x->string (cast <const-char*> file-ptr)))
-                                '())))))
-                (when (and matched (not (c-null? matched)))
-                  (FcPatternDestroy matched))
-                (when (and pat (not (c-null? pat)))
-                  (FcPatternDestroy pat))
-                paths)))))
+        (if (not (file-exists? dir))
+            '()
+            (let ((entries (guard (e (else '())) (sys-readdir dir))))
+              (if (not entries)
+                  '()
+                  (let loop ((rest entries) (acc '()))
+                    (if (null? rest)
+                        acc
+                        (let* ((name (car rest))
+                               (full (string-append dir "/" name)))
+                          (cond
+                            ((or (string=? name ".") (string=? name ".."))
+                             (loop (cdr rest) acc))
+                            ((guard (e (else #f)) (file-is-directory? full))
+                             (let ((sub (scan-font-dir-for-query full stem)))
+                               (loop (cdr rest) (append sub acc))))
+                            ((or (string-suffix? (string-append "/" stem) full)
+                                 (string-suffix? (string-append "/" stem ".ttf") full)
+                                 (string-suffix? (string-append "/" stem ".otf") full)
+                                 (string-suffix? (string-append "/" stem ".pfb") full)
+                                 (string-suffix? (string-append "/" stem ".pfa") full)
+                                 (string-suffix? (string-append "/" stem ".afm") full))
+                             (loop (cdr rest) (cons full acc)))
+                            (else
+                             (loop (cdr rest) acc)))))))))))
 
-    ;; Search Fontconfig using library API
+    ;; Search Fontconfig known paths using query string
     (define (fontconfig-search query)
-      (let* ((clean (strip-known-prefixes query))
-             (res1 (fc-query-pattern-string clean)))
-        (if (not (null? res1))
-            res1
-            (let ((res2 (fc-query-pattern-string (string-append ":file=*" clean "*"))))
-              (if (not (null? res2))
-                  res2
-                  (let ((res3 (fc-query-pattern-string (string-append ":family=" clean))))
-                    (if (not (null? res3))
-                        res3
-                        (let ((res4 (fc-query-pattern-string (string-append ":fullname=" clean))))
-                          (if (not (null? res4))
-                              res4
-                              (let ((res5 (fc-match-pattern-string clean)))
-                                (if (not (null? res5))
-                                    res5
-                                    '())))))))))))
+      (let ((clean (strip-known-prefixes query)))
+        (cond
+          ((file-exists? clean)
+           (list clean))
+          (else
+           (let loop ((dirs *system-font-directories*)
+                      (acc '()))
+             (if (null? dirs)
+                 (remove-duplicates (reverse acc))
+                 (let ((found (scan-font-dir-for-query (car dirs) clean)))
+                   (loop (cdr dirs) (append found acc)))))))))
 
     ;; Search for companion files in the same directory (e.g. .pfb/.pfa for .afm)
     (define (find-companion-files path)
@@ -167,12 +140,7 @@
            (cond
              ((file-exists? pfb) (list pfb))
              ((file-exists? pfa) (list pfa))
-             (else
-              (let ((found-pfb (fc-query-pattern-string (string-append ":file=" pfb))))
-                (if (not (null? found-pfb))
-                    found-pfb
-                    (let ((found-pfa (fc-query-pattern-string (string-append ":file=" pfa))))
-                      (if (not (null? found-pfa)) found-pfa '()))))))))
+             (else '()))))
         (else '())))
 
     ;; Main fontconfig font finder entry point

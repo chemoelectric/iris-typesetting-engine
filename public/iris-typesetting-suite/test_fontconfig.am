@@ -1,0 +1,22 @@
+#---------------------------------------------------------------------
+# SPDX-License-Identifier: MIT
+#---------------------------------------------------------------------
+
+check_PROGRAMS += test_fontconfig
+test_fontconfig_SOURCES = test_fontconfig.adb	
+test_fontconfig_SOURCES += $(test_fontconfig_ADB)
+test_fontconfig_SOURCES += $(test_fontconfig_ADS)
+test_fontconfig_SOURCES += $(test_fontconfig_C)
+test_fontconfig_ADB = $(IRIS_ADB_COMMON)
+test_fontconfig_ADS = $(IRIS_ADS_COMMON)
+test_fontconfig_C = $(IRIS_C_COMMON)
+TESTS_ADB += test_fontconfig.adb
+test_fontconfig$(EXEEXT): \
+		$(addsuffix .lo,$(basename $(test_fontconfig_SOURCES)))
+	$(call link-ada,test_fontconfig,$(^),$(LIBS))
+
+#---------------------------------------------------------------------
+# local variables:
+# coding: utf-8
+# tab-width: 4
+# end:

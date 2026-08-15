@@ -16,6 +16,11 @@ AT_KEYWORDS([Gauche Scheme binding])
 AT_CHECK(["${abs_builddir}"/test_gauche_binding])
 AT_CLEANUP
 
+AT_SETUP([Fontconfig binding])
+AT_KEYWORDS([Fontconfig binding])
+AT_CHECK(["${abs_builddir}"/test_fontconfig])
+AT_CLEANUP
+
 #---------------------------------------------------------------------
 # local variables:
 # mode: autoconf
