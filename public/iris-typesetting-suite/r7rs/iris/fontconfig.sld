@@ -6,7 +6,9 @@
   (import (scheme base)
           (scheme char)
           (scheme file)
-          (gauche base))
+          (scheme process-context)
+          (gauche base)
+          (gauche process))
   (export fontconfig-find-font
           fontconfig-search
           path->file-uri)
@@ -25,6 +27,27 @@
             (slen (string-length str)))
         (and (>= slen suflen)
              (string=? suffix (substring str (- slen suflen) slen)))))
+
+    ;; Helper: case-insensitive suffix check
+    (define (string-ci-suffix? suffix str)
+      (let ((suflen (string-length suffix))
+            (slen (string-length str)))
+        (and (>= slen suflen)
+             (string-ci=? suffix (substring str (- slen suflen) slen)))))
+
+    ;; Helper: case-insensitive substring search
+    (define (string-contains-ci? haystack needle)
+      (let ((hlen (string-length haystack))
+            (nlen (string-length needle)))
+        (cond
+          ((= nlen 0) #t)
+          ((< hlen nlen) #f)
+          (else
+           (let loop ((i 0))
+             (cond
+               ((> (+ i nlen) hlen) #f)
+               ((string-ci=? (substring haystack i (+ i nlen)) needle) #t)
+               (else (loop (+ i 1)))))))))
 
     ;; Helper: trim trailing newline and carriage return characters
     (define (string-trim-trailing-newline str)
@@ -81,14 +104,74 @@
          (strip-known-prefixes (substring str 5 (string-length str))))
         (else (string-trim-trailing-newline str))))
 
+    ;; Invoke fc-list / fc-match if present in PATH to resolve system font patterns
+    (define (run-fontconfig-tool tool . args)
+      (guard (ex (else '()))
+        (let* ((proc (run-process (cons tool args) :output :pipe))
+               (out (process-output proc))
+               (lines (let loop ((acc '()))
+                        (let ((line (read-line out)))
+                          (if (eof-object? line)
+                              (reverse acc)
+                              (let ((trimmed (string-trim-trailing-newline line)))
+                                (if (string=? trimmed "")
+                                    (loop acc)
+                                    (loop (cons trimmed acc))))))))
+               (status (process-wait proc)))
+          (if (and status (equal? status 0)) lines '()))))
+
+    (define (fc-list-query query)
+      (let* ((clean (strip-known-prefixes query))
+             (res-exact (run-fontconfig-tool "fc-list" clean "-f" "%{file}\n"))
+             (res-fam (if (null? res-exact)
+                          (run-fontconfig-tool "fc-list" (string-append ":family=" clean) "-f" "%{file}\n")
+                          res-exact))
+             (res-full (if (null? res-fam)
+                           (run-fontconfig-tool "fc-list" (string-append ":fullname=" clean) "-f" "%{file}\n")
+                           res-fam))
+             (res-file (if (null? res-full)
+                           (run-fontconfig-tool "fc-list" (string-append ":file=*" clean "*") "-f" "%{file}\n")
+                           res-full)))
+        (if (not (null? res-file))
+            res-file
+            (let ((match-res (run-fontconfig-tool "fc-match" clean "-f" "%{file}\n")))
+              (if (not (null? match-res))
+                  match-res
+                  '())))))
+
+    ;; Expand home directory tilde if present
+    (define (expand-user-path p)
+      (if (string-prefix? "~/" p)
+          (let ((home (get-environment-variable "HOME")))
+            (if home
+                (string-append home (substring p 1 (string-length p)))
+                p))
+          p))
+
     ;; Standard system font directory candidates
-    (define *system-font-directories*
-      '("/usr/share/fonts"
-        "/usr/local/share/fonts"
-        "~/.local/share/fonts"
-        "~/.fonts"
-        "/Library/Fonts"
-        "/System/Library/Fonts"))
+    (define (system-font-directories)
+      (map expand-user-path
+           '("/usr/share/fonts"
+             "/usr/local/share/fonts"
+             "/usr/local/texlive"
+             "/opt/homebrew/share/fonts"
+             "~/.local/share/fonts"
+             "~/.fonts"
+             "/Library/Fonts"
+             "/System/Library/Fonts"
+             "~/Library/Fonts")))
+
+    (define (has-fontish-suffix? stem full)
+      (let ((/stem (string-append "/" stem)))
+        (or (string-ci-suffix? /stem full)
+            (string-ci-suffix? (string-append /stem ".ttf") full)
+            (string-ci-suffix? (string-append /stem ".otf") full)
+            (string-ci-suffix? (string-append /stem ".ttc") full)
+            (string-ci-suffix? (string-append /stem ".otc") full)
+            (string-ci-suffix? (string-append /stem ".pfb") full)
+            (string-ci-suffix? (string-append /stem ".pfa") full)
+            (string-ci-suffix? (string-append /stem ".afm") full)
+            (string-contains-ci? full stem))))
 
     ;; Scan directory tree for font matching query stem
     (define (scan-font-dir-for-query dir stem)
@@ -114,32 +197,24 @@
                             (else
                              (loop (cdr rest) acc)))))))))))
 
-    (define (has-fontish-suffix? stem full)
-      (let ((/stem (string-append "/" stem)))
-        (or (string-suffix? /stem full)
-            (string-suffix? (string-append /stem ".ttf") full)
-            (string-suffix? (string-append /stem ".otf") full)
-            (string-suffix? (string-append /stem ".pfb") full)
-            (string-suffix? (string-append /stem ".pfa") full)
-            (string-suffix? (string-append /stem ".afm") full))))
-
-    ;; Search Fontconfig known paths using query string
+    ;; Search Fontconfig and filesystem paths using query string
     (define (fontconfig-search query)
       (let ((clean (strip-known-prefixes query)))
         (cond
           ((file-exists? clean)
            (list clean))
           (else
-           (let loop ((dirs *system-font-directories*)
-                      (acc '()))
-             (if (null? dirs)
-                 (remove-duplicates (reverse acc))
-                 (let ((found (scan-font-dir-for-query
-                               (car dirs) clean)))
-                   (loop (cdr dirs) (append found acc)))))))))
+           (let ((fc-res (fc-list-query clean)))
+             (if (not (null? fc-res))
+                 (remove-duplicates fc-res)
+                 (let loop ((dirs (system-font-directories))
+                            (acc '()))
+                   (if (null? dirs)
+                       (remove-duplicates (reverse acc))
+                       (let ((found (scan-font-dir-for-query (car dirs) clean)))
+                         (loop (cdr dirs) (append found acc)))))))))))
 
-    ;; Search for companion files in the same directory (e.g.
-    ;; .pfb/.pfa for .afm)
+    ;; Search for companion files in the same directory (e.g. .pfb/.pfa for .afm)
     (define (find-companion-files path)
       (cond
         ((and (>= (string-length path) 4)

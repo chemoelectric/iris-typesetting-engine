@@ -154,8 +154,8 @@
       (remove-duplicates (append ext-results fmt-results))))
 
   ;; Main font finder entry point
-  ;; Returns S-expression list:
-  ;; ((query . "query") (uris . ("file:///path1" ...)))
+  ;; Returns S-expression list of font entries:
+  ;; (((query . "query") (uris "file:///path1" ...)))
   (define (kpsewhich-find-font query)
     (let* ((raw-paths
             (cond
@@ -179,5 +179,7 @@
              (append raw-paths
                      (apply append (map find-all-associated-files stems)))))
            (uris (map path->file-uri all-paths)))
-      `((query . ,query)
-        (uris . ,uris))))))
+      (if (null? uris)
+        '()
+        `(((query . ,query)
+           (uris ,@uris))))))))
