@@ -1,0 +1,21 @@
+#---------------------------------------------------------------------
+# SPDX-License-Identifier: MIT
+#---------------------------------------------------------------------
+
+lib_LIBRARIES += libiris.a
+libiris_a_SOURCES =
+libiris_a_SOURCES += $(LIBIRIS_ADB_FILES)
+libiris_a_SOURCES += $(LIBIRIS_ADS_FILES)
+libiris_a_SOURCES += $(LIBIRIS_C_FILES)
+libiris_a_LIBADD =
+libiris_a_LIBADD += $(LIBIRIS_ADB_FILES:%.adb=.libs/%.$(OBJEXT))
+libiris_a_LIBADD += $(LIBIRIS_ADS_FILES:%.ads=.libs/%.$(OBJEXT))
+libiris_a_DEPENDENCIES =
+libiris_a_DEPENDENCIES += $(LIBIRIS_ADB_FILES:%.adb=%.lo)
+libiris_a_DEPENDENCIES += $(LIBIRIS_ADS_FILES:%.ads=%.lo)
+
+#---------------------------------------------------------------------
+# local variables:
+# coding: utf-8
+# tab-width: 4
+# end:

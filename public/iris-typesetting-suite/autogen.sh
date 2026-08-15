@@ -188,10 +188,42 @@ run_autoreconf() {
     autoreconf --force --install --verbose || exit $?
 }
 
+write_ada_program() {
+    cat >> programs.am <<EOF
+$2\$(EXEEXT): $2.lo libiris.a
+	\$(call link-ada,\$(basename \$(@)),\$(^),\$(LIBS))
+
+$1_PROGRAMS += $2
+$2_SOURCES =
+$2_SOURCES += $2.adb
+$2_LDADD =
+$2_LDADD += .libs/$2.\$(OBJEXT)
+$2_LDADD += libiris.a
+$2_DEPENDENCIES =
+$2_DEPENDENCIES += $2.lo
+$2_DEPENDENCIES += libiris.a
+
+CLEANFILES += $2\$(EXEEXT)
+
+EOF
+}
+
+write_programs_am() {
+    echo "Writing programs.am"
+    rm -f programs.am
+    touch programs.am
+    while IFS= read -r args; do
+        echo "  write_ada_program ${args}"
+        write_ada_program ${args}
+    done < ada-programs.list
+}
+
 # Run everything in a subshell, so the user does not get stuck in a
 # new directory if the process is interrupted.
 (
     cd "${srcdir}"
+
+    write_programs_am
 
     need_sortsmill_tig && require_sortsmill_tig
     need_pkg_config && require_pkg_config

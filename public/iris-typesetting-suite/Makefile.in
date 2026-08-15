@@ -46,17 +46,6 @@
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
 
-#---------------------------------------------------------------------
-# SPDX-License-Identifier: MIT
-#---------------------------------------------------------------------
-
-#---------------------------------------------------------------------
-# SPDX-License-Identifier: MIT
-#---------------------------------------------------------------------
-
-#---------------------------------------------------------------------
-# SPDX-License-Identifier: MIT
-#---------------------------------------------------------------------
 
 VPATH = @srcdir@
 am__is_gnu_make = { \
@@ -136,7 +125,7 @@ build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = iris$(EXEEXT)
 check_PROGRAMS = test_capypdf$(EXEEXT) test_gauche_binding$(EXEEXT) \
-	test_fontconfig$(EXEEXT)
+	test_fontconfig$(EXEEXT) test_tkrzw$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -159,32 +148,62 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES = atconfig
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)"
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libdir)"
 PROGRAMS = $(bin_PROGRAMS)
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__uninstall_files_from_dir = { \
+  { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
+  || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
+       $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
+  }
+LIBRARIES = $(lib_LIBRARIES)
+ARFLAGS = cr
+AM_V_AR = $(am__v_AR_@AM_V@)
+am__v_AR_ = $(am__v_AR_@AM_DEFAULT_V@)
+am__v_AR_0 = @echo "  AR      " $@;
+am__v_AR_1 = 
+libiris_a_AR = $(AR) $(ARFLAGS)
+libiris_a_RANLIB = $(RANLIB)
 am__objects_1 =
-am__objects_2 = $(am__objects_1)
-am__objects_3 = gauche_runtime_init.$(OBJEXT) \
+am__objects_2 = gauche_runtime_init.$(OBJEXT) \
 	gauche_c_macros.$(OBJEXT) gauche_tkrzw.$(OBJEXT)
-am__objects_4 = $(am__objects_3)
-am_iris_OBJECTS = $(am__objects_2) $(am__objects_2) $(am__objects_4)
+am_libiris_a_OBJECTS = $(am__objects_1) $(am__objects_1) \
+	$(am__objects_2)
+libiris_a_OBJECTS = $(am_libiris_a_OBJECTS)
+am_iris_OBJECTS =
 iris_OBJECTS = $(am_iris_OBJECTS)
-iris_LDADD = $(LDADD)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-am_test_capypdf_OBJECTS = $(am__objects_2) $(am__objects_2) \
-	$(am__objects_2)
+am_test_capypdf_OBJECTS =
 test_capypdf_OBJECTS = $(am_test_capypdf_OBJECTS)
-test_capypdf_LDADD = $(LDADD)
-am_test_fontconfig_OBJECTS = $(am__objects_2) $(am__objects_2) \
-	$(am__objects_4)
+am_test_fontconfig_OBJECTS =
 test_fontconfig_OBJECTS = $(am_test_fontconfig_OBJECTS)
-test_fontconfig_LDADD = $(LDADD)
-am_test_gauche_binding_OBJECTS = $(am__objects_2) $(am__objects_2) \
-	$(am__objects_4)
+am_test_gauche_binding_OBJECTS =
 test_gauche_binding_OBJECTS = $(am_test_gauche_binding_OBJECTS)
-test_gauche_binding_LDADD = $(LDADD)
+am_test_tkrzw_OBJECTS =
+test_tkrzw_OBJECTS = $(am_test_tkrzw_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -221,10 +240,12 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(iris_SOURCES) $(test_capypdf_SOURCES) \
-	$(test_fontconfig_SOURCES) $(test_gauche_binding_SOURCES)
-DIST_SOURCES = $(iris_SOURCES) $(test_capypdf_SOURCES) \
-	$(test_fontconfig_SOURCES) $(test_gauche_binding_SOURCES)
+SOURCES = $(libiris_a_SOURCES) $(iris_SOURCES) $(test_capypdf_SOURCES) \
+	$(test_fontconfig_SOURCES) $(test_gauche_binding_SOURCES) \
+	$(test_tkrzw_SOURCES)
+DIST_SOURCES = $(libiris_a_SOURCES) $(iris_SOURCES) \
+	$(test_capypdf_SOURCES) $(test_fontconfig_SOURCES) \
+	$(test_gauche_binding_SOURCES) $(test_tkrzw_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -250,9 +271,9 @@ am__define_uniq_tagged_files = \
 AM_RECURSIVE_TARGETS = cscope
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/atconfig.in \
 	$(srcdir)/common-source-files.am $(srcdir)/definitions.am \
-	$(srcdir)/inits.am $(srcdir)/iris.am $(srcdir)/mk-includes.am \
-	$(srcdir)/r7rs.am $(srcdir)/rules.am $(srcdir)/test_capypdf.am \
-	$(srcdir)/test_fontconfig.am $(srcdir)/test_gauche_binding.am \
+	$(srcdir)/extra-dist.am $(srcdir)/inits.am \
+	$(srcdir)/libiris.am $(srcdir)/mk-includes.am \
+	$(srcdir)/programs.am $(srcdir)/r7rs.am $(srcdir)/rules.am \
 	$(srcdir)/tests.am $(top_srcdir)/build-aux/compile \
 	$(top_srcdir)/build-aux/config.guess \
 	$(top_srcdir)/build-aux/config.sub \
@@ -429,29 +450,33 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4 --install
-ADB_FILES = $(IRIS_ADB_FILES)
-ADS_FILES = $(IRIS_ADS_FILES)
-TESTS_ADB = test_capypdf.adb capypdf_tests.adb test_gauche_binding.adb \
-	test_fontconfig.adb
-TESTS_ADS = capypdf_tests.ads
+ADB_FILES = 
+ADS_FILES = 
+TESTS_ADB = 
+TESTS_ADS = 
 DEP_FILES = $(ADB_FILES:%.adb=.deps/%.adbdep) \
 	$(ADS_FILES:%.ads=.deps/%.adsdep) \
 	$(TESTS_ADB:%.adb=.deps/%.adbdep) \
 	$(TESTS_ADS:%.ads=.deps/%.adsdep)
 MOSTLYCLEANFILES = 
-CLEANFILES = 
+CLEANFILES = iris$(EXEEXT) test_capypdf$(EXEEXT) \
+	test_gauche_binding$(EXEEXT) test_fontconfig$(EXEEXT) \
+	test_tkrzw$(EXEEXT)
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
-EXTRA_DIST = silent-rules.mk tkrzw_langc.h r7rs/iris/kpsewhich.sld \
-	r7rs/iris/kpsewhich.md r7rs/iris/fontconfig.sld \
-	r7rs/iris/fontconfig.md r7rs/iris/tkrzw.sld r7rs/iris/tkrzw.md \
-	r7rs/iris/dbm/tkrzw.sld doc/md/fontconfig.md doc/md/tkrzw.md \
-	iris-findfont $(srcdir)/package.m4 $(TESTSUITE_DEPS)
+EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
+	r7rs/iris/kpsewhich.sld r7rs/iris/kpsewhich.md \
+	r7rs/iris/fontconfig.sld r7rs/iris/fontconfig.md \
+	r7rs/iris/tkrzw.sld r7rs/iris/tkrzw.md r7rs/iris/dbm/tkrzw.sld \
+	doc/md/fontconfig.md doc/md/tkrzw.md iris-findfont
+lib_LIBRARIES = libiris.a
 AM_ADAFLAGS = -gnat2022 -I$(call get-adainclude) -I$(builddir) \
 	-I$(srcdir)
-IRIS_ADB_COMMON = capypdf.adb fontconfig.adb tkrzw.adb
-IRIS_ADS_COMMON = capypdf.ads gauche_binding.ads fontconfig.ads \
-	tkrzw.ads
-IRIS_C_COMMON = gauche_runtime_init.c gauche_c_macros.c gauche_tkrzw.c
+LIBIRIS_ADB_FILES = capypdf.adb capypdf_tests.adb fontconfig.adb \
+	tkrzw.adb
+LIBIRIS_ADS_FILES = capypdf.ads capypdf_tests.ads fontconfig.ads \
+	tkrzw.ads gauche_binding.ads
+LIBIRIS_C_FILES = gauche_runtime_init.c gauche_c_macros.c \
+	gauche_tkrzw.c
 ADALD = $(ADA)
 LTADACOMPILE = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=compile $(ADA) $(AM_ADAFLAGS) $(ADAFLAGS)
@@ -462,43 +487,44 @@ ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 	$(AM_ADAFLAGS) $(ADAFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $(@)
 
-iris_SOURCES = $(IRIS_ADB_FILES) $(IRIS_ADS_FILES) $(IRIS_C_FILES)
-IRIS_ADB_FILES = $(IRIS_ADB_COMMON) iris.adb
-IRIS_ADS_FILES = $(IRIS_ADS_COMMON)
-IRIS_C_FILES = $(IRIS_C_COMMON)
-IRIS_SRC_FILES = $(IRIS_ADB_FILES) $(IRIS_ADS_FILES) $(IRIS_C_FILES)
-IRIS_OBJ_FILES = $(addsuffix .lo,$(basename $(IRIS_SRC_FILES)))
+libiris_a_SOURCES = $(LIBIRIS_ADB_FILES) $(LIBIRIS_ADS_FILES) \
+	$(LIBIRIS_C_FILES)
+libiris_a_LIBADD = $(LIBIRIS_ADB_FILES:%.adb=.libs/%.$(OBJEXT)) \
+	$(LIBIRIS_ADS_FILES:%.ads=.libs/%.$(OBJEXT))
+libiris_a_DEPENDENCIES = $(LIBIRIS_ADB_FILES:%.adb=%.lo) \
+	$(LIBIRIS_ADS_FILES:%.ads=%.lo)
+iris_SOURCES = iris.adb
+iris_LDADD = .libs/iris.$(OBJEXT) libiris.a
+iris_DEPENDENCIES = iris.lo libiris.a
+test_capypdf_SOURCES = test_capypdf.adb
+test_capypdf_LDADD = .libs/test_capypdf.$(OBJEXT) libiris.a
+test_capypdf_DEPENDENCIES = test_capypdf.lo libiris.a
+test_gauche_binding_SOURCES = test_gauche_binding.adb
+test_gauche_binding_LDADD = .libs/test_gauche_binding.$(OBJEXT) \
+	libiris.a
+test_gauche_binding_DEPENDENCIES = test_gauche_binding.lo libiris.a
+test_fontconfig_SOURCES = test_fontconfig.adb
+test_fontconfig_LDADD = .libs/test_fontconfig.$(OBJEXT) libiris.a
+test_fontconfig_DEPENDENCIES = test_fontconfig.lo libiris.a
+test_tkrzw_SOURCES = test_tkrzw.adb
+test_tkrzw_LDADD = .libs/test_tkrzw.$(OBJEXT) libiris.a
+test_tkrzw_DEPENDENCIES = test_tkrzw.lo libiris.a
 AUTOM4TE = $(SHELL) $(srcdir)/build-aux/missing --run autom4te
 TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
 	$(srcdir)/testsuite.at
+#
+# A dummy installation directory for Gauche libraries.
+#
 AM_DISTCHECK_CONFIGURE_FLAGS =  \
 	GAUCHE_SITELIBDIR=${prefix}/gauche_sitelibdir
-AM_TESTS_ENVIRONMENT = export \
-	GAUCHE_LOAD_PATH="${abs_builddir}/r7rs${GAUCHE_LOAD_PATH+:}${GAUCHE_LOAD_PATH}";
 ALL_THE_CHECK_FLAGS = $(color-flag) $(jobs-flag) $(TESTSUITEFLAGS)
-test_capypdf_SOURCES = test_capypdf.adb $(test_capypdf_ADB) \
-	$(test_capypdf_ADS) $(test_capypdf_C)
-test_capypdf_ADB = $(IRIS_ADB_COMMON) capypdf_tests.adb
-test_capypdf_ADS = $(IRIS_ADS_COMMON) capypdf_tests.ads
-test_capypdf_C = $(IRIS_ADS_COMMON)
-test_gauche_binding_SOURCES = test_gauche_binding.adb \
-	$(test_gauche_binding_ADB) $(test_gauche_binding_ADS) \
-	$(test_gauche_binding_C)
-test_gauche_binding_ADB = $(IRIS_ADB_COMMON)
-test_gauche_binding_ADS = $(IRIS_ADS_COMMON)
-test_gauche_binding_C = $(IRIS_C_COMMON)
-test_fontconfig_SOURCES = test_fontconfig.adb $(test_fontconfig_ADB) \
-	$(test_fontconfig_ADS) $(test_fontconfig_C)
-test_fontconfig_ADB = $(IRIS_ADB_COMMON)
-test_fontconfig_ADS = $(IRIS_ADS_COMMON)
-test_fontconfig_C = $(IRIS_C_COMMON)
 all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
 am--refresh: GNUmakefile
 	@:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/inits.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/iris.am $(srcdir)/common-source-files.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/test_capypdf.am $(srcdir)/test_gauche_binding.am $(srcdir)/test_fontconfig.am $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/inits.am $(srcdir)/common-source-files.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/libiris.am $(srcdir)/programs.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/extra-dist.am $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -520,7 +546,7 @@ GNUmakefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__maybe_remake_depfiles)'; \
 	    cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__maybe_remake_depfiles);; \
 	esac;
-$(srcdir)/inits.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/iris.am $(srcdir)/common-source-files.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/test_capypdf.am $(srcdir)/test_gauche_binding.am $(srcdir)/test_fontconfig.am $(am__empty):
+$(srcdir)/inits.am $(srcdir)/common-source-files.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/libiris.am $(srcdir)/programs.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/extra-dist.am $(am__empty):
 
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
@@ -580,6 +606,42 @@ clean-binPROGRAMS:
 clean-checkPROGRAMS:
 	$(am__rm_f) $(check_PROGRAMS)
 	test -z "$(EXEEXT)" || $(am__rm_f) $(check_PROGRAMS:$(EXEEXT)=)
+install-libLIBRARIES: $(lib_LIBRARIES)
+	@$(NORMAL_INSTALL)
+	@list='$(lib_LIBRARIES)'; test -n "$(libdir)" || list=; \
+	list2=; for p in $$list; do \
+	  if test -f $$p; then \
+	    list2="$$list2 $$p"; \
+	  else :; fi; \
+	done; \
+	test -z "$$list2" || { \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(libdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(libdir)" || exit 1; \
+	  echo " $(INSTALL_DATA) $$list2 '$(DESTDIR)$(libdir)'"; \
+	  $(INSTALL_DATA) $$list2 "$(DESTDIR)$(libdir)" || exit $$?; }
+	@$(POST_INSTALL)
+	@list='$(lib_LIBRARIES)'; test -n "$(libdir)" || list=; \
+	for p in $$list; do \
+	  if test -f $$p; then \
+	    $(am__strip_dir) \
+	    echo " ( cd '$(DESTDIR)$(libdir)' && $(RANLIB) $$f )"; \
+	    ( cd "$(DESTDIR)$(libdir)" && $(RANLIB) $$f ) || exit $$?; \
+	  else :; fi; \
+	done
+
+uninstall-libLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	@list='$(lib_LIBRARIES)'; test -n "$(libdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(libdir)'; $(am__uninstall_files_from_dir)
+
+clean-libLIBRARIES:
+	-$(am__rm_f) $(lib_LIBRARIES)
+
+libiris.a: $(libiris_a_OBJECTS) $(libiris_a_DEPENDENCIES) $(EXTRA_libiris_a_DEPENDENCIES) 
+	$(AM_V_at)-rm -f libiris.a
+	$(AM_V_AR)$(libiris_a_AR) libiris.a $(libiris_a_OBJECTS) $(libiris_a_LIBADD)
+	$(AM_V_at)$(libiris_a_RANLIB) libiris.a
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -867,9 +929,9 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: check-am
-all-am: GNUmakefile $(PROGRAMS)
+all-am: GNUmakefile $(PROGRAMS) $(LIBRARIES)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -908,7 +970,7 @@ maintainer-clean-generic:
 clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
-	clean-libtool clean-local mostlyclean-am
+	clean-libLIBRARIES clean-libtool clean-local mostlyclean-am
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
@@ -937,7 +999,7 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS
+install-exec-am: install-binPROGRAMS install-libLIBRARIES
 
 install-html: install-html-am
 
@@ -981,29 +1043,31 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-local
+uninstall-am: uninstall-binPROGRAMS uninstall-libLIBRARIES \
+	uninstall-local
 
 .MAKE: check-am install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am am--depfiles am--refresh check \
 	check-am check-local clean clean-binPROGRAMS \
-	clean-checkPROGRAMS clean-cscope clean-generic clean-libtool \
-	clean-local cscope cscopelist-am ctags ctags-am dist dist-all \
-	dist-bzip2 dist-bzip3 dist-gzip dist-lzip dist-shar dist-tarZ \
-	dist-xz dist-zip dist-zstd distcheck distclean \
-	distclean-compile distclean-generic distclean-libtool \
-	distclean-local distclean-tags distcleancheck distdir \
-	distuninstallcheck dvi dvi-am html html-am info info-am \
-	install install-am install-binPROGRAMS install-data \
-	install-data-am install-data-local install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
+	clean-checkPROGRAMS clean-cscope clean-generic \
+	clean-libLIBRARIES clean-libtool clean-local cscope \
+	cscopelist-am ctags ctags-am dist dist-all dist-bzip2 \
+	dist-bzip3 dist-gzip dist-lzip dist-shar dist-tarZ dist-xz \
+	dist-zip dist-zstd distcheck distclean distclean-compile \
+	distclean-generic distclean-libtool distclean-local \
+	distclean-tags distcleancheck distdir distuninstallcheck dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-binPROGRAMS install-data install-data-am \
+	install-data-local install-dvi install-dvi-am install-exec \
+	install-exec-am install-html install-html-am install-info \
+	install-info-am install-libLIBRARIES install-man install-pdf \
 	install-pdf-am install-ps install-ps-am install-strip \
 	installcheck installcheck-am installcheck-local installdirs \
 	maintainer-clean maintainer-clean-generic mostlyclean \
 	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
 	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-local
+	uninstall-binPROGRAMS uninstall-libLIBRARIES uninstall-local
 
 .PRECIOUS: GNUmakefile
 
@@ -1094,14 +1158,25 @@ distclean-local::
 # tab-width: 4
 # end:
 
-iris$(EXEEXT): $(IRIS_OBJ_FILES)
-	$(call link-ada,iris,$(^),$(LIBS))
-
 #---------------------------------------------------------------------
 # local variables:
 # coding: utf-8
 # tab-width: 4
 # end:
+iris$(EXEEXT): iris.lo libiris.a
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+test_capypdf$(EXEEXT): test_capypdf.lo libiris.a
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+test_gauche_binding$(EXEEXT): test_gauche_binding.lo libiris.a
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+test_fontconfig$(EXEEXT): test_fontconfig.lo libiris.a
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+test_tkrzw$(EXEEXT): test_tkrzw.lo libiris.a
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 distclean-local::
 	-rm -R -f ${builddir}/r7rs
@@ -1144,32 +1219,20 @@ testsuite: $(TESTSUITE_DEPS)
 check-local:: atconfig testsuite
 	$(SHELL) testsuite $(ALL_THE_CHECK_FLAGS)
 
+#
+# installcheck is disabled.
+#
 installcheck-local:: atconfig testsuite
 	@if false; then \
 		$(SHELL) testsuite AUTOTEST_PATH='$(bindir)' \
 			$(ALL_THE_CHECK_FLAGS); \
-	fi							# installcheck is disabled.
-test_capypdf$(EXEEXT): \
-		$(addsuffix .lo,$(basename $(test_capypdf_SOURCES)))
-	$(call link-ada,test_capypdf,$(^),$(LIBS))
+	fi
 
-#---------------------------------------------------------------------
-# local variables:
-# coding: utf-8
-# tab-width: 4
-# end:
-test_gauche_binding$(EXEEXT): \
-		$(addsuffix .lo,$(basename $(test_gauche_binding_SOURCES)))
-	$(call link-ada,test_gauche_binding,$(^),$(LIBS))
-
-#---------------------------------------------------------------------
-# local variables:
-# coding: utf-8
-# tab-width: 4
-# end:
-test_fontconfig$(EXEEXT): \
-		$(addsuffix .lo,$(basename $(test_fontconfig_SOURCES)))
-	$(call link-ada,test_fontconfig,$(^),$(LIBS))
+#######################################################################################################################
+#include test_capypdf.am
+#include test_gauche_binding.am
+#include test_fontconfig.am
+#include test_tkrzw.am
 
 #---------------------------------------------------------------------
 # local variables:
@@ -1178,12 +1241,8 @@ test_fontconfig$(EXEEXT): \
 # end:
 
 #---------------------------------------------------------------------
-# local variables:
-# coding: utf-8
-# tab-width: 4
-# end:
 
-#---------------------------------------------------------------------
+#include iris.am
 
 #---------------------------------------------------------------------
 # local variables:

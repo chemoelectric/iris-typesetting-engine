@@ -2,32 +2,18 @@
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
 
+iris$(EXEEXT): iris.lo libiris.a
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
 bin_PROGRAMS += iris
 iris_SOURCES =
-iris_SOURCES += $(IRIS_ADB_FILES)
-iris_SOURCES += $(IRIS_ADS_FILES)
-iris_SOURCES += $(IRIS_C_FILES)
-
-iris$(EXEEXT): $(IRIS_OBJ_FILES)
-	$(call link-ada,iris,$(^),$(LIBS))
-
-ADB_FILES += $(IRIS_ADB_FILES)
-ADS_FILES += $(IRIS_ADS_FILES)
-
-include common-source-files.am
-
-IRIS_ADB_FILES = $(IRIS_ADB_COMMON)
-IRIS_ADS_FILES = $(IRIS_ADS_COMMON)
-IRIS_ADB_FILES += iris.adb
-
-IRIS_C_FILES = $(IRIS_C_COMMON)
-
-IRIS_SRC_FILES =
-IRIS_SRC_FILES += $(IRIS_ADB_FILES)
-IRIS_SRC_FILES += $(IRIS_ADS_FILES)
-IRIS_SRC_FILES += $(IRIS_C_FILES)
-
-IRIS_OBJ_FILES = $(addsuffix .lo,$(basename $(IRIS_SRC_FILES)))
+iris_SOURCES += iris.adb
+iris_LDADD =
+iris_LDADD += .libs/iris.$(OBJEXT)
+iris_LDADD += libiris.a
+iris_DEPENDENCIES =
+iris_DEPENDENCIES += iris.lo
+iris_DEPENDENCIES += libiris.a
 
 #---------------------------------------------------------------------
 # local variables:

@@ -33,30 +33,31 @@ testsuite: $(TESTSUITE_DEPS)
 		-I '$(srcdir)' -o $(@) $(srcdir)/$(@).at
 
 AM_DISTCHECK_CONFIGURE_FLAGS =
+#
+# A dummy installation directory for Gauche libraries.
+#
 AM_DISTCHECK_CONFIGURE_FLAGS += \
 	GAUCHE_SITELIBDIR=${prefix}/gauche_sitelibdir
-
-AM_TESTS_ENVIRONMENT =
-AM_TESTS_ENVIRONMENT += \
-	export GAUCHE_LOAD_PATH="${abs_builddir}/r7rs${GAUCHE_LOAD_PATH+:}${GAUCHE_LOAD_PATH}";
 
 ALL_THE_CHECK_FLAGS = $(color-flag) $(jobs-flag) $(TESTSUITEFLAGS)
 
 check-local:: atconfig testsuite
 	$(SHELL) testsuite $(ALL_THE_CHECK_FLAGS)
 
+#
+# installcheck is disabled.
+#
 installcheck-local:: atconfig testsuite
 	@if false; then \
 		$(SHELL) testsuite AUTOTEST_PATH='$(bindir)' \
 			$(ALL_THE_CHECK_FLAGS); \
-	fi							# installcheck is disabled.
+	fi
 
-check_PROGRAMS =
-
-include test_capypdf.am
-include test_gauche_binding.am
-include test_fontconfig.am
-include test_tkrzw.am
+#######################################################################################################################
+#include test_capypdf.am
+#include test_gauche_binding.am
+#include test_fontconfig.am
+#include test_tkrzw.am
 
 #---------------------------------------------------------------------
 # local variables:

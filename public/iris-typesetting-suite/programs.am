@@ -1,0 +1,75 @@
+iris$(EXEEXT): iris.lo libiris.a
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+bin_PROGRAMS += iris
+iris_SOURCES =
+iris_SOURCES += iris.adb
+iris_LDADD =
+iris_LDADD += .libs/iris.$(OBJEXT)
+iris_LDADD += libiris.a
+iris_DEPENDENCIES =
+iris_DEPENDENCIES += iris.lo
+iris_DEPENDENCIES += libiris.a
+
+CLEANFILES += iris$(EXEEXT)
+
+test_capypdf$(EXEEXT): test_capypdf.lo libiris.a
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+check_PROGRAMS += test_capypdf
+test_capypdf_SOURCES =
+test_capypdf_SOURCES += test_capypdf.adb
+test_capypdf_LDADD =
+test_capypdf_LDADD += .libs/test_capypdf.$(OBJEXT)
+test_capypdf_LDADD += libiris.a
+test_capypdf_DEPENDENCIES =
+test_capypdf_DEPENDENCIES += test_capypdf.lo
+test_capypdf_DEPENDENCIES += libiris.a
+
+CLEANFILES += test_capypdf$(EXEEXT)
+
+test_gauche_binding$(EXEEXT): test_gauche_binding.lo libiris.a
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+check_PROGRAMS += test_gauche_binding
+test_gauche_binding_SOURCES =
+test_gauche_binding_SOURCES += test_gauche_binding.adb
+test_gauche_binding_LDADD =
+test_gauche_binding_LDADD += .libs/test_gauche_binding.$(OBJEXT)
+test_gauche_binding_LDADD += libiris.a
+test_gauche_binding_DEPENDENCIES =
+test_gauche_binding_DEPENDENCIES += test_gauche_binding.lo
+test_gauche_binding_DEPENDENCIES += libiris.a
+
+CLEANFILES += test_gauche_binding$(EXEEXT)
+
+test_fontconfig$(EXEEXT): test_fontconfig.lo libiris.a
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+check_PROGRAMS += test_fontconfig
+test_fontconfig_SOURCES =
+test_fontconfig_SOURCES += test_fontconfig.adb
+test_fontconfig_LDADD =
+test_fontconfig_LDADD += .libs/test_fontconfig.$(OBJEXT)
+test_fontconfig_LDADD += libiris.a
+test_fontconfig_DEPENDENCIES =
+test_fontconfig_DEPENDENCIES += test_fontconfig.lo
+test_fontconfig_DEPENDENCIES += libiris.a
+
+CLEANFILES += test_fontconfig$(EXEEXT)
+
+test_tkrzw$(EXEEXT): test_tkrzw.lo libiris.a
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+check_PROGRAMS += test_tkrzw
+test_tkrzw_SOURCES =
+test_tkrzw_SOURCES += test_tkrzw.adb
+test_tkrzw_LDADD =
+test_tkrzw_LDADD += .libs/test_tkrzw.$(OBJEXT)
+test_tkrzw_LDADD += libiris.a
+test_tkrzw_DEPENDENCIES =
+test_tkrzw_DEPENDENCIES += test_tkrzw.lo
+test_tkrzw_DEPENDENCIES += libiris.a
+
+CLEANFILES += test_tkrzw$(EXEEXT)
+
