@@ -49,6 +49,17 @@ begin
    end if;
 
    if ok then
+      declare
+         dist : constant integer :=
+           edit_distance ("levenshtein", "levenshtein");
+      begin
+         if dist /= 0 then
+            ok := false;
+         end if;
+      end;
+   end if;
+
+   if ok then
       set_exit_status (success);
    else
       set_exit_status (failure);

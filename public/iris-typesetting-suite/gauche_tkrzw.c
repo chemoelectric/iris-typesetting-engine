@@ -98,6 +98,36 @@ gauche_tkrzw_sync (TkrzwDBM* dbm, bool hard)
   return tkrzw_dbm_synchronize (dbm, hard, NULL, NULL, "");
 }
 
+// Calculate Levenshtein edit distance using Tkrzw native C API
+int32_t
+gauche_tkrzw_edit_distance (const char* a, const char* b, bool utf)
+{
+  if (a == NULL || b == NULL)
+    {
+      return -1;
+    }
+  return tkrzw_str_edit_distance_lev (a, b, utf);
+}
+
+// Perform native search on keys
+TkrzwStr*
+gauche_tkrzw_search (TkrzwDBM* dbm, const char* mode,
+                     const char* pattern_ptr, int32_t pattern_size,
+                     int32_t capacity, int32_t* num_matched)
+{
+  if (dbm == NULL || pattern_ptr == NULL || num_matched == NULL)
+    {
+      if (num_matched != NULL)
+        {
+          *num_matched = 0;
+        }
+      return NULL;
+    }
+  return tkrzw_dbm_search (dbm, mode != NULL ? mode : "contain",
+                           pattern_ptr, pattern_size,
+                           capacity, num_matched);
+}
+
 // Free string allocated by Tkrzw
 void
 gauche_tkrzw_free (void* ptr)
@@ -105,5 +135,15 @@ gauche_tkrzw_free (void* ptr)
   if (ptr != NULL)
     {
       free (ptr);
+    }
+}
+
+// Free array of TkrzwStr
+void
+gauche_tkrzw_free_str_array (TkrzwStr* array, int32_t size)
+{
+  if (array != NULL)
+    {
+      tkrzw_free_str_array (array, size);
     }
 }

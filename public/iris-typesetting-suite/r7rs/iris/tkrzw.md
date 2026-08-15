@@ -56,7 +56,9 @@ In addition to the standard Gauche DBM interface, `(iris tkrzw)` provides direct
 - `(tkrzw-file-size db)` — Return database file size in bytes.
 - `(tkrzw-file-path db)` — Return database file path.
 - `(tkrzw-clear! db)` — Clear all records.
-- `(tkrzw-search db pattern [:mode "contain"] [:capacity 0])` — Search keys by mode (`"contain"`, `"begin"`, `"end"`).
+- `(tkrzw-search db pattern [:mode "contain"] [:capacity 0])` — Search keys by mode (`"contain"`, `"begin"`, `"end"`, `"edit"`).
+- `(tkrzw-edit-distance a b)` — Compute native Levenshtein edit distance between strings.
+- `(tkrzw-search-approximate db query max-distance [:capacity 0])` — Fast approximate search with length-pruning constraint returning `((key . distance) ...)`.
 - `(tkrzw-increment! db key [step] [initial])` — Atomic integer counter increment.
 - `(tkrzw-append! db key value [delim])` — Atomic string append.
 - `(tkrzw-rekey! db old-key new-key [:overwrite #t] [:copying #f])` — Atomic key renaming.

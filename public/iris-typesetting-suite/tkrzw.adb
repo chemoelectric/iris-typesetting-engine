@@ -74,6 +74,15 @@ package body tkrzw is
        convention    => c,
        external_name => "gauche_tkrzw_sync";
 
+   function c_edit_distance
+     (a   : in chars_ptr;
+      b   : in chars_ptr;
+      utf : in int) return int
+     with
+       import        => true,
+       convention    => c,
+       external_name => "gauche_tkrzw_edit_distance";
+
    procedure c_free (ptr : in chars_ptr)
      with
        import        => true,
@@ -186,5 +195,21 @@ package body tkrzw is
    begin
       unused := c_sync (dbm, h_flag);
    end sync_dbm;
+
+   function edit_distance
+     (str_a : in string;
+      str_b : in string;
+      utf   : in boolean := true) return integer
+   is
+      c_a : chars_ptr := new_string (str_a);
+      c_b : chars_ptr := new_string (str_b);
+      u   : int := (if utf then 1 else 0);
+      res : int;
+   begin
+      res := c_edit_distance (c_a, c_b, u);
+      free (c_a);
+      free (c_b);
+      return integer (res);
+   end edit_distance;
 
 end tkrzw;

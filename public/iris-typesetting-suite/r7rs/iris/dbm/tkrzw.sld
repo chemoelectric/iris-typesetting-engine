@@ -20,6 +20,8 @@
           tkrzw-clear!
           tkrzw-sync
           tkrzw-search
+          tkrzw-edit-distance
+          tkrzw-search-approximate
           tkrzw-increment!
           tkrzw-append!
           tkrzw-rekey!

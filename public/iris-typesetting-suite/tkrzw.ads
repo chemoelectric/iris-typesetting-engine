@@ -64,6 +64,13 @@ package tkrzw is
      with
        Pre => is_open (dbm);
 
+   function edit_distance
+     (str_a : in string;
+      str_b : in string;
+      utf   : in boolean := true) return integer
+     with
+       Pre => True;
+
 private
 
    type tkrzw_dbm is new system.address;

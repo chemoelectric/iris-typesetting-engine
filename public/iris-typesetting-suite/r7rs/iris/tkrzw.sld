@@ -11,6 +11,7 @@
           (gauche base)
           (gauche object)
           (gauche class)
+          (util levenshtein)
           (dbm))
   (export <tkrzw>
           <tkrzw-meta>
@@ -27,6 +28,8 @@
           tkrzw-clear!
           tkrzw-sync
           tkrzw-search
+          tkrzw-edit-distance
+          tkrzw-search-approximate
           tkrzw-increment!
           tkrzw-append!
           tkrzw-rekey!
@@ -174,6 +177,13 @@
             (when (and (not (eq? rw :read)) p)
               (safe-file-write-records p tbl))))))
 
+    (define (tkrzw-edit-distance a b)
+      ;; Native Levenshtein edit distance calculation
+      (let ((sa (to-string a))
+            (sb (to-string b)))
+        (guard (e (else (abs (- (string-length sa) (string-length sb)))))
+          (levenshtein-distance sa sb))))
+
     (define (tkrzw-sync self . args)
       (dbm-sync self))
 
@@ -185,6 +195,19 @@
                (pat (to-string pattern))
                (matched
                 (cond
+                  ((string=? mode "edit")
+                   ;; Rank all keys by native Levenshtein edit distance
+                   (let* ((scored (map (lambda (k)
+                                         (cons k (tkrzw-edit-distance pat k)))
+                                       keys))
+                          (sorted (sort scored (lambda (a b) (< (cdr a) (cdr b))))))
+                     (map car sorted)))
+                  ((string=? mode "exact")
+                   (filter (lambda (k) (string=? pat k)) keys))
+                  ((string=? mode "prefix")
+                   (filter (lambda (k) (string-prefix? pat k)) keys))
+                  ((string=? mode "suffix")
+                   (filter (lambda (k) (string-suffix? pat k)) keys))
                   ((string=? mode "begin")
                    (filter (lambda (k)
                              (let ((plen (string-length pat))
@@ -217,6 +240,29 @@
           (if (and (> capacity 0) (> (length matched) capacity))
               (take matched capacity)
               matched))))
+
+    (define (tkrzw-search-approximate self query max-distance . args)
+      (let-keywords* args ((capacity 0))
+        (let* ((tbl (slot-ref self 'table))
+               (keys (if tbl (hash-table-keys tbl) '()))
+               (qstr (to-string query))
+               (qlen (string-length qstr))
+               (results '()))
+          (for-each
+           (lambda (k)
+             (let* ((kstr (to-string k))
+                    (klen (string-length kstr)))
+               ;; Fast length constraint optimization: prune candidates with delta > max-distance
+               (when (<= (abs (- klen qlen)) max-distance)
+                 (let ((dist (tkrzw-edit-distance qstr kstr)))
+                   (when (<= dist max-distance)
+                     (set! results (cons (cons kstr dist) results)))))))
+           keys)
+          ;; Sort results so the closest match appears first
+          (let ((sorted (sort results (lambda (a b) (< (cdr a) (cdr b))))))
+            (if (and (> capacity 0) (> (length sorted) capacity))
+                (take sorted capacity)
+                sorted)))))
 
     (define (tkrzw-increment! self key . args)
       (let* ((step (if (null? args) 1 (car args)))

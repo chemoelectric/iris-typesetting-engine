@@ -25,6 +25,9 @@ The Scheme library implements the Gauche `<dbm>` generic interface with `<tkrzw>
 ;; Retrieve font record
 (define font-path (dbm-get font-db "cmr10" #f))
 
+;; Approximate / fuzzy search for font names within edit distance threshold
+(define matches (tkrzw-search-approximate font-db "cmr10" 2))
+
 ;; Close database
 (dbm-close font-db)
 ```
@@ -47,6 +50,11 @@ begin
          null;
       end;
    end if;
+   declare
+      d : constant integer := edit_distance ("cmr10", "cmr12");
+   begin
+      null;
+   end;
    close_dbm (db);
 end;
 ```
