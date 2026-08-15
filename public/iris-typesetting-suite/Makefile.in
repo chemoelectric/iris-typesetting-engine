@@ -144,7 +144,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/pkg.m4 \
 	$(top_srcdir)/enforce-out-of-source.ac \
-	$(top_srcdir)/find-kpsewhich.ac $(top_srcdir)/configure.ac
+	$(top_srcdir)/find-kpsewhich.ac \
+	$(top_srcdir)/find-fontconfig.ac $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
@@ -152,7 +153,8 @@ DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES = atconfig
+CONFIG_CLEAN_FILES = r7rs/iris/fontconfig/fontconfig-process.sld \
+	atconfig
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
@@ -250,9 +252,11 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/atconfig.in \
 	$(top_srcdir)/build-aux/depcomp \
 	$(top_srcdir)/build-aux/install-sh \
 	$(top_srcdir)/build-aux/ltmain.sh \
-	$(top_srcdir)/build-aux/missing COPYING build-aux/compile \
-	build-aux/config.guess build-aux/config.sub build-aux/depcomp \
-	build-aux/install-sh build-aux/ltmain.sh build-aux/missing
+	$(top_srcdir)/build-aux/missing \
+	$(top_srcdir)/r7rs/iris/fontconfig/fontconfig-process.sld.in \
+	COPYING build-aux/compile build-aux/config.guess \
+	build-aux/config.sub build-aux/depcomp build-aux/install-sh \
+	build-aux/ltmain.sh build-aux/missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -304,8 +308,12 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 ETAGS = @ETAGS@
 EXEEXT = @EXEEXT@
+FCLIST = @FCLIST@
+FCLIST_PROCESS = @FCLIST_PROCESS@
 FGREP = @FGREP@
 FILECMD = @FILECMD@
+FONTCONFIG_CFLAGS = @FONTCONFIG_CFLAGS@
+FONTCONFIG_LIBS = @FONTCONFIG_LIBS@
 GAUCHE_CFLAGS = @GAUCHE_CFLAGS@
 GAUCHE_CONFIG = @GAUCHE_CONFIG@
 GAUCHE_LIBS = @GAUCHE_LIBS@
@@ -428,8 +436,9 @@ MOSTLYCLEANFILES =
 CLEANFILES = 
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
 EXTRA_DIST = silent-rules.mk r7rs/iris/kpsewhich.sld \
-	r7rs/iris/kpsewhich.md iris-findfont $(srcdir)/package.m4 \
-	$(TESTSUITE_DEPS)
+	r7rs/iris/kpsewhich.md r7rs/iris/fontconfig.sld \
+	r7rs/iris/fontconfig.md find-fontconfig.ac iris-findfont \
+	$(srcdir)/package.m4 $(TESTSUITE_DEPS)
 AM_ADAFLAGS = -gnat2022 -I$(call get-adainclude) -I$(builddir) \
 	-I$(srcdir)
 IRIS_ADB_COMMON = capypdf.adb
@@ -508,6 +517,8 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
+r7rs/iris/fontconfig/fontconfig-process.sld: $(top_builddir)/config.status $(top_srcdir)/r7rs/iris/fontconfig/fontconfig-process.sld.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
 atconfig: $(top_builddir)/config.status $(srcdir)/atconfig.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-binPROGRAMS: $(bin_PROGRAMS)
