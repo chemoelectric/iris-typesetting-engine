@@ -28,6 +28,7 @@
 - **UI Aesthetics**: Studio dark theme with crisp typography, amber accent highlights, clean metadata breakdowns, and exact vector inspection.
 
 ## Documentation & Synchronization Rules
+- **Git Commit & Push**: Always commit changes and immediately push them to the `main` branch on GitHub (`origin/main`) whenever modifications or additions are made to the codebase.
 - **Module & Library Synchronization**: Whenever instructed to write a Fortran module or Scheme library, always create corresponding Markdown documentation and maintain strict synchronization between code and documentation.
 - **Scheme Library Naming & Location**: Always place Scheme libraries in the `iris` subdirectory (e.g. `/scheme/iris/`) and name them with `iris` as the first part of their library name (e.g. `(iris json)`, `(iris pdf)`).
 - **Fortran Module Naming & Location**: Always start the names of new Fortran modules with `iris_` (e.g. `iris_json`, `iris_pdf`) and locate them in the `/fortran/` directory with matching filenames (e.g. `iris_json.f90`, `iris_pdf.f90`).
