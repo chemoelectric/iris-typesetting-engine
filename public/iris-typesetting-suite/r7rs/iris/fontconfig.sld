@@ -73,9 +73,12 @@
     ;; Remove known prefixes like file://, file:, name:
     (define (strip-known-prefixes str)
       (cond
-        ((string-prefix? "file://" str) (substring str 7 (string-length str)))
-        ((string-prefix? "file:" str)   (strip-known-prefixes (substring str 5 (string-length str))))
-        ((string-prefix? "name:" str)   (strip-known-prefixes (substring str 5 (string-length str))))
+        ((string-prefix? "file://" str)
+         (substring str 7 (string-length str)))
+        ((string-prefix? "file:" str)
+         (strip-known-prefixes (substring str 5 (string-length str))))
+        ((string-prefix? "name:" str)
+         (strip-known-prefixes (substring str 5 (string-length str))))
         (else (string-trim-trailing-newline str))))
 
     ;; Standard system font directory candidates
@@ -106,15 +109,19 @@
                             ((guard (e (else #f)) (file-is-directory? full))
                              (let ((sub (scan-font-dir-for-query full stem)))
                                (loop (cdr rest) (append sub acc))))
-                            ((or (string-suffix? (string-append "/" stem) full)
-                                 (string-suffix? (string-append "/" stem ".ttf") full)
-                                 (string-suffix? (string-append "/" stem ".otf") full)
-                                 (string-suffix? (string-append "/" stem ".pfb") full)
-                                 (string-suffix? (string-append "/" stem ".pfa") full)
-                                 (string-suffix? (string-append "/" stem ".afm") full))
+                            ((has-fontish-suffix? stem full)
                              (loop (cdr rest) (cons full acc)))
                             (else
                              (loop (cdr rest) acc)))))))))))
+
+    (define (has-fontish-suffix? stem full)
+      (let ((/stem (string-append "/" stem)))
+        (or (string-suffix? /stem full)
+            (string-suffix? (string-append /stem ".ttf") full)
+            (string-suffix? (string-append /stem ".otf") full)
+            (string-suffix? (string-append /stem ".pfb") full)
+            (string-suffix? (string-append /stem ".pfa") full)
+            (string-suffix? (string-append /stem ".afm") full))))
 
     ;; Search Fontconfig known paths using query string
     (define (fontconfig-search query)
@@ -127,14 +134,19 @@
                       (acc '()))
              (if (null? dirs)
                  (remove-duplicates (reverse acc))
-                 (let ((found (scan-font-dir-for-query (car dirs) clean)))
+                 (let ((found (scan-font-dir-for-query
+                               (car dirs) clean)))
                    (loop (cdr dirs) (append found acc)))))))))
 
-    ;; Search for companion files in the same directory (e.g. .pfb/.pfa for .afm)
+    ;; Search for companion files in the same directory (e.g.
+    ;; .pfb/.pfa for .afm)
     (define (find-companion-files path)
       (cond
         ((and (>= (string-length path) 4)
-              (string-prefix? ".afm" (substring path (- (string-length path) 4) (string-length path))))
+              (string-prefix?
+               ".afm" (substring
+                       path (- (string-length path) 4)
+                       (string-length path))))
          (let ((pfb (replace-extension path ".pfb"))
                (pfa (replace-extension path ".pfa")))
            (cond
