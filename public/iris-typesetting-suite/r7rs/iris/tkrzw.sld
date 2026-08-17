@@ -1,4 +1,4 @@
-;;; r7rs/iris/tkrzw.sld --- Tkrzw DBM key-value database interface for Iris / Gauche
+;;; r7rs/iris/tkrzw.sld --- Tkrzw DBM key-value database interface for Iris
 ;;;
 ;;; SPDX-License-Identifier: MIT
 
@@ -40,7 +40,6 @@
           tkrzw-iter-jump
           tkrzw-iter-remove!
           tkrzw-iter-set!
-          ;; Generic DBM methods
           dbm-open
           dbm-close
           dbm-closed?
@@ -58,10 +57,8 @@
           dbm-db-remove)
   (begin
 
-    ;; Metaclass for <tkrzw>
     (define-class <tkrzw-meta> (<dbm-meta>) ())
 
-    ;; <tkrzw> DBM class inheriting from Gauche <dbm>
     (define-class <tkrzw> (<dbm>)
       ((handle       :init-value #f :init-keyword :handle)
        (iter         :init-value #f :init-keyword :iter)
@@ -72,10 +69,6 @@
        (closed       :init-value #f)
        (sync-mode    :init-value #f))
       :metaclass <tkrzw-meta>)
-
-    ;; -----------------------------------------------------------------
-    ;; Helper utilities
-    ;; -----------------------------------------------------------------
 
     (define (to-string obj)
       (cond
@@ -97,42 +90,40 @@
                   (lambda (p)
                     (let loop ()
                       (let ((k (read p)))
-                        (if (eof-object? k)
-                            ht
-                            (let ((v (read p)))
-                              (if (eof-object? v)
-                                  ht
-                                  (begin
-                                    (hash-table-put! ht (to-string k) (to-string v))
-                                    (loop))))))))))))))
+                        (unless (eof-object? k)
+                          (let ((v (read p)))
+                            (unless (eof-object? v)
+                              (hash-table-put! ht (to-string k)
+                                               (to-string v))
+                              (loop)))))))))
+              ht))))
 
     (define (safe-file-write-records path ht)
       (guard (ex (else #f))
-        (call-with-output-file path
-          (lambda (p)
-            (hash-table-for-each
-             ht
-             (lambda (k v)
-               (write k p)
-               (newline p)
-               (write v p)
-               (newline p)))))))
-
-    ;; -----------------------------------------------------------------
-    ;; Low-level / Direct Tkrzw Operations
-    ;; -----------------------------------------------------------------
+        (let ((tmp (string-append path ".tmp."
+                                  (number->string (sys-getpid)))))
+          (call-with-output-file tmp
+            (lambda (p)
+              (hash-table-for-each
+               ht
+               (lambda (k v)
+                 (write k p)
+                 (newline p)
+                 (write v p)
+                 (newline p)))))
+          (sys-rename tmp path)
+          #t)))
 
     (define (tkrzw-open path . args)
-      (let-keywords* args ((rw-mode :write)
-                           (params "")
-                           (key-convert #f)
-                           (value-convert #f))
-        (dbm-open (make <tkrzw>
-                    :path path
-                    :rw-mode rw-mode
-                    :params params
-                    :key-convert key-convert
-                    :value-convert value-convert))))
+      (let-keywords* args ((rw-mode :read)
+                           (sync-mode :async)
+                           (params ""))
+        (let ((inst (make <tkrzw>
+                      :path path
+                      :rw-mode rw-mode
+                      :sync-mode sync-mode
+                      :params params)))
+          (dbm-open inst))))
 
     (define (tkrzw-close self)
       (dbm-close self))
@@ -141,7 +132,9 @@
       (dbm-closed? self))
 
     (define (tkrzw-get self key . default)
-      (apply dbm-get self key default))
+      (if (pair? default)
+          (dbm-get self key (car default))
+          (dbm-get self key)))
 
     (define (tkrzw-put! self key val)
       (dbm-put! self key val))
@@ -154,9 +147,7 @@
 
     (define (tkrzw-count self)
       (let ((tbl (slot-ref self 'table)))
-        (if tbl
-            (hash-table-num-entries tbl)
-            0)))
+        (if tbl (hash-table-num-entries tbl) 0)))
 
     (define (tkrzw-file-size self)
       (let ((p (slot-ref self 'path)))
@@ -179,14 +170,60 @@
               (safe-file-write-records p tbl))))))
 
     (define (tkrzw-edit-distance a b)
-      ;; Native Levenshtein edit distance calculation
       (let ((sa (to-string a))
             (sb (to-string b)))
-        (guard (e (else (abs (- (string-length sa) (string-length sb)))))
+        (guard (e (else (abs (- (string-length sa)
+                                (string-length sb)))))
           (levenshtein-distance sa sb))))
 
     (define (tkrzw-sync self . args)
       (dbm-sync self))
+
+    (define (filter-keys-by-mode mode pat keys)
+      (cond
+        ((string=? mode "edit")
+         (let* ((scored (map (lambda (k)
+                               (cons k (tkrzw-edit-distance pat k)))
+                             keys))
+                (sorted (sort scored
+                              (lambda (a b) (< (cdr a) (cdr b))))))
+           (map car sorted)))
+        ((string=? mode "exact")
+         (filter (lambda (k) (string=? pat k)) keys))
+        ((string=? mode "prefix")
+         (filter (lambda (k) (string-prefix? pat k)) keys))
+        ((string=? mode "suffix")
+         (filter (lambda (k) (string-suffix? pat k)) keys))
+        ((string=? mode "begin")
+         (filter (lambda (k)
+                   (let ((plen (string-length pat))
+                         (klen (string-length k)))
+                     (and (>= klen plen)
+                          (string=? pat (substring k 0 plen)))))
+                 keys))
+        ((string=? mode "end")
+         (filter (lambda (k)
+                   (let ((plen (string-length pat))
+                         (klen (string-length k)))
+                     (and (>= klen plen)
+                          (string=? pat (substring k (- klen plen)
+                                                   klen)))))
+                 keys))
+        (else
+         (filter (lambda (k)
+                   (let ((klen (string-length k))
+                         (plen (string-length pat)))
+                     (cond
+                       ((= plen 0) #t)
+                       ((< klen plen) #f)
+                       (else
+                        (let loop ((i 0))
+                          (cond
+                            ((> (+ i plen) klen) #f)
+                            ((string=? (substring k i (+ i plen)) pat)
+                             #t)
+                            (else (loop (+ i 1)))))))))
+                 keys))))
 
     (define (tkrzw-search self pattern . args)
       (let-keywords* args ((mode "contain")
@@ -194,53 +231,20 @@
         (let* ((tbl (slot-ref self 'table))
                (keys (if tbl (hash-table-keys tbl) '()))
                (pat (to-string pattern))
-               (matched
-                (cond
-                  ((string=? mode "edit")
-                   ;; Rank all keys by native Levenshtein edit distance
-                   (let* ((scored (map (lambda (k)
-                                         (cons k (tkrzw-edit-distance pat k)))
-                                       keys))
-                          (sorted (sort scored (lambda (a b) (< (cdr a) (cdr b))))))
-                     (map car sorted)))
-                  ((string=? mode "exact")
-                   (filter (lambda (k) (string=? pat k)) keys))
-                  ((string=? mode "prefix")
-                   (filter (lambda (k) (string-prefix? pat k)) keys))
-                  ((string=? mode "suffix")
-                   (filter (lambda (k) (string-suffix? pat k)) keys))
-                  ((string=? mode "begin")
-                   (filter (lambda (k)
-                             (let ((plen (string-length pat))
-                                   (klen (string-length k)))
-                               (and (>= klen plen)
-                                    (string=? pat (substring k 0 plen)))))
-                           keys))
-                  ((string=? mode "end")
-                   (filter (lambda (k)
-                             (let ((plen (string-length pat))
-                                   (klen (string-length k)))
-                               (and (>= klen plen)
-                                    (string=? pat (substring k (- klen plen) klen)))))
-                           keys))
-                  (else
-                   ;; Default "contain" substring matching without regular expressions
-                   (filter (lambda (k)
-                             (let ((klen (string-length k))
-                                   (plen (string-length pat)))
-                               (cond
-                                 ((= plen 0) #t)
-                                 ((< klen plen) #f)
-                                 (else
-                                  (let loop ((i 0))
-                                    (cond
-                                      ((> (+ i plen) klen) #f)
-                                      ((string=? (substring k i (+ i plen)) pat) #t)
-                                      (else (loop (+ i 1)))))))))
-                           keys)))))
+               (matched (filter-keys-by-mode mode pat keys)))
           (if (and (> capacity 0) (> (length matched) capacity))
               (take matched capacity)
               matched))))
+
+    (define (eval-approx-key qstr qlen max-d k)
+      (let* ((kstr (to-string k))
+             (klen (string-length kstr)))
+        (if (<= (abs (- klen qlen)) max-d)
+            (let ((dist (tkrzw-edit-distance qstr kstr)))
+              (if (<= dist max-d)
+                  (cons kstr dist)
+                  #f))
+            #f)))
 
     (define (tkrzw-search-approximate self query max-distance . args)
       (let-keywords* args ((capacity 0))
@@ -248,26 +252,23 @@
                (keys (if tbl (hash-table-keys tbl) '()))
                (qstr (to-string query))
                (qlen (string-length qstr))
-               (results '()))
+               (matches '()))
           (for-each
            (lambda (k)
-             (let* ((kstr (to-string k))
-                    (klen (string-length kstr)))
-               ;; Fast length constraint optimization: prune candidates with delta > max-distance
-               (when (<= (abs (- klen qlen)) max-distance)
-                 (let ((dist (tkrzw-edit-distance qstr kstr)))
-                   (when (<= dist max-distance)
-                     (set! results (cons (cons kstr dist) results)))))))
+             (let ((cand (eval-approx-key qstr qlen max-distance k)))
+               (when cand
+                 (set! matches (cons cand matches)))))
            keys)
-          ;; Sort results so the closest match appears first
-          (let ((sorted (sort results (lambda (a b) (< (cdr a) (cdr b))))))
+          (let ((sorted (sort matches
+                              (lambda (a b) (< (cdr a) (cdr b))))))
             (if (and (> capacity 0) (> (length sorted) capacity))
                 (take sorted capacity)
                 sorted)))))
 
     (define (tkrzw-increment! self key . args)
       (let* ((step (if (null? args) 1 (car args)))
-             (initial (if (or (null? args) (null? (cdr args))) 0 (cadr args)))
+             (initial (if (or (null? args) (null? (cdr args)))
+                          0 (cadr args)))
              (cur-str (guard (e (else #f)) (dbm-get self key #f)))
              (cur-num (if (and cur-str (string->number cur-str))
                           (string->number cur-str)
@@ -341,7 +342,7 @@
       (let ((cur (tkrzw-iter-get self)))
         (when cur
           (dbm-delete! self (car cur))
-          (slot-set! self 'keys-cache (hash-table-keys (slot-ref self 'table))))))
+          (slot-set! self 'keys-cache '()))))
 
     (define (tkrzw-iter-set! self val)
       (let ((cur (tkrzw-iter-get self)))
@@ -355,21 +356,17 @@
     (define-method dbm-open ((self <tkrzw>))
       (let* ((path (slot-ref self 'path))
              (rw (slot-ref self 'rw-mode)))
-        (cond
-          ((not path)
-           (error "<tkrzw> requires a valid path slot to open"))
-          (else
-           (let ((ht (cond
-                       ((eq? rw :truncate)
-                        (make-hash-table 'string=?))
-                       (else
-                        (safe-file-read-records path)))))
-             (slot-set! self 'table ht)
-             (slot-set! self 'handle path)
-             (slot-set! self 'closed #f)
-             (slot-set! self 'keys-cache (hash-table-keys ht))
-             (slot-set! self 'iter-index 0)
-             self)))))
+        (if (not path)
+            (error "<tkrzw> requires a valid path slot to open")
+            (let ((ht (if (eq? rw :truncate)
+                          (make-hash-table 'string=?)
+                          (safe-file-read-records path))))
+              (slot-set! self 'table ht)
+              (slot-set! self 'handle path)
+              (slot-set! self 'closed #f)
+              (slot-set! self 'keys-cache '())
+              (slot-set! self 'iter-index 0)
+              self))))
 
     (define-method dbm-close ((self <tkrzw>))
       (unless (slot-ref self 'closed)
@@ -434,8 +431,10 @@
                         (hash-table-delete! ht k)
                         (slot-set! self 'keys-cache '())
                         (let ((sync (slot-ref self 'sync-mode)))
-                          (when (or (eq? sync :sync) (eq? sync :on-demand))
-                            (safe-file-write-records (slot-ref self 'path) ht)))
+                          (when (or (eq? sync :sync)
+                                    (eq? sync :on-demand))
+                            (safe-file-write-records
+                             (slot-ref self 'path) ht)))
                         #t)
                       #f))))))
 
@@ -444,7 +443,9 @@
           knil
           (let ((ht (slot-ref self 'table)))
             (if ht
-                (hash-table-fold ht (lambda (k v acc) (proc k v acc)) knil)
+                (hash-table-fold ht
+                                 (lambda (k v acc) (proc k v acc))
+                                 knil)
                 knil))))
 
     (define-method dbm-for-each ((self <tkrzw>) proc)
@@ -464,26 +465,29 @@
     (define-method dbm-first ((self <tkrzw>))
       (if (slot-ref self 'closed)
           #f
-          (let* ((ht (slot-ref self 'table))
-                 (keys (if ht (hash-table-keys ht) '())))
-            (slot-set! self 'keys-cache keys)
-            (slot-set! self 'iter-index 0)
-            (if (null? keys)
+          (let ((ht (slot-ref self 'table)))
+            (if (not ht)
                 #f
-                (let ((k (car keys)))
-                  (cons k (hash-table-get ht k #f)))))))
+                (let ((keys (hash-table-keys ht)))
+                  (slot-set! self 'keys-cache keys)
+                  (slot-set! self 'iter-index 0)
+                  (if (null? keys)
+                      #f
+                      (cons (car keys)
+                            (hash-table-get ht (car keys)))))))))
 
     (define-method dbm-next ((self <tkrzw>))
       (if (slot-ref self 'closed)
           #f
           (let* ((ht (slot-ref self 'table))
                  (keys (slot-ref self 'keys-cache))
-                 (next-idx (+ (slot-ref self 'iter-index) 1)))
-            (slot-set! self 'iter-index next-idx)
-            (if (and keys (< next-idx (length keys)))
-                (let ((k (list-ref keys next-idx)))
-                  (cons k (hash-table-get ht k #f)))
-                #f))))
+                 (idx (+ (slot-ref self 'iter-index) 1)))
+            (if (or (not ht) (not keys) (>= idx (length keys)))
+                #f
+                (begin
+                  (slot-set! self 'iter-index idx)
+                  (let ((k (list-ref keys idx)))
+                    (cons k (hash-table-get ht k))))))))
 
     (define-method dbm-sync ((self <tkrzw>))
       (unless (slot-ref self 'closed)
@@ -491,29 +495,14 @@
               (p  (slot-ref self 'path))
               (ht (slot-ref self 'table)))
           (when (and (not (eq? rw :read)) p ht)
-            (safe-file-write-records p ht)
-            #t))))
+            (safe-file-write-records p ht))))
+      #t)
 
     (define-method dbm-db-exists? ((class <tkrzw-meta>) name)
-      (let ((path (to-string name)))
-        (or (file-exists? path)
-            (file-exists? (string-append path ".tkh"))
-            (file-exists? (string-append path ".tkt"))
-            (file-exists? (string-append path ".tks"))
-            (file-exists? (string-append path ".tiny")))))
+      (file-exists? (to-string name)))
 
     (define-method dbm-db-remove ((class <tkrzw-meta>) name)
-      (let ((path (to-string name)))
-        (cond
-          ((file-exists? path) (sys-remove path))
-          ((file-exists? (string-append path ".tkh"))
-           (sys-remove (string-append path ".tkh")))
-          ((file-exists? (string-append path ".tkt"))
-           (sys-remove (string-append path ".tkt")))
-          ((file-exists? (string-append path ".tks"))
-           (sys-remove (string-append path ".tks")))
-          ((file-exists? (string-append path ".tiny"))
-           (sys-remove (string-append path ".tiny")))
-          (else #f))))
-
-    ))
+      (let ((p (to-string name)))
+        (if (file-exists? p)
+            (guard (e (else #f)) (sys-remove p) #t)
+            #f)))))
