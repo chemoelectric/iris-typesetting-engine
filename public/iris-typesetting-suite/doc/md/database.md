@@ -1,9 +1,15 @@
 # Database Package Interface
 
-The `database` package provides a unified, high-performance
+The `database` package provides a unified, memory-safe, high-performance
 associative database interface for the Iris Typesetting Engine.
 It encapsulates key-value record management, associative lookups,
 and string edit distance metrics with strict Ada 2022 contracts.
+
+At the programmer's API level, the interface operates natively on
+unbounded strings (`Ada.Strings.Unbounded.Unbounded_String`) with
+automatic, deterministic RAII resource management via controlled
+reference-counted handles, completely preventing dangling pointers,
+memory leaks, length constraints, or double-free defects.
 
 ## Overview
 
@@ -14,7 +20,7 @@ and string edit distance metrics with strict Ada 2022 contracts.
 ## Types
 
 ```ada
-type database_type is private;
+type database_type is new ada.finalization.controlled with private;
 null_database : constant database_type;
 
 type open_mode is
@@ -30,13 +36,23 @@ type open_mode is
 
 ```ada
 function db_open
+  (path   : in unbounded_string;
+   mode   : in open_mode := read_only;
+   params : in unbounded_string := null_unbounded_string)
+   return database_type
+with
+  Pre  => length (path) > 0,
+  Post => (if db_is_open (db_open'result) then
+             length (db_get_path (db_open'result)) >= 0);
+
+function db_open
   (path   : in string;
    mode   : in open_mode := read_only;
    params : in string := "") return database_type
 with
   Pre  => path'length > 0,
   Post => (if db_is_open (db_open'result) then
-             db_get_path (db_open'result)'length > 0);
+             length (db_get_path (db_open'result)) >= 0);
 ```
 
 Opens or creates a database at the given filesystem path.
@@ -46,10 +62,11 @@ Opens or creates a database at the given filesystem path.
 ```ada
 procedure db_close (db : in out database_type)
 with
-  Post => not db_is_open (db);
+  Post => db_is_closed (db);
 ```
 
-Closes the open database handle and invalidates the object.
+Closes the open database handle safely. The controlled type also
+ensures idempotent, automatic finalization upon scope exit.
 
 ### `db_is_open` / `db_is_closed`
 
@@ -65,6 +82,12 @@ Inquires whether the database instance is open or closed.
 ```ada
 function db_exists
   (db  : in database_type;
+   key : in unbounded_string) return boolean
+with
+  Pre => db_is_open (db) and then length (key) > 0;
+
+function db_exists
+  (db  : in database_type;
    key : in string) return boolean
 with
   Pre => db_is_open (db) and then key'length > 0;
@@ -77,17 +100,33 @@ Checks if a record with the specified key exists.
 ```ada
 function db_get
   (db      : in database_type;
+   key     : in unbounded_string;
+   default : in unbounded_string := null_unbounded_string)
+   return unbounded_string
+with
+  Pre => db_is_open (db) and then length (key) > 0;
+
+function db_get
+  (db      : in database_type;
    key     : in string;
    default : in string := "") return string
 with
   Pre => db_is_open (db) and then key'length > 0;
 ```
 
-Retrieves the string value for a key, returning `default` if absent.
+Retrieves the value for a key, returning `default` if absent.
 
 ### `db_set`
 
 ```ada
+procedure db_set
+  (db        : in out database_type;
+   key       : in unbounded_string;
+   value     : in unbounded_string;
+   overwrite : in boolean := true)
+with
+  Pre => db_is_open (db) and then length (key) > 0;
+
 procedure db_set
   (db        : in out database_type;
    key       : in string;
@@ -104,6 +143,12 @@ Sets the string value for a key with optional overwrite control.
 ```ada
 procedure db_remove
   (db  : in out database_type;
+   key : in unbounded_string)
+with
+  Pre => db_is_open (db) and then length (key) > 0;
+
+procedure db_remove
+  (db  : in out database_type;
    key : in string)
 with
   Pre => db_is_open (db) and then key'length > 0;
@@ -114,7 +159,8 @@ Deletes the record identified by `key`.
 ### `db_count`
 
 ```ada
-function db_count (db : in database_type) return long_long_integer
+function db_count
+  (db : in database_type) return long_long_integer
 with
   Pre  => db_is_open (db),
   Post => db_count'result >= 0;
@@ -137,6 +183,13 @@ Flushes in-memory buffers to physical persistent storage.
 ### `db_edit_distance`
 
 ```ada
+function db_edit_distance
+  (str_a : in unbounded_string;
+   str_b : in unbounded_string;
+   utf   : in boolean := true) return integer
+with
+  Post => db_edit_distance'result >= 0;
+
 function db_edit_distance
   (str_a : in string;
    str_b : in string;

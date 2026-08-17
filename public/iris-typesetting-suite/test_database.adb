@@ -4,9 +4,10 @@
 --
 -- Test program for the Iris database package.
 
-with ada.command_line; use ada.command_line;
-with ada.directories;  use ada.directories;
-with database;         use database;
+with ada.command_line;      use ada.command_line;
+with ada.directories;       use ada.directories;
+with ada.strings.unbounded; use ada.strings.unbounded;
+with database;              use database;
 
 procedure test_database is
 
@@ -31,51 +32,63 @@ procedure test_database is
       end if;
    end check_init;
 
-   procedure check_write_read
+   procedure check_unbounded_ops
      (db     : in out database_type;
-      status : in out boolean) is
+      status : in out boolean)
+   is
+      u_key : constant unbounded_string :=
+        to_unbounded_string (key_name);
+      u_val : constant unbounded_string :=
+        to_unbounded_string (val_first);
    begin
       if status then
-         db_set (db, key_name, val_first, overwrite => true);
-         if not db_exists (db, key_name) then
+         db_set (db, u_key, u_val, overwrite => true);
+         if not db_exists (db, u_key) then
             status := false;
-         elsif db_get (db, key_name) /= val_first then
+         elsif db_get (db, u_key) /= u_val then
             status := false;
          elsif db_count (db) /= 1 then
             status := false;
          end if;
       end if;
-   end check_write_read;
+   end check_unbounded_ops;
 
-   procedure check_update_remove
+   procedure check_update_and_remove
      (db     : in out database_type;
-      status : in out boolean) is
+      status : in out boolean)
+   is
+      u_key  : constant unbounded_string :=
+        to_unbounded_string (key_name);
+      u_next : constant unbounded_string :=
+        to_unbounded_string (val_next);
    begin
       if status then
-         db_set (db, key_name, val_next, overwrite => true);
-         if db_get (db, key_name) /= val_next then
+         db_set (db, u_key, u_next, overwrite => true);
+         if db_get (db, u_key) /= u_next then
             status := false;
          end if;
 
          if status then
-            db_remove (db, key_name);
-            if db_exists (db, key_name) or else db_count (db) /= 0 then
+            db_remove (db, u_key);
+            if db_exists (db, u_key) or else db_count (db) /= 0 then
                status := false;
             end if;
          end if;
       end if;
-   end check_update_remove;
+   end check_update_and_remove;
 
    procedure check_crud (status : in out boolean) is
-      db : database_type := null_database;
+      u_path : constant unbounded_string :=
+        to_unbounded_string (test_file);
+      db     : database_type := null_database;
    begin
       if status then
-         db := db_open (test_file, create_new);
+         db := db_open (u_path, create_new);
          if not db_is_open (db) then
             status := false;
          else
-            check_write_read (db, status);
-            check_update_remove (db, status);
+            check_unbounded_ops (db, status);
+            check_update_and_remove (db, status);
             db_close (db);
             if not db_is_closed (db) then
                status := false;
@@ -85,10 +98,14 @@ procedure test_database is
    end check_crud;
 
    procedure check_metrics (status : in out boolean) is
+      sa   : constant unbounded_string :=
+        to_unbounded_string ("Playfair");
+      sb   : constant unbounded_string :=
+        to_unbounded_string ("PlayfairDisplay");
       dist : integer := 0;
    begin
       if status then
-         dist := db_edit_distance ("Playfair", "PlayfairDisplay");
+         dist := db_edit_distance (sa, sb);
          if dist /= 7 then
             status := false;
          end if;
