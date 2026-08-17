@@ -34,7 +34,7 @@ The Scheme library implements the Gauche `<dbm>` generic interface with `<tkrzw>
 
 ## Database Builder & Diagnostic Engine (`(iris dbm builder)` & `(iris dbm suggest)`)
 
-The database builder module populates high-performance key-value databases from TeXLive's directory trees (`(iris texmf ls-R)`) and system font configurations (`(iris fontconfig)`):
+The database builder module populates high-performance key-value databases from TeXLive's directory trees (`(iris texmf ls-R)`) and system font catalogs:
 
 ```scheme
 (import (iris dbm builder)
@@ -43,39 +43,26 @@ The database builder module populates high-performance key-value databases from 
 ;; Build TeXMF hash database and System font B+ tree database
 (build-all-databases)
 
-;; Query for misspelled font name or file
-(define font-db (tkrzw-open (default-fonts-db-path) :rw-mode :read))
-(define suggestion (suggest-did-you-mean font-db "NimbusRomn-Bld" 3))
-;; suggestion => "NimbusRoman-Bold"
+;; Instant font resolution via Tkrzw DBM
+(define font-file (tkrzw-get font-db "ps:PlayfairDisplay-Regular" #f))
 
-;; Produce formatted compiler diagnostic note
-(format-did-you-mean-diagnostic "font" "NimbusRomn-Bld" suggestion)
-;; => "error: font 'NimbusRomn-Bld' was not found.\n  = note: did you mean 'NimbusRoman-Bold'?"
+;; Fuzzy name suggestions for typographic diagnostics
+(define suggestions (suggest-similar-names font-db "PlayfarDisplay" :capacity 3))
 ```
 
-## Ada 2022 Interface (`tkrzw.ads`)
-
-The Ada 2022 interface `tkrzw` provides typed database access with formal pre- and post-condition contracts:
+## Ada 2022 Interface (`tkrzw.ads` / `tkrzw.adb`)
 
 ```ada
 with tkrzw; use tkrzw;
 
-declare
-   db : tkrzw_dbm := open_dbm ("iris-fonts.tkh", writable => true);
+procedure demo is
+   db  : dbm_handle;
+   res : dbm_status;
 begin
-   put_value (db, "cmr10", "/path/to/cmr10.pfb");
-   if exists_key (db, "cmr10") then
-      declare
-         val : constant string := get_value (db, "cmr10");
-      begin
-         null;
-      end;
+   res := dbm_open (db, "fonts-system.tkt", open_read);
+   if res = status_success then
+      -- Perform O(1) query
+      dbm_close (db);
    end if;
-   declare
-      d : constant integer := edit_distance ("cmr10", "cmr12");
-   begin
-      null;
-   end;
-   close_dbm (db);
-end;
+end demo;
 ```

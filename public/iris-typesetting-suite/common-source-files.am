@@ -3,9 +3,6 @@ LIBIRIS_ADS_FILES += capypdf.ads
 LIBIRIS_ADB_FILES += capypdf_tests.adb
 LIBIRIS_ADS_FILES += capypdf_tests.ads
 
-LIBIRIS_ADB_FILES += fontconfig.adb
-LIBIRIS_ADS_FILES += fontconfig.ads
-
 LIBIRIS_ADB_FILES += tkrzw.adb
 LIBIRIS_ADS_FILES += tkrzw.ads
 

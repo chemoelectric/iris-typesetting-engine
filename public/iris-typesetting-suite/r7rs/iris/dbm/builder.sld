@@ -13,8 +13,7 @@
           (gauche keyword)
           (srfi 152) ;; string library.
           (iris tkrzw)
-          (iris texmf ls-R)
-          (iris fontconfig))
+          (iris texmf ls-R))
   (export build-texmf-db
           build-fonts-db
           build-all-databases
@@ -151,7 +150,7 @@
       (let* ((path (if (null? args) (default-fonts-db-path) (car args)))
              (_    (ensure-parent-dir path))
              (db   (tkrzw-open path :rw-mode :create
-                               :params "max_page_size=4096"))
+                                :params "max_page_size=4096"))
              (lines (get-fc-list-entries)))
         (if (not db)
             0

@@ -43,21 +43,6 @@ test_gauche_binding_DEPENDENCIES += libiris.a
 
 CLEANFILES += test_gauche_binding$(EXEEXT)
 
-test_fontconfig$(EXEEXT): test_fontconfig.lo libiris.a
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
-
-check_PROGRAMS += test_fontconfig
-test_fontconfig_SOURCES =
-test_fontconfig_SOURCES += test_fontconfig.adb
-test_fontconfig_LDADD =
-test_fontconfig_LDADD += .libs/test_fontconfig.$(OBJEXT)
-test_fontconfig_LDADD += libiris.a
-test_fontconfig_DEPENDENCIES =
-test_fontconfig_DEPENDENCIES += test_fontconfig.lo
-test_fontconfig_DEPENDENCIES += libiris.a
-
-CLEANFILES += test_fontconfig$(EXEEXT)
-
 test_tkrzw$(EXEEXT): test_tkrzw.lo libiris.a
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
@@ -72,4 +57,3 @@ test_tkrzw_DEPENDENCIES += test_tkrzw.lo
 test_tkrzw_DEPENDENCIES += libiris.a
 
 CLEANFILES += test_tkrzw$(EXEEXT)
-
