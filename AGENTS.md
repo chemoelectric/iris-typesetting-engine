@@ -24,7 +24,10 @@
     - **Casing Convention**: Except inside string literals, comments, or where the language strictly mandates uppercase, prefer lowercase letters throughout.
     - **Line Length Limit**: Keep lines strictly to 72 characters or less, except where longer lines cannot be avoided.
     - **Contracts & Aspects**: Always specify modern Ada 2022 contract aspects (`Pre => ...`, `Post => ...`, etc.) on subprograms and type declarations.
-    - **Use Clause Rule**: Prefer utilizing `use` clauses over trying to artificially avoid them; in Ada, `use` clauses are often required to maintain natural operator visibility and avoid impractical workarounds.
+    - **Modern API Design & Memory Safety Rule**: Avoid legacy Ada idioms in user-facing APIs of newer code:
+      - **Unbounded Strings**: Use `Ada.Strings.Unbounded.Unbounded_String` as the first-class string type in public subprograms and records to prevent fixed-size array constraint errors.
+      - **Encapsulated Memory Management**: Do NOT expose raw `access` pointers or C-style handles (`chars_ptr`, `System.Address`) in public package specifications. Keep all pointer interactions strictly internal to private/body units.
+      - **RAII via Controlled Types**: Implement resources using `Ada.Finalization.Controlled` (or `Limited_Controlled`) with reference-counted or idempotent finalization to prevent memory leaks and completely eliminate double-free defects.
   - **Scheme Coding Standards & Maximum Branch Metric**:
     - **Maximum Branch Metric**: Maintain a strict maximum branching metric of 4 or fewer decision points (`if`, `cond` clauses, `and`/`or` short-circuits) per named subprogram.
     - **Procedural Extraction over Comments**: Do NOT write large monolithic procedures with blocks of comments explaining subsections. Instead, group sub-actions and branching logic into small, expressive, named nested procedures (via `letrec`, internal `define`, or module helpers).
