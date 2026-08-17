@@ -18,14 +18,14 @@ procedure test_database is
       name      : in string) is
    begin
       if condition then
-         Put_Line ("PASS: " & name);
+         put_line ("PASS: " & name);
       else
-         Put_Line ("FAIL: " & name);
+         put_line ("FAIL: " & name);
       end if;
    end verify_test;
 
 begin
-   Put_Line ("Running Database Interface Tests...");
+   put_line ("Running Database Interface Tests...");
 
    -- Test 1: Null database check
    verify_test (db_is_closed (db), "Null database is initially closed");
@@ -41,7 +41,8 @@ begin
    declare
       read_val : constant string := db_get (db, "greeting");
    begin
-      verify_test (read_val = "Hello, Iris!", "Value retrieval matches");
+      verify_test
+        (read_val = "Hello, Iris!", "Value retrieval matches");
    end;
 
    -- Test 4: Key count
@@ -52,7 +53,8 @@ begin
    declare
       read_val : constant string := db_get (db, "greeting");
    begin
-      verify_test (read_val = "Welcome, Iris!", "Value overwrite matches");
+      verify_test
+        (read_val = "Welcome, Iris!", "Value overwrite matches");
    end;
 
    -- Test 6: Levenshtein distance
@@ -65,13 +67,14 @@ begin
 
    -- Test 7: Remove key
    db_remove (db, "greeting");
-   verify_test (not db_exists (db, "greeting"), "Key removed successfully");
+   verify_test
+     (not db_exists (db, "greeting"), "Key removed successfully");
    verify_test (db_count (db) = 0, "Record count is 0 after removal");
 
    -- Test 8: Close database
    db_close (db);
    verify_test (db_is_closed (db), "Database closed successfully");
 
-   Put_Line ("Database Interface Tests Complete.");
+   put_line ("Database Interface Tests Complete.");
 
 end test_database;

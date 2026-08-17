@@ -214,7 +214,12 @@ package body database is
    begin
       if db /= null_database then
          status := c_set
-           (db, c_key, int (key'length), c_val, int (value'length), ow_int);
+           (db,
+            c_key,
+            int (key'length),
+            c_val,
+            int (value'length),
+            ow_int);
       end if;
       free (c_key);
       free (c_val);
@@ -302,14 +307,15 @@ package body database is
    end iris_db_get;
 
    function iris_db_set
-     (db         : in database_type;
-      key_ptr    : in chars_ptr;
-      key_size   : in int;
-      val_ptr    : in chars_ptr;
-      val_size   : in int;
-      overwrite  : in int) return int is
+     (db        : in database_type;
+      key_ptr   : in chars_ptr;
+      key_size  : in int;
+      val_ptr   : in chars_ptr;
+      val_size  : in int;
+      overwrite : in int) return int is
    begin
-      return c_set (db, key_ptr, key_size, val_ptr, val_size, overwrite);
+      return c_set
+        (db, key_ptr, key_size, val_ptr, val_size, overwrite);
    end iris_db_set;
 
    function iris_db_remove
