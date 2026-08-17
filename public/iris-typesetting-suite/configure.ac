@@ -45,7 +45,8 @@ test -n "${GNATBIND}" || AC_MSG_ERROR([gnatbind is missing])
 AC_CHECK_PROGS([GAUCHE_CONFIG],[gauche-config])
 test -n "${GAUCHE_CONFIG}" || AC_MSG_ERROR([gauche-config is missing])
 
-m4_include([find-kpsewhich.ac])
+: "${KPSEWHICH:=kpsewhich}"
+AC_ARG_VAR([KPSEWHICH],[kpsewhich command])
 
 : "${ADA:=${CC}}"
 AC_ARG_VAR([ADA],[Ada compiler command [default is: same command as CC]])
@@ -98,28 +99,16 @@ AC_SUBST([GNU],[])
 CHEM_REQUIRE_GNU_MAKE_IN_PATH
 CHEM_CONFIG_MAKEFILES
 AC_CONFIG_FILES([atconfig])
+AC_CONFIG_FILES([r7rs/iris/texmf/ls-R.sld.tmp:r7rs/iris/texmf/ls-R.sld.in])
 
 AC_CONFIG_COMMANDS([r7rs],[
-  AS_MKDIR_P(["${r7rs_dst}/iris/kpsewhich"])
+  AS_MKDIR_P(["${r7rs_dst}"])
   (cd "${r7rs_src}" && tar cf - .) | (cd "${r7rs_dst}" && tar xf -)
   chmod -R +w "${r7rs_dst}"
-  cat > "${r7rs_dst}/iris/kpsewhich/kpsewhich-process.sld" <<EOF
-(define-library (iris kpsewhich kpsewhich-process)
-  (export kpsewhich-process)
-  (import (scheme base)
-          (srfi 13)
-          (srfi 14))
-  (begin
-    (define (kpsewhich-process . args)
-      \`(,@(map string->symbol
-               (string-tokenize "${kpsewhich_command}"))
-        ,@(map string->symbol args)))
-    ))
-EOF
+  mv r7rs/iris/texmf/ls-R.sld{.tmp,}
 ],[
   r7rs_src="${srcdir}/r7rs"
   r7rs_dst="r7rs"
-  kpsewhich_command="${KPSEWHICH}"
 ])
 
 AC_OUTPUT

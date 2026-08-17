@@ -1,0 +1,112 @@
+;;; SPDX-License-Identifier: MIT
+
+(define-library (iris texmf ls-R)
+
+  (import (scheme base)
+          (scheme list)
+          (scheme file)
+          (scheme write)
+          (srfi 152) ;; string library.
+          (gauche process))
+
+  (export ls-R)
+
+  (begin
+
+    (define (ls-R)
+      ;;
+      ;; Return an association list of the TeX installation file
+      ;; structure. Each key is the path of a directory and the value
+      ;; is a list of the directory’s contents.
+      ;;
+      (fold (lambda (ls-R-file big-alst)
+              (let ((alst (get-ls-R-index ls-R-file)))
+                (append
+                 (map (lambda (xy)
+                        (let-values (((x y) (car+cdr xy)))
+                          (cons (delete-dots-from-path
+                                 (string-append
+                                  (require-slash
+                                   (string-drop-right ls-R-file 4))
+                                  x))
+                                y)))
+                      alst)
+                 big-alst)))
+            '() (get-ls-R-paths)))
+
+    (define (delete-dots-from-path path)
+      (let loop ((current-path path))
+        ;; SRFI 152: (string-contains haystack needle).
+        (let ((index (string-contains current-path "/./")))
+          (if index
+            ;; SRFI 152: (string-replace s1 s2 start1 end1 start2
+            ;; end2) Slices index 0 to 1 of "/" into current-path at
+            ;; [index, index+3).
+            (loop (string-replace current-path "/" index (+ index 3) 0 1))
+            current-path))))
+
+    (define (require-slash s)
+      (if (string-suffix? "/" s)
+        s
+        (string-append s "/")))
+
+    (define (get-ls-R-paths)
+      (append (get-file-paths "ls-R")
+              (get-file-paths "ls-r")))
+
+    (define (get-file-paths filename)
+      (guard (ex (else '()))
+        (process-output->string-list
+         `(@KPSEWHICH@ "-all" ,filename))))
+
+    (define (string-ends-with? str char)
+      (let ((len (string-length str)))
+        (and (> len 0)
+             (char=? (string-ref str (- len 1)) char))))
+
+    (define (parse-ls-R current-dir accumulator)
+      ;;
+      ;; Builds an association list structured like an ls-R file.
+      ;;
+      (let ((line (read-line)))
+        (cond
+          ;; End of file reached: return completed map.
+          ((eof-object? line) 
+           accumulator)
+          
+          ;; Skip empty lines or TeX-style comments.
+          ((or (string=? line "") 
+               (and (> (string-length line) 0) 
+                    (char=? (string-ref line 0) #\%)))
+           (parse-ls-R current-dir accumulator))
+          
+          ;; Matches a directory header line (e.g., "./tex/latex:").
+          ((string-ends-with? line #\:)
+           (let* ((len (string-length line))
+                  ;; Strip the trailing colon
+                  (new-dir (substring line 0 (- len 1))))
+             (parse-ls-R new-dir accumulator)))
+          
+          ;; Matches an ordinary filename inside the current-dir.
+          (else
+           (let* ((existing-files (or (assoc current-dir accumulator)
+                                      (list current-dir)))
+                  ;; Add file to the current directory entry.
+                  (updated-entry (append existing-files (list line)))
+                  ;; Filter out old entry and insert updated one.
+                  (clean-acc (assoc-remove accumulator current-dir))
+                  (new-accumulator (cons updated-entry clean-acc)))
+             (parse-ls-R current-dir new-accumulator))))))
+
+    ;; Minimal association list helper to remove a key.
+    (define (assoc-remove alist key)
+      (cond ((null? alist) '())
+            ((string=? (caar alist) key) (cdr alist))
+            (else (cons (car alist) (assoc-remove (cdr alist) key)))))
+
+    ;; Run the parser on an ls-R file.
+    (define (get-ls-R-index filename)
+      (with-input-from-file filename
+        (lambda () (parse-ls-R #f '()))))
+
+    ))
