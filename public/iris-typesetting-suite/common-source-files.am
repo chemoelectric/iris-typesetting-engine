@@ -11,3 +11,4 @@ LIBIRIS_ADS_FILES += gauche_binding.ads
 LIBIRIS_C_FILES += gauche_runtime_init.c
 LIBIRIS_C_FILES += gauche_c_macros.c
 LIBIRIS_C_FILES += gauche_tkrzw.c
+LIBIRIS_C_FILES += gauche_iris_db.c

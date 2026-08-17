@@ -1,26 +1,51 @@
-# (iris db) --- Pure R7RS Binary Database Interface
+# (iris db) --- Scheme Wrapper for Ada Database Engine
 
-The `(iris db)` library provides a portable, high-performance pure R7RS
-binary associative storage and search interface for the Iris Typesetting
-Engine.
+The `(iris db)` library provides a high-performance R7RS Scheme
+wrapper around the C interface to the Iris Ada database engine
+(`database.ads` / `database.adb`).
 
-## Binary On-Disk Format
+## Architecture
 
-All Iris database files (`.tkh`, `.tkt`) serialized by `(iris db)` use a
-compact, endian-safe binary record format:
+All database handles, binary serialization, indexing, and on-disk
+storage are managed exclusively by the Ada database engine:
 
-1. **Magic Header** (8 bytes): `#u8(0 73 82 73 83 68 66 1)`
-   (`\0IRISDB\1`)
-2. **Record Count** (4 bytes, Big-Endian uint32)
-3. **Entries**:
-   - `Key Length` (4 bytes, Big-Endian uint32)
-   - `Key Bytes` (UTF-8 binary payload)
-   - `Value Length` (4 bytes, Big-Endian uint32)
-   - `Value Bytes` (UTF-8 binary payload)
+```
++-------------------------------------------------------------+
+|               Scheme Application Layer / Scripts            |
+|                  (e.g., iris-demo-q, iris-findfont)         |
++-------------------------------------------------------------+
+                              |
+                              v
++-------------------------------------------------------------+
+|              (iris db) Scheme Library Wrapper               |
+|            r7rs/iris/db.sld (%make-db <iris-db>)            |
++-------------------------------------------------------------+
+                              |
+                              v
++-------------------------------------------------------------+
+|              Gauche C Bridge (gauche_iris_db.c)             |
+|              gauche_iris_db_* wrappers                      |
++-------------------------------------------------------------+
+                              |
+                              v
++-------------------------------------------------------------+
+|          Ada C Foreign Function Interface Exports           |
+|            (database.ads / iris_db_* C symbols)             |
++-------------------------------------------------------------+
+                              |
+                              v
++-------------------------------------------------------------+
+|                  Ada Database Engine Core                   |
+|              (database.adb / database_type)                 |
+|             Binary Database Format (.tkh / .tkt)            |
++-------------------------------------------------------------+
+```
 
-This binary format eliminates text parser ambiguities, prevents
-corruptions caused by embedded newlines or quotation characters, and
-guarantees zero drift across architectures.
+## Zero Scheme File I/O Guarantee
+
+Scheme code performs zero file writes or S-expression formatting on
+database files. All operations dispatch directly through the C boundary
+to the Ada database engine, ensuring strict binary persistence.
 
 ## Library Identifier
 
@@ -30,7 +55,8 @@ guarantees zero drift across architectures.
           (scheme char)
           (scheme file)
           (scheme write)
-          (scheme process-context))
+          (scheme process-context)
+          (gauche base))
   (export make-db
           db?
           db-open
@@ -43,9 +69,9 @@ guarantees zero drift across architectures.
           db-delete!
           db-count
           db-sync
+          db-edit-distance
           db-keys
           db-search-prefix
-          db-edit-distance
           db-for-each
           db-fold))
 ```
@@ -54,12 +80,12 @@ guarantees zero drift across architectures.
 
 ### `(db-open path [mode])`
 
-Opens the binary database stored at `path`. The optional `mode` symbol
-may be `'read`, `'write`, `'create`, or `'truncate`.
+Opens the binary database stored at `path` through `iris_db_open`.
 
 ### `(db-close db)`
 
-Flushes pending modifications to disk in binary format and closes `db`.
+Closes the database handle and flushes modifications via
+`iris_db_close`.
 
 ### `(db-closed? db)`
 
@@ -71,46 +97,28 @@ Returns the filesystem path associated with `db`.
 
 ### `(db-get db key [default])`
 
-Retrieves the value for `key`. Returns `default` (or `#f`) if the key
-is not present in the database.
+Retrieves the value for `key` via `iris_db_get`.
 
 ### `(db-set! db key value)`
 
-Sets the value associated with `key`. Signals an error if the database
-is closed or was opened in read-only mode.
+Sets the value associated with `key` via `iris_db_set`.
 
 ### `(db-exists? db key)`
 
-Returns `#t` if `key` exists in `db`, otherwise `#f`.
+Returns `#t` if `key` exists in `db` via `iris_db_check`.
 
 ### `(db-delete! db key)`
 
-Deletes `key` from `db`. Returns `#t` on success, `#f` otherwise.
+Deletes `key` from `db` via `iris_db_remove`.
 
 ### `(db-count db)`
 
-Returns the integer count of records stored in `db`.
+Returns the count of records stored in `db` via `iris_db_count`.
 
 ### `(db-sync db)`
 
-Synchronizes in-memory contents to the backing binary file.
-
-### `(db-keys db [prefix])`
-
-Returns a list of all keys in `db`, optionally matching `prefix`.
-
-### `(db-search-prefix db prefix [capacity])`
-
-Returns up to `capacity` keys matching `prefix`.
+Flushes pending database modifications to disk via `iris_db_sync`.
 
 ### `(db-edit-distance str-a str-b)`
 
-Calculates Levenshtein edit distance between `str-a` and `str-b`.
-
-### `(db-for-each proc db)`
-
-Applies `(proc key value)` to each entry in the database.
-
-### `(db-fold proc knil db)`
-
-Folds `(proc key value accum)` across all entries starting from `knil`.
+Calculates Levenshtein edit distance via `iris_db_edit_distance`.
