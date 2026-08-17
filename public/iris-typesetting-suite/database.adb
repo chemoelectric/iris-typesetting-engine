@@ -4,7 +4,7 @@
 --
 -- Implementation of the high-performance database interface.
 
-with system;
+with system; use system;
 with ada.finalization;
 with ada.strings.unbounded; use ada.strings.unbounded;
 with ada.unchecked_deallocation;
