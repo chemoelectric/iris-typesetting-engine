@@ -1,8 +1,26 @@
-# (iris db) --- Pure R7RS Database Interface
+# (iris db) --- Pure R7RS Binary Database Interface
 
-The `(iris db)` library provides a portable, pure R7RS Scheme
-associative storage and diagnostic search interface for the
-Iris Typesetting Engine.
+The `(iris db)` library provides a portable, high-performance pure R7RS
+binary associative storage and search interface for the Iris Typesetting
+Engine.
+
+## Binary On-Disk Format
+
+All Iris database files (`.tkh`, `.tkt`) serialized by `(iris db)` use a
+compact, endian-safe binary record format:
+
+1. **Magic Header** (8 bytes): `#u8(0 73 82 73 83 68 66 1)`
+   (`\0IRISDB\1`)
+2. **Record Count** (4 bytes, Big-Endian uint32)
+3. **Entries**:
+   - `Key Length` (4 bytes, Big-Endian uint32)
+   - `Key Bytes` (UTF-8 binary payload)
+   - `Value Length` (4 bytes, Big-Endian uint32)
+   - `Value Bytes` (UTF-8 binary payload)
+
+This binary format eliminates text parser ambiguities, prevents
+corruptions caused by embedded newlines or quotation characters, and
+guarantees zero drift across architectures.
 
 ## Library Identifier
 
@@ -36,12 +54,12 @@ Iris Typesetting Engine.
 
 ### `(db-open path [mode])`
 
-Opens the database stored at `path`. The optional `mode` symbol may
-be `'read`, `'write`, `'create`, or `'truncate`.
+Opens the binary database stored at `path`. The optional `mode` symbol
+may be `'read`, `'write`, `'create`, or `'truncate`.
 
 ### `(db-close db)`
 
-Flushes pending modifications to disk and closes the database.
+Flushes pending modifications to disk in binary format and closes `db`.
 
 ### `(db-closed? db)`
 
@@ -75,7 +93,7 @@ Returns the integer count of records stored in `db`.
 
 ### `(db-sync db)`
 
-Synchronizes in-memory contents to the backing file.
+Synchronizes in-memory contents to the backing binary file.
 
 ### `(db-keys db [prefix])`
 

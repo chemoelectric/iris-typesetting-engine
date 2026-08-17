@@ -1,4 +1,4 @@
-;;; r7rs/iris/db.sld --- Pure R7RS associative database interface
+;;; r7rs/iris/db.sld --- Pure R7RS binary associative database interface
 ;;;
 ;;; SPDX-License-Identifier: MIT
 
@@ -37,38 +37,105 @@
       (modified? db-modified? db-modified-set!)
       (closed? db-closed? db-closed-set!))
 
+    (define *db-magic*
+      (bytevector 0 73 82 73 83 68 66 1))
+
     (define (make-db path mode)
       (%make-db path mode (make-hash-table 'string=?) #f #f))
 
-    (define (read-all-entries port table)
-      (let loop ()
-        (let ((obj (read port)))
-          (unless (eof-object? obj)
-            (when (and (pair? obj)
-                       (not (string=? (car obj) "!format")))
-              (hash-table-put! table (car obj) (cdr obj)))
-            (loop)))))
+    (define (u32->bytes n)
+      (let ((bv (make-bytevector 4 0)))
+        (bytevector-u8-set! bv 0 (bitwise-and (ash n -24) #xff))
+        (bytevector-u8-set! bv 1 (bitwise-and (ash n -16) #xff))
+        (bytevector-u8-set! bv 2 (bitwise-and (ash n -8) #xff))
+        (bytevector-u8-set! bv 3 (bitwise-and n #xff))
+        bv))
+
+    (define (read-exact-bytes port n)
+      (let ((bv (make-bytevector n 0)))
+        (let ((got (read-bytevector! bv port 0 n)))
+          (if (equal? got n) bv #f))))
+
+    (define (read-u32-be port)
+      (let ((bv (read-exact-bytes port 4)))
+        (if (not bv)
+            #f
+            (+ (ash (bytevector-u8-ref bv 0) 24)
+               (ash (bytevector-u8-ref bv 1) 16)
+               (ash (bytevector-u8-ref bv 2) 8)
+               (bytevector-u8-ref bv 3)))))
+
+    (define (write-u32-be port n)
+      (write-bytevector (u32->bytes n) port))
+
+    (define (magic-match? magic)
+      (let loop ((i 0))
+        (cond
+          ((>= i 8) #t)
+          ((not (= (bytevector-u8-ref magic i)
+                   (bytevector-u8-ref *db-magic* i))) #f)
+          (else (loop (+ i 1))))))
+
+    (define (verify-header port)
+      (let ((magic (read-exact-bytes port 8)))
+        (and magic (magic-match? magic))))
+
+    (define (read-value-record port kbv)
+      (let ((vlen (read-u32-be port)))
+        (if (not vlen)
+            #f
+            (let ((vbv (read-exact-bytes port vlen)))
+              (if (not vbv)
+                  #f
+                  (cons (utf8->string kbv)
+                        (utf8->string vbv)))))))
+
+    (define (read-one-record port)
+      (let ((klen (read-u32-be port)))
+        (if (not klen)
+            #f
+            (let ((kbv (read-exact-bytes port klen)))
+              (if (not kbv)
+                  #f
+                  (read-value-record port kbv))))))
+
+    (define (read-binary-entries port table count)
+      (let loop ((i 0))
+        (when (< i count)
+          (let ((rec (read-one-record port)))
+            (when rec
+              (hash-table-put! table (car rec) (cdr rec))
+              (loop (+ i 1)))))))
 
     (define (load-db-file path table)
       (when (file-exists? path)
         (guard (ex (else #f))
-          (call-with-input-file path
+          (call-with-port (open-binary-input-file path)
             (lambda (port)
-              (read-all-entries port table))))))
+              (when (verify-header port)
+                (let ((count (read-u32-be port)))
+                  (when (and count (>= count 0))
+                    (read-binary-entries port table count)))))))))
 
-    (define (write-one-entry key val port)
-      (write (cons key val) port)
-      (newline port))
+    (define (write-one-record port key-str val-str)
+      (let* ((kbv (string->utf8 key-str))
+             (vbv (string->utf8 val-str))
+             (klen (bytevector-length kbv))
+             (vlen (bytevector-length vbv)))
+        (write-u32-be port klen)
+        (write-bytevector kbv port)
+        (write-u32-be port vlen)
+        (write-bytevector vbv port)))
 
     (define (save-db-file path table)
       (guard (ex (else #f))
-        (call-with-output-file path
+        (call-with-port (open-binary-output-file path)
           (lambda (port)
-            (write-one-entry "!format" "iris-db-v1" port)
+            (write-bytevector *db-magic* port)
+            (write-u32-be port (hash-table-num-entries table))
             (hash-table-for-each table
               (lambda (k v)
-                (unless (string=? k "!format")
-                  (write-one-entry k v port))))))))
+                (write-one-record port k v)))))))
 
     (define (db-open path . maybe-mode)
       (let* ((mode (if (null? maybe-mode) 'read (car maybe-mode)))
