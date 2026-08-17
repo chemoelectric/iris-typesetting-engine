@@ -4,6 +4,7 @@
 ;;; SPDX-License-Identifier: MIT
 
 (import (scheme base)
+        (scheme file)
         (scheme process-context)
         (scheme write)
         (gauche base)
@@ -16,23 +17,33 @@
          (entry (if rec (assoc 'file rec) #f)))
     (if entry (cdr entry) #f)))
 
+(define (lookup-id-record db id-str)
+  (if (not id-str)
+      #f
+      (let* ((f-key (string-append "font:" id-str))
+             (rec-str (tkrzw-get db f-key #f)))
+        (lookup-record-field rec-str))))
+
 (define (query-db-for-font db query)
   (let* ((id-key (string-append "ps:" query))
          (id-str (tkrzw-get db id-key #f)))
-    (if (not id-str)
+    (if id-str
+        (lookup-id-record db id-str)
         (let* ((full-key (string-append "full:" query))
                (fid-str  (tkrzw-get db full-key #f)))
-          (if (not fid-str)
-              #f
-              (let* ((f-key (string-append "font:" fid-str))
-                     (rec-str (tkrzw-get db f-key #f)))
-                (lookup-record-field rec-str))))
-        (let* ((f-key (string-append "font:" id-str))
-               (rec-str (tkrzw-get db f-key #f)))
-          (lookup-record-field rec-str)))))
+          (lookup-id-record db fid-str)))))
+
+(define (ensure-fonts-db-present db-path)
+  (if (file-exists? db-path)
+      #t
+      (begin
+        (display "Initializing Tkrzw fonts database cache...\n")
+        (build-fonts-db db-path)
+        #t)))
 
 (define (resolve-font-path query)
   (let ((db-path (default-fonts-db-path)))
+    (ensure-fonts-db-present db-path)
     (if (not (file-exists? db-path))
         #f
         (let ((db (tkrzw-open db-path :rw-mode :read)))
@@ -51,15 +62,21 @@
       (resolve-font-path "C059-Roman")
       "/usr/share/fonts/opentype/urw-base35/NimbusRoman-Regular.otf"))
 
-(define (build-ps-stream)
-  (string-append
-   "<< /PageSize [612 792] >> setpagedevice "
-   "210 290 moveto "
-   "/Helvetica findfont 280 scalefont setfont "
-   "(Q) show showpage quit"))
+(define (build-ps-stream font-path)
+  (if (and (string? font-path) (file-exists? font-path))
+      (string-append
+       "<< /PageSize [612 792] >> setpagedevice "
+       "(" font-path ") findfont 280 scalefont setfont "
+       "210 290 moveto "
+       "(Q) show showpage quit")
+      (string-append
+       "<< /PageSize [612 792] >> setpagedevice "
+       "/Times-Roman findfont 280 scalefont setfont "
+       "210 290 moveto "
+       "(Q) show showpage quit")))
 
 (define (render-ps-stream out-file font-file)
-  (let* ((ps-code (build-ps-stream))
+  (let* ((ps-code (build-ps-stream font-file))
          (cmd (list "gs" "-q" "-dNOPAUSE" "-dBATCH"
                     "-sDEVICE=pdfwrite"
                     "-sPAPERSIZE=letter"
