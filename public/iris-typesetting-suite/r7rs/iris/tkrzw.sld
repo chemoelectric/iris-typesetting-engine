@@ -80,16 +80,50 @@
         (else (call-with-port (open-output-string)
                 (lambda (p) (write obj p) (get-output-string p))))))
 
-    (define (read-all-db-records port ht)
-      (let loop ()
-        (let ((k (read port)))
-          (unless (eof-object? k)
-            (let ((v (read port)))
-              (unless (eof-object? v)
+    (define (find-parent-dir path)
+      (let loop ((i (- (string-length path) 1)))
+        (cond
+          ((< i 0) #f)
+          ((char=? (string-ref path i) #\/)
+           (let ((parent (substring path 0 i)))
+             (if (string=? parent "") "/" parent)))
+          (else (loop (- i 1))))))
+
+    (define (create-dir-if-missing dir)
+      (unless (or (string=? dir "")
+                  (string=? dir "/")
+                  (file-exists? dir))
+        (let ((parent (find-parent-dir dir)))
+          (when parent
+            (create-dir-if-missing parent))
+          (guard (e (else #f))
+            (sys-mkdir dir #o755)))))
+
+    (define (ensure-parent-dir file-path)
+      (let ((parent (find-parent-dir file-path)))
+        (when parent
+          (create-dir-if-missing parent))))
+
+    (define (read-single-record port ht)
+      (let ((k (guard (e (else #f)) (read port))))
+        (cond
+          ((eof-object? k) #f)
+          ((not k) #f)
+          (else
+           (let ((v (guard (e (else #f)) (read port))))
+             (cond
+               ((eof-object? v) #f)
+               ((not v) #f)
+               (else
                 (let ((k-str (to-string k))
                       (v-str (to-string v)))
                   (hash-table-put! ht k-str v-str)
-                  (loop))))))))
+                  #t))))))))
+
+    (define (read-all-db-records port ht)
+      (let loop ()
+        (when (read-single-record port ht)
+          (loop))))
 
     (define (safe-file-read-records path)
       (guard (ex (else (make-hash-table 'string=?)))
@@ -111,15 +145,37 @@
          (write v port)
          (newline port))))
 
+    (define (remove-file-if-exists file-path)
+      (when (file-exists? file-path)
+        (guard (e (else #f))
+          (sys-remove file-path))))
+
+    (define (write-records-to-file path ht)
+      (call-with-output-file path
+        (lambda (p)
+          (write-all-db-records p ht))))
+
+    (define (try-atomic-write-records path ht)
+      (let ((tmp (string-append path ".tmp."
+                                (number->string (sys-getpid)))))
+        (remove-file-if-exists tmp)
+        (let ((ok (guard (e (else #f))
+                    (write-records-to-file tmp ht)
+                    (sys-rename tmp path)
+                    #t)))
+          (unless ok
+            (remove-file-if-exists tmp))
+          ok)))
+
     (define (safe-file-write-records path ht)
       (guard (ex (else #f))
-        (let ((tmp (string-append path ".tmp."
-                                  (number->string (sys-getpid)))))
-          (call-with-output-file tmp
-            (lambda (p)
-              (write-all-db-records p ht)))
-          (sys-rename tmp path)
-          #t)))
+        (ensure-parent-dir path)
+        (let ((saved (try-atomic-write-records path ht)))
+          (if saved
+              #t
+              (guard (e2 (else #f))
+                (write-records-to-file path ht)
+                #t)))))
 
     (define (tkrzw-open path . args)
       (let-keywords* args ((rw-mode :read)

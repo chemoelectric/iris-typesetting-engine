@@ -33,17 +33,29 @@
     (define (default-fonts-db-path)
       (string-append (user-cache-dir) "/iris/fonts-system.tkt"))
 
-    (define (ensure-parent-dir file-path)
-      (let loop ((i (- (string-length file-path) 1)))
+    (define (find-parent-dir path)
+      (let loop ((i (- (string-length path) 1)))
         (cond
-          ((< i 0) #t)
-          ((char=? (string-ref file-path i) #\/)
-           (let ((dir (substring file-path 0 i)))
-             (unless (string=? dir "")
-               (guard (e (else #f))
-                 (sys-mkdir dir #o755)))
-             #t))
+          ((< i 0) #f)
+          ((char=? (string-ref path i) #\/)
+           (let ((parent (substring path 0 i)))
+             (if (string=? parent "") "/" parent)))
           (else (loop (- i 1))))))
+
+    (define (create-dir-if-missing dir)
+      (unless (or (string=? dir "")
+                  (string=? dir "/")
+                  (file-exists? dir))
+        (let ((parent (find-parent-dir dir)))
+          (when parent
+            (create-dir-if-missing parent))
+          (guard (e (else #f))
+            (sys-mkdir dir #o755)))))
+
+    (define (ensure-parent-dir file-path)
+      (let ((parent (find-parent-dir file-path)))
+        (when parent
+          (create-dir-if-missing parent))))
 
     (define (normalize-name str)
       (string-downcase str))
@@ -77,6 +89,7 @@
                (lambda (entry)
                  (ingest-texmf-directory db entry))
                dirs)
+              (tkrzw-sync db)
               (tkrzw-close db)
               (let* ((ro-db (tkrzw-open path :rw-mode :read))
                      (cnt   (if ro-db
@@ -171,6 +184,7 @@
             (let loop ((rest lines) (id 0))
               (if (null? rest)
                   (begin
+                    (tkrzw-sync db)
                     (tkrzw-close db)
                     (let* ((ro-db (tkrzw-open path :rw-mode :read))
                            (cnt   (if ro-db
