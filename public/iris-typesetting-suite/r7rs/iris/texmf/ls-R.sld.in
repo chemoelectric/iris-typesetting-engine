@@ -3,6 +3,7 @@
 (define-library (iris texmf ls-R)
 
   (import (scheme base)
+          (scheme char)
           (scheme list)
           (scheme file)
           (scheme write)
@@ -49,10 +50,34 @@
     (define (get-ls-R-paths)
       (get-file-paths "ls-R"))
 
+    (define (split-command-words str)
+      (let ((len (string-length str)))
+        (let loop ((i 0) (start #f) (words '()))
+          (if (= i len)
+              (reverse (if start
+                           (cons (substring str start len) words)
+                           words))
+              (let ((ch (string-ref str i)))
+                (if (char-whitespace? ch)
+                    (if start
+                        (loop (+ i 1) #f
+                              (cons (substring str start i) words))
+                        (loop (+ i 1) #f words))
+                    (if start
+                        (loop (+ i 1) start words)
+                        (loop (+ i 1) i words))))))))
+
+    (define (kpsewhich-command-parts)
+      (let ((tokens (split-command-words "@KPSEWHICH@")))
+        (if (null? tokens)
+            '("kpsewhich")
+            tokens)))
+
     (define (get-file-paths filename)
       (guard (ex (else '()))
-        (let* ((cmd (list "@KPSEWHICH@" "-all" filename))
-               (lines (process-output->string-list cmd)))
+        (let* ((base-cmd (kpsewhich-command-parts))
+               (cmd      (append base-cmd (list "-all" filename)))
+               (lines    (process-output->string-list cmd)))
           (filter file-exists? lines))))
 
     (define (string-ends-with? str char)
