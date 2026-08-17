@@ -32,6 +32,27 @@ The Scheme library implements the Gauche `<dbm>` generic interface with `<tkrzw>
 (dbm-close font-db)
 ```
 
+## Database Builder & Diagnostic Engine (`(iris dbm builder)` & `(iris dbm suggest)`)
+
+The database builder module populates high-performance key-value databases from TeXLive's directory trees (`(iris texmf ls-R)`) and system font configurations (`(iris fontconfig)`):
+
+```scheme
+(import (iris dbm builder)
+        (iris dbm suggest))
+
+;; Build TeXMF hash database and System font B+ tree database
+(build-all-databases)
+
+;; Query for misspelled font name or file
+(define font-db (tkrzw-open (default-fonts-db-path) :rw-mode :read))
+(define suggestion (suggest-did-you-mean font-db "NimbusRomn-Bld" 3))
+;; suggestion => "NimbusRoman-Bold"
+
+;; Produce formatted compiler diagnostic note
+(format-did-you-mean-diagnostic "font" "NimbusRomn-Bld" suggestion)
+;; => "error: font 'NimbusRomn-Bld' was not found.\n  = note: did you mean 'NimbusRoman-Bold'?"
+```
+
 ## Ada 2022 Interface (`tkrzw.ads`)
 
 The Ada 2022 interface `tkrzw` provides typed database access with formal pre- and post-condition contracts:
