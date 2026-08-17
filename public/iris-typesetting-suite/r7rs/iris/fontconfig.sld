@@ -8,7 +8,8 @@
           (scheme file)
           (scheme process-context)
           (gauche base)
-          (gauche process))
+          (gauche process)
+          (gauche keyword))
   (export fontconfig-find-font
           fontconfig-search
           path->file-uri)

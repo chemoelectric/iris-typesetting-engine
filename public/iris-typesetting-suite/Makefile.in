@@ -466,11 +466,11 @@ CLEANFILES = iris$(EXEEXT) test_capypdf$(EXEEXT) \
 	test_tkrzw$(EXEEXT)
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
 EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
-	autogen.sh ada-programs.list r7rs/iris/kpsewhich.sld \
-	r7rs/iris/kpsewhich.md r7rs/iris/fontconfig.sld \
+	autogen.sh ada-programs.list r7rs/iris/fontconfig.sld \
 	r7rs/iris/fontconfig.md r7rs/iris/tkrzw.sld r7rs/iris/tkrzw.md \
-	r7rs/iris/dbm/tkrzw.sld doc/md/fontconfig.md doc/md/tkrzw.md \
-	iris-findfont
+	r7rs/iris/dbm/tkrzw.sld r7rs/iris/dbm/builder.sld \
+	r7rs/iris/dbm/suggest.sld r7rs/iris/texmf/ls-R.sld.in \
+	doc/md/fontconfig.md doc/md/tkrzw.md iris-findfont
 lib_LIBRARIES = libiris.a
 AM_ADAFLAGS = -gnat2022 -I$(call get-adainclude) -I$(builddir) \
 	-I$(srcdir)

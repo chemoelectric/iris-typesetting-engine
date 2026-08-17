@@ -9,8 +9,7 @@
           (scheme write)
           (scheme process-context)
           (gauche base)
-          (gauche object)
-          (gauche class)
+          (gauche keyword)
           (util levenshtein)
           (dbm))
   (export <tkrzw>
@@ -69,7 +68,9 @@
        (params       :init-value "" :init-keyword :params)
        (table        :init-value #f)
        (keys-cache   :init-value '())
-       (iter-index   :init-value 0))
+       (iter-index   :init-value 0)
+       (closed       :init-value #f)
+       (sync-mode    :init-value #f))
       :metaclass <tkrzw-meta>)
 
     ;; -----------------------------------------------------------------
