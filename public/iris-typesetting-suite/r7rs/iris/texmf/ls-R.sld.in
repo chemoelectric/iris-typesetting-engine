@@ -64,49 +64,42 @@
         (and (> len 0)
              (char=? (string-ref str (- len 1)) char))))
 
-    (define (parse-ls-R current-dir accumulator)
+    (define (parse-ls-R current-dir current-files accumulator)
       ;;
-      ;; Builds an association list structured like an ls-R file.
+      ;; Builds an association list structured like an ls-R file in linear O(N) time.
       ;;
       (let ((line (read-line)))
         (cond
-          ;; End of file reached: return completed map.
-          ((eof-object? line) 
-           accumulator)
-          
+          ;; End of file reached: flush final directory block and return completed map.
+          ((eof-object? line)
+           (if current-dir
+               (cons (cons current-dir (reverse current-files)) accumulator)
+               accumulator))
+
           ;; Skip empty lines or TeX-style comments.
-          ((or (string=? line "") 
-               (and (> (string-length line) 0) 
+          ((or (string=? line "")
+               (and (> (string-length line) 0)
                     (char=? (string-ref line 0) #\%)))
-           (parse-ls-R current-dir accumulator))
-          
+           (parse-ls-R current-dir current-files accumulator))
+
           ;; Matches a directory header line (e.g., "./tex/latex:").
           ((string-ends-with? line #\:)
            (let* ((len (string-length line))
-                  ;; Strip the trailing colon
-                  (new-dir (substring line 0 (- len 1))))
-             (parse-ls-R new-dir accumulator)))
-          
-          ;; Matches an ordinary filename inside the current-dir.
-          (else
-           (let* ((existing-files (or (assoc current-dir accumulator)
-                                      (list current-dir)))
-                  ;; Add file to the current directory entry.
-                  (updated-entry (append existing-files (list line)))
-                  ;; Filter out old entry and insert updated one.
-                  (clean-acc (assoc-remove accumulator current-dir))
-                  (new-accumulator (cons updated-entry clean-acc)))
-             (parse-ls-R current-dir new-accumulator))))))
+                  ;; Strip trailing colon
+                  (new-dir (substring line 0 (- len 1)))
+                  ;; Flush previous directory block if non-empty
+                  (new-acc (if current-dir
+                               (cons (cons current-dir (reverse current-files)) accumulator)
+                               accumulator)))
+             (parse-ls-R new-dir '() new-acc)))
 
-    ;; Minimal association list helper to remove a key.
-    (define (assoc-remove alist key)
-      (cond ((null? alist) '())
-            ((string=? (caar alist) key) (cdr alist))
-            (else (cons (car alist) (assoc-remove (cdr alist) key)))))
+          ;; Matches an ordinary filename inside current-dir: prepend with O(1) cons
+          (else
+           (parse-ls-R current-dir (cons line current-files) accumulator)))))
 
     ;; Run the parser on an ls-R file.
     (define (get-ls-R-index filename)
       (with-input-from-file filename
-        (lambda () (parse-ls-R #f '()))))
+        (lambda () (parse-ls-R #f '() '()))))
 
     ))

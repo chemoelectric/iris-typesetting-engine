@@ -397,7 +397,7 @@
                        (v (to-string val))
                        (ht (slot-ref self 'table)))
                   (hash-table-put! ht k v)
-                  (slot-set! self 'keys-cache (hash-table-keys ht))
+                  (slot-set! self 'keys-cache '())
                   (let ((sync (slot-ref self 'sync-mode)))
                     (when (or (eq? sync :sync) (eq? sync :on-demand))
                       (safe-file-write-records (slot-ref self 'path) ht)))
@@ -432,7 +432,7 @@
                   (if (hash-table-exists? ht k)
                       (begin
                         (hash-table-delete! ht k)
-                        (slot-set! self 'keys-cache (hash-table-keys ht))
+                        (slot-set! self 'keys-cache '())
                         (let ((sync (slot-ref self 'sync-mode)))
                           (when (or (eq? sync :sync) (eq? sync :on-demand))
                             (safe-file-write-records (slot-ref self 'path) ht)))
