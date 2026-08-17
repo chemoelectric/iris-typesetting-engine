@@ -51,19 +51,6 @@
   (or (db-get db filename #f)
       (db-get db (string-downcase filename) #f)))
 
-(define (file-size-in-bytes path)
-  (guard (e (else 0))
-    (sys-stat-size (sys-stat path))))
-
-(define (db-needs-rebuild? db-path)
-  (or (not (file-exists? db-path))
-      (<= (file-size-in-bytes db-path) 0)))
-
-(define (ensure-db-present db-path build-proc label)
-  (when (db-needs-rebuild? db-path)
-    (display (string-append "Building Iris " label " cache...\n"))
-    (build-proc db-path)))
-
 (define (query-open-db db-path query-proc)
   (let ((db (db-open db-path 'read)))
     (if (not db)
@@ -74,7 +61,6 @@
 
 (define (resolve-from-fonts-db query)
   (let ((db-path (default-fonts-db-path)))
-    (ensure-db-present db-path build-fonts-db "fonts database")
     (if (file-exists? db-path)
         (query-open-db db-path
                        (lambda (db) (query-fonts-db db query)))
@@ -82,11 +68,26 @@
 
 (define (resolve-from-texmf-db filename)
   (let ((db-path (default-texmf-db-path)))
-    (ensure-db-present db-path build-texmf-db "texmf database")
     (if (file-exists? db-path)
         (query-open-db db-path
                        (lambda (db) (query-texmf-db db filename)))
         #f)))
+
+(define (ensure-texmf-db)
+  (let ((p (default-texmf-db-path)))
+    (unless (file-exists? p)
+      (display "Building Iris texmf database cache...\n")
+      (build-texmf-db p))))
+
+(define (ensure-fonts-db)
+  (let ((p (default-fonts-db-path)))
+    (unless (file-exists? p)
+      (display "Building Iris fonts database cache...\n")
+      (build-fonts-db p))))
+
+(define (ensure-database-caches)
+  (ensure-texmf-db)
+  (ensure-fonts-db))
 
 (define (find-playfair-texmf-font)
   (or (resolve-from-texmf-db "PlayfairDisplay-Regular.otf")
@@ -97,20 +98,63 @@
 (define (find-playfair-system-font)
   (or (resolve-from-fonts-db "PlayfairDisplay-Regular")
       (resolve-from-fonts-db "PlayfairDisplay")
-      (resolve-from-fonts-db "Playfair")
-      (resolve-from-fonts-db "Playfair Display")))
+      (resolve-from-fonts-db "Playfair Display")
+      (resolve-from-fonts-db "Playfair")))
+
+(define (find-playfair-file-candidate)
+  (let ((cands
+         (list
+          (string-append "/usr/share/fonts/opentype/playfair/"
+                         "PlayfairDisplay-Regular.otf")
+          (string-append "/usr/share/fonts/truetype/playfair/"
+                         "PlayfairDisplay-Regular.ttf")
+          (string-append "/usr/share/fonts/playfair/"
+                         "PlayfairDisplay-Regular.otf")
+          (string-append "/usr/local/share/fonts/"
+                         "PlayfairDisplay-Regular.otf"))))
+    (let loop ((rest cands))
+      (cond
+        ((null? rest) #f)
+        ((file-exists? (car rest)) (car rest))
+        (else (loop (cdr rest)))))))
+
+(define (resolve-playfair-font)
+  (or (find-playfair-texmf-font)
+      (find-playfair-system-font)
+      (find-playfair-file-candidate)))
+
+(define (find-fallback-candidate-file)
+  (let ((cands
+         (list
+          (string-append "/usr/share/fonts/opentype/urw-base35/"
+                         "NimbusRoman-Regular.otf")
+          (string-append "/usr/share/fonts/truetype/liberation/"
+                         "LiberationSerif-Regular.ttf")
+          (string-append "/usr/share/fonts/truetype/dejavu/"
+                         "DejaVuSerif.ttf")
+          (string-append "/usr/share/fonts/type1/urw-base35/"
+                         "NimbusRoman-Regular.t1")
+          (string-append "/usr/share/fonts/type1/urw-base35/"
+                         "P052-Roman.t1"))))
+    (let loop ((rest cands))
+      (cond
+        ((null? rest) #f)
+        ((file-exists? (car rest)) (car rest))
+        (else (loop (cdr rest)))))))
 
 (define (find-serif-fallback-font)
   (or (resolve-from-texmf-db "NimbusRoman-Regular.otf")
       (resolve-from-fonts-db "NimbusRoman-Regular")
+      (resolve-from-fonts-db "LiberationSerif-Regular")
       (resolve-from-fonts-db "DejaVuSerif")
       (resolve-from-fonts-db "C059-Roman")
-      "/usr/share/fonts/opentype/urw-base35/NimbusRoman-Regular.otf"))
+      (find-fallback-candidate-file)))
 
-(define (find-playfair-font)
-  (or (find-playfair-texmf-font)
-      (find-playfair-system-font)
-      (find-serif-fallback-font)))
+(define (resolve-font-path)
+  (let ((playfair (resolve-playfair-font)))
+    (if playfair
+        (cons playfair #t)
+        (cons (find-serif-fallback-font) #f))))
 
 (define (ps-font-name font-path)
   (if (and (string? font-path) (file-exists? font-path))
@@ -170,12 +214,22 @@
         (display "Render completed.\n")
         0)))
 
+(define (display-resolved-font pair)
+  (let ((font-path (car pair))
+        (is-exact? (cdr pair)))
+    (unless is-exact?
+      (display "Notice        : Playfair Display not in cache; ")
+      (display "using serif fallback\n"))
+    (let ((font-disp (or font-path "Standard Serif (Times-Roman)")))
+      (display (string-append "Resolved Font : " font-disp "\n")))))
+
 (define (run-demo out-file)
   (print-header out-file)
+  (ensure-database-caches)
   (display "Resolving Playfair Display via Iris databases...\n")
-  (let* ((font-path (find-playfair-font))
-         (font-disp (or font-path "Standard Serif (Times-Roman)")))
-    (display (string-append "Resolved Font : " font-disp "\n"))
+  (let* ((font-pair (resolve-font-path))
+         (font-path (car font-pair)))
+    (display-resolved-font font-pair)
     (display "Rendering uppercase glyph 'Q'...\n")
     (let ((ok (render-ps-stream out-file font-path)))
       (report-render-status ok out-file))))

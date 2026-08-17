@@ -44,7 +44,8 @@
       (let loop ()
         (let ((obj (read port)))
           (unless (eof-object? obj)
-            (when (pair? obj)
+            (when (and (pair? obj)
+                       (not (string=? (car obj) "!format")))
               (hash-table-put! table (car obj) (cdr obj)))
             (loop)))))
 
@@ -63,9 +64,11 @@
       (guard (ex (else #f))
         (call-with-output-file path
           (lambda (port)
+            (write-one-entry "!format" "iris-db-v1" port)
             (hash-table-for-each table
               (lambda (k v)
-                (write-one-entry k v port)))))))
+                (unless (string=? k "!format")
+                  (write-one-entry k v port))))))))
 
     (define (db-open path . maybe-mode)
       (let* ((mode (if (null? maybe-mode) 'read (car maybe-mode)))
