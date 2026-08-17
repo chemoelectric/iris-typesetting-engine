@@ -45,8 +45,17 @@ test -n "${GNATBIND}" || AC_MSG_ERROR([gnatbind is missing])
 AC_CHECK_PROGS([GAUCHE_CONFIG],[gauche-config])
 test -n "${GAUCHE_CONFIG}" || AC_MSG_ERROR([gauche-config is missing])
 
-: "${KPSEWHICH:=kpsewhich}"
+AC_ARG_WITH([kpsewhich],
+  [AS_HELP_STRING([--with-kpsewhich=PROG],
+    [kpsewhich program to use [default: kpsewhich]])],
+  [case "${withval}" in
+     yes) : "${KPSEWHICH:=kpsewhich}" ;;
+     no)  KPSEWHICH="true" ;;
+     *)   KPSEWHICH="${withval}" ;;
+   esac],
+  [: "${KPSEWHICH:=kpsewhich}"])
 AC_ARG_VAR([KPSEWHICH],[kpsewhich command])
+AC_SUBST([KPSEWHICH])
 
 : "${ADA:=${CC}}"
 AC_ARG_VAR([ADA],[Ada compiler command [default is: same command as CC]])
@@ -61,10 +70,6 @@ CFLAGS="${CFLAGS}${CFLAGS+ }${c23_flags}"
 PKG_CHECK_MODULES([CAPYPDF],[capypdf])
 CFLAGS="${CFLAGS}${CFLAGS+ }${CAPYPDF_CFLAGS}"
 LIBS="${LIBS}${LIBS+ }${CAPYPDF_LIBS}"
-
-PKG_CHECK_MODULES([FONTCONFIG],[fontconfig])
-CFLAGS="${CFLAGS}${CFLAGS+ }${FONTCONFIG_CFLAGS}"
-LIBS="${LIBS}${LIBS+ }${FONTCONFIG_LIBS}"
 
 PKG_CHECK_MODULES([TKRZW],[tkrzw])
 CFLAGS="${CFLAGS}${CFLAGS+ }${TKRZW_CFLAGS}"

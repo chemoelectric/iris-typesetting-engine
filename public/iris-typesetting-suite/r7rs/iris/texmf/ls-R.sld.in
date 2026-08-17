@@ -46,23 +46,12 @@
         s
         (string-append s "/")))
 
-    (define (standard-texmf-candidates)
-      '("/usr/local/texlive/2026/texmf-dist/ls-R"
-        "/usr/local/texlive/2025/texmf-dist/ls-R"
-        "/usr/local/texlive/2024/texmf-dist/ls-R"
-        "/usr/share/texlive/texmf-dist/ls-R"
-        "/usr/share/texmf/ls-R"
-        "/var/lib/texmf/ls-R"))
-
     (define (get-ls-R-paths)
-      (let* ((dynamic-paths (get-file-paths "ls-R"))
-             (candidates    (standard-texmf-candidates))
-             (existing      (filter file-exists? candidates)))
-        (delete-duplicates (append dynamic-paths existing))))
+      (get-file-paths "ls-R"))
 
     (define (get-file-paths filename)
       (guard (ex (else '()))
-        (let* ((cmd (list "kpsewhich" "-all" filename))
+        (let* ((cmd (list "@KPSEWHICH@" "-all" filename))
                (lines (process-output->string-list cmd)))
           (filter file-exists? lines))))
 
