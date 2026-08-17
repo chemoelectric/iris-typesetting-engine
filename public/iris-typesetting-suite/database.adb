@@ -179,7 +179,7 @@ package body database is
          declare
             str_val : constant string := value (val_ptr);
          begin
-            c_free (to_address (val_ptr));
+            free (val_ptr);
             return str_val;
          end;
       end if;
