@@ -1,4 +1,4 @@
 bin iris
 check test_capypdf
 check test_gauche_binding
-check test_tkrzw
+check test_database

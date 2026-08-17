@@ -1,11 +1,10 @@
 EXTRA_DIST += autogen.sh
 EXTRA_DIST += ada-programs.list
-EXTRA_DIST += r7rs/iris/tkrzw.sld
-EXTRA_DIST += r7rs/iris/tkrzw.md
-EXTRA_DIST += r7rs/iris/dbm/tkrzw.sld
-EXTRA_DIST += r7rs/iris/dbm/builder.sld
-EXTRA_DIST += r7rs/iris/dbm/suggest.sld
+EXTRA_DIST += r7rs/iris/db.sld
+EXTRA_DIST += r7rs/iris/db.md
+EXTRA_DIST += r7rs/iris/db/builder.sld
+EXTRA_DIST += r7rs/iris/db/suggest.sld
 EXTRA_DIST += r7rs/iris/texmf/ls-R.sld.in
-EXTRA_DIST += doc/md/tkrzw.md
+EXTRA_DIST += doc/md/database.md
 EXTRA_DIST += iris-findfont
 EXTRA_DIST += iris-demo-q

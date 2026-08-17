@@ -3,8 +3,8 @@ LIBIRIS_ADS_FILES += capypdf.ads
 LIBIRIS_ADB_FILES += capypdf_tests.adb
 LIBIRIS_ADS_FILES += capypdf_tests.ads
 
-LIBIRIS_ADB_FILES += tkrzw.adb
-LIBIRIS_ADS_FILES += tkrzw.ads
+LIBIRIS_ADB_FILES += database.adb
+LIBIRIS_ADS_FILES += database.ads
 
 LIBIRIS_ADS_FILES += gauche_binding.ads
 
