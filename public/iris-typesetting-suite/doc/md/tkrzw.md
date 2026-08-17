@@ -52,16 +52,26 @@ The database builder module populates high-performance key-value databases from 
 
 ## Ada 2022 Interface (`tkrzw.ads` / `tkrzw.adb`)
 
+The Ada 2022 binding mirrors the Scheme DBM naming and semantics:
+
 ```ada
 with tkrzw; use tkrzw;
 
 procedure demo is
-   db  : dbm_handle;
-   res : dbm_status;
+   db        : tkrzw_dbm := null_dbm;
+   font_file : string (1 .. 256) := (others => ' ');
 begin
-   res := dbm_open (db, "fonts-system.tkt", open_read);
-   if res = status_success then
-      -- Perform O(1) query
+   db := dbm_open (default_fonts_db_path, mode => read_only);
+   if dbm_open_p (db) then
+      if dbm_exists_p (db, "ps:PlayfairDisplay-Regular") then
+         declare
+            val : constant string :=
+              dbm_get (db, "ps:PlayfairDisplay-Regular");
+         begin
+            -- Use resolved font path
+            null;
+         end;
+      end if;
       dbm_close (db);
    end if;
 end demo;

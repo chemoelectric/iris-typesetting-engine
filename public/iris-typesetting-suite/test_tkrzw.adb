@@ -10,50 +10,55 @@ with ada.command_line; use ada.command_line;
 procedure test_tkrzw is
    ok       : boolean := true;
    db       : tkrzw_dbm := null_dbm;
-   val      : string (1 .. 64) := [others => ' '];
-   val_len  : natural := 0;
    key_name : constant string := "font:cmr10";
    key_val  : constant string := "Computer Modern Roman 10pt";
 begin
-   db := open_dbm ("test_iris.tkh", writable => true);
-   if not is_open (db) then
+   -- Test dbm_open with create_new mode
+   db := dbm_open ("test_iris.tkh", mode => create_new);
+   if not dbm_open_p (db) or dbm_closed_p (db) then
       ok := false;
    end if;
 
+   -- Test dbm_put and dbm_exists_p
    if ok then
-      put_value (db, key_name, key_val, overwrite => true);
-      if not exists_key (db, key_name) then
+      dbm_put (db, key_name, key_val, overwrite => true);
+      if not dbm_exists_p (db, key_name) then
          ok := false;
       end if;
    end if;
 
+   -- Test dbm_get and dbm_count
    if ok then
       declare
-         retrieved : constant string := get_value (db, key_name);
+         retrieved : constant string := dbm_get (db, key_name);
+         count     : constant long_long_integer := dbm_count (db);
       begin
-         if retrieved /= key_val then
+         if retrieved /= key_val or count < 1 then
             ok := false;
-         else
-            val_len := natural'min (retrieved'length, val'length);
-            val (1 .. val_len) := retrieved (1 .. val_len);
          end if;
       end;
    end if;
 
-   if is_open (db) then
-      delete_key (db, key_name);
-      if exists_key (db, key_name) then
+   -- Test dbm_delete and dbm_close
+   if dbm_open_p (db) then
+      dbm_delete (db, key_name);
+      if dbm_exists_p (db, key_name) then
          ok := false;
       end if;
-      close_dbm (db);
+      dbm_close (db);
+      if not dbm_closed_p (db) then
+         ok := false;
+      end if;
    end if;
 
+   -- Test edit distance & default path functions
    if ok then
       declare
          dist : constant integer :=
-           edit_distance ("levenshtein", "levenshtein");
+           tkrzw_edit_distance ("levenshtein", "levenshtein");
+         fpath : constant string := default_fonts_db_path;
       begin
-         if dist /= 0 then
+         if dist /= 0 or fpath'length = 0 then
             ok := false;
          end if;
       end;

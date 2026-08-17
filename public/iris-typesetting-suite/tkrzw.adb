@@ -1,7 +1,9 @@
 -- SPDX-License-Identifier: MIT
 --
--- Ada 2022 implementation of Tkrzw binding.
+-- Ada 2022 implementation of Tkrzw DBM binding.
 --
+
+with ada.environment_variables;
 
 package body tkrzw is
 
@@ -89,37 +91,42 @@ package body tkrzw is
        convention    => c,
        external_name => "gauche_tkrzw_free";
 
-   function is_open (dbm : in tkrzw_dbm) return boolean is
+   function dbm_open_p (dbm : in tkrzw_dbm) return boolean is
    begin
       return dbm /= null_dbm;
-   end is_open;
+   end dbm_open_p;
 
-   function open_dbm
-     (path     : in string;
-      writable : in boolean := true;
-      params   : in string := "") return tkrzw_dbm
+   function dbm_closed_p (dbm : in tkrzw_dbm) return boolean is
+   begin
+      return dbm = null_dbm;
+   end dbm_closed_p;
+
+   function dbm_open
+     (path   : in string;
+      mode   : in rw_mode := read_only;
+      params : in string := "") return tkrzw_dbm
    is
       c_path   : chars_ptr := new_string (path);
       c_params : chars_ptr := new_string (params);
-      w_flag   : int := (if writable then 1 else 0);
+      w_flag   : int := (if mode = read_only then 0 else 1);
       result   : tkrzw_dbm;
    begin
       result := c_open (c_path, w_flag, c_params);
       free (c_path);
       free (c_params);
       return result;
-   end open_dbm;
+   end dbm_open;
 
-   procedure close_dbm (dbm : in out tkrzw_dbm) is
+   procedure dbm_close (dbm : in out tkrzw_dbm) is
       unused_status : int;
    begin
       if dbm /= null_dbm then
          unused_status := c_close (dbm);
          dbm := null_dbm;
       end if;
-   end close_dbm;
+   end dbm_close;
 
-   function exists_key
+   function dbm_exists_p
      (dbm : in tkrzw_dbm;
       key : in string) return boolean
    is
@@ -129,16 +136,16 @@ package body tkrzw is
       status := c_check (dbm, c_key, key'length);
       free (c_key);
       return status /= 0;
-   end exists_key;
+   end dbm_exists_p;
 
-   function get_value
-     (dbm : in tkrzw_dbm;
-      key : in string) return string
+   function dbm_get
+     (dbm     : in tkrzw_dbm;
+      key     : in string;
+      default : in string := "") return string
    is
       c_key   : chars_ptr := new_string (key);
       v_size  : aliased int := 0;
       c_res   : chars_ptr;
-      out_str : string := "";
    begin
       c_res := c_get (dbm, c_key, key'length, v_size'access);
       free (c_key);
@@ -150,10 +157,10 @@ package body tkrzw is
             return temp_str;
          end;
       end if;
-      return out_str;
-   end get_value;
+      return default;
+   end dbm_get;
 
-   procedure put_value
+   procedure dbm_put
      (dbm       : in tkrzw_dbm;
       key       : in string;
       value     : in string;
@@ -168,9 +175,9 @@ package body tkrzw is
         (dbm, c_key, key'length, c_val, value'length, o_flag);
       free (c_key);
       free (c_val);
-   end put_value;
+   end dbm_put;
 
-   procedure delete_key
+   procedure dbm_delete
      (dbm : in tkrzw_dbm;
       key : in string)
    is
@@ -179,14 +186,14 @@ package body tkrzw is
    begin
       unused := c_remove (dbm, c_key, key'length);
       free (c_key);
-   end delete_key;
+   end dbm_delete;
 
-   function count_records (dbm : in tkrzw_dbm) return long_long_integer is
+   function dbm_count (dbm : in tkrzw_dbm) return long_long_integer is
    begin
       return c_count (dbm);
-   end count_records;
+   end dbm_count;
 
-   procedure sync_dbm
+   procedure dbm_sync
      (dbm  : in tkrzw_dbm;
       hard : in boolean := true)
    is
@@ -194,9 +201,9 @@ package body tkrzw is
       unused : int;
    begin
       unused := c_sync (dbm, h_flag);
-   end sync_dbm;
+   end dbm_sync;
 
-   function edit_distance
+   function tkrzw_edit_distance
      (str_a : in string;
       str_b : in string;
       utf   : in boolean := true) return integer
@@ -210,6 +217,45 @@ package body tkrzw is
       free (c_a);
       free (c_b);
       return integer (res);
-   end edit_distance;
+   end tkrzw_edit_distance;
+
+   function user_cache_dir return string is
+   begin
+      if ada.environment_variables.exists ("XDG_CACHE_HOME") then
+         return ada.environment_variables.value ("XDG_CACHE_HOME");
+      elsif ada.environment_variables.exists ("HOME") then
+         return ada.environment_variables.value ("HOME") & "/.cache";
+      else
+         return "./.cache";
+      end if;
+   end user_cache_dir;
+
+   function default_texmf_db_path return string is
+   begin
+      return user_cache_dir & "/iris/texmf-files.tkh";
+   end default_texmf_db_path;
+
+   function default_fonts_db_path return string is
+   begin
+      return user_cache_dir & "/iris/fonts-system.tkt";
+   end default_fonts_db_path;
+
+   function open_dbm
+     (path     : in string;
+      writable : in boolean := true;
+      params   : in string := "") return tkrzw_dbm
+   is
+      mode : constant rw_mode :=
+        (if writable then read_write else read_only);
+   begin
+      return dbm_open (path, mode, params);
+   end open_dbm;
+
+   function get_value
+     (dbm : in tkrzw_dbm;
+      key : in string) return string is
+   begin
+      return dbm_get (dbm, key, "");
+   end get_value;
 
 end tkrzw;
