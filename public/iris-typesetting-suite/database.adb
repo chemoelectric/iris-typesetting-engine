@@ -172,7 +172,6 @@ package body database is
    is
       val_len : aliased int := 0;
       val_ptr : chars_ptr   := null_ptr;
-      result  : string      := default;
    begin
       val_ptr := c_get (db, c_key, len, val_len'access);
       if val_ptr /= null_ptr then
@@ -183,7 +182,7 @@ package body database is
             return str_val;
          end;
       end if;
-      return result;
+      return default;
    end fetch_c_value;
 
    function db_get
@@ -191,14 +190,20 @@ package body database is
       key     : in string;
       default : in string := "") return string
    is
-      c_key  : chars_ptr := new_string (key);
-      result : string    := default;
+      c_key : chars_ptr := new_string (key);
    begin
-      if db /= null_database then
-         result := fetch_c_value (db, c_key, int (key'length), default);
+      if db = null_database then
+         free (c_key);
+         return default;
       end if;
-      free (c_key);
-      return result;
+
+      declare
+         str_res : constant string :=
+           fetch_c_value (db, c_key, int (key'length), default);
+      begin
+         free (c_key);
+         return str_res;
+      end;
    end db_get;
 
    procedure db_set
