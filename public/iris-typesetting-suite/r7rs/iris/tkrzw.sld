@@ -124,11 +124,15 @@
     (define (tkrzw-open path . args)
       (let-keywords* args ((rw-mode :read)
                            (sync-mode :async)
-                           (params ""))
+                           (params "")
+                           (key-convert #f)
+                           (value-convert #f))
         (let ((inst (make <tkrzw>
                       :path path
                       :rw-mode rw-mode
                       :sync-mode sync-mode
+                      :key-convert key-convert
+                      :value-convert value-convert
                       :params params)))
           (dbm-open inst))))
 
@@ -380,6 +384,17 @@
     ;; Generic DBM Method Implementations
     ;; -----------------------------------------------------------------
 
+    (define-method initialize ((self <tkrzw>) initargs)
+      (next-method)
+      (unless (slot-bound? self 'k2s)
+        (slot-set! self 'k2s identity))
+      (unless (slot-bound? self 's2k)
+        (slot-set! self 's2k identity))
+      (unless (slot-bound? self 'v2s)
+        (slot-set! self 'v2s identity))
+      (unless (slot-bound? self 's2v)
+        (slot-set! self 's2v identity)))
+
     (define-method dbm-open ((self <tkrzw>))
       (let* ((path (slot-ref self 'path))
              (rw (slot-ref self 'rw-mode)))
@@ -393,6 +408,14 @@
               (slot-set! self 'closed #f)
               (slot-set! self 'keys-cache '())
               (slot-set! self 'iter-index 0)
+              (unless (slot-bound? self 'k2s)
+                (slot-set! self 'k2s identity))
+              (unless (slot-bound? self 's2k)
+                (slot-set! self 's2k identity))
+              (unless (slot-bound? self 'v2s)
+                (slot-set! self 'v2s identity))
+              (unless (slot-bound? self 's2v)
+                (slot-set! self 's2v identity))
               self))))
 
     (define-method dbm-close ((self <tkrzw>))
