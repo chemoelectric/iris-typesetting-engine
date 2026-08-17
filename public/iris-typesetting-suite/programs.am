@@ -57,3 +57,4 @@ test_database_DEPENDENCIES += test_database.lo
 test_database_DEPENDENCIES += libiris.a
 
 CLEANFILES += test_database$(EXEEXT)
+
