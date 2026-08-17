@@ -2,10 +2,6 @@
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
 
-ADB_FILES =
-ADS_FILES =
-TESTS_ADB =
-TESTS_ADS =
 DEP_FILES =
 MOSTLYCLEANFILES =
 CLEANFILES =
@@ -19,6 +15,8 @@ AM_ADAFLAGS =
 LIBIRIS_ADB_FILES =
 LIBIRIS_ADS_FILES =
 LIBIRIS_C_FILES =
+LIBIRIS_OBJEXT =
+LIBIRIS_DEPENDS =
 
 DISTCLEANFILES += Makefile GNUmakefile
 

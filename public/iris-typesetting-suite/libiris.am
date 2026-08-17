@@ -8,11 +8,18 @@ libiris_la_SOURCES += $(LIBIRIS_ADB_FILES)
 libiris_la_SOURCES += $(LIBIRIS_ADS_FILES)
 libiris_la_SOURCES += $(LIBIRIS_C_FILES)
 libiris_la_LIBADD =
-libiris_la_LIBADD += $(LIBIRIS_ADB_FILES:%.adb=.libs/%.$(OBJEXT))
-libiris_la_LIBADD += $(LIBIRIS_ADS_FILES:%.ads=.libs/%.$(OBJEXT))
+libiris_la_LIBADD += $(LIBIRIS_ADB_FILES:%.adb=%.lo)
+libiris_la_LIBADD += \
+	$(filter-out $(LIBIRIS_ADB_FILES:%.adb=%.lo), \
+		$(LIBIRIS_ADS_FILES:%.ads=%.lo))
 libiris_la_DEPENDENCIES =
 libiris_la_DEPENDENCIES += $(LIBIRIS_ADB_FILES:%.adb=%.lo)
-libiris_la_DEPENDENCIES += $(LIBIRIS_ADS_FILES:%.ads=%.lo)
+libiris_la_DEPENDENCIES += \
+	$(filter-out $(LIBIRIS_ADB_FILES:%.adb=%.lo), \
+		$(LIBIRIS_ADS_FILES:%.ads=%.lo))
+
+DEP_FILES += $(LIBIRIS_ADB_FILES:%.adb=.deps/%.adbdep)
+DEP_FILES += $(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep)
 
 #---------------------------------------------------------------------
 # local variables:

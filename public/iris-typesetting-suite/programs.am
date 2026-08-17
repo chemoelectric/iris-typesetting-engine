@@ -1,7 +1,3 @@
-#---------------------------------------------------------------------
-# SPDX-License-Identifier: MIT
-#---------------------------------------------------------------------
-
 iris$(EXEEXT): iris.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
@@ -13,8 +9,8 @@ iris_LDADD += .libs/iris.$(OBJEXT)
 iris_LDADD += libiris.la
 iris_DEPENDENCIES =
 iris_DEPENDENCIES += iris.lo
-iris_DEPENDENCIES += libiris.la
 
+DEP_FILES += .deps/iris.adbdep
 CLEANFILES += iris$(EXEEXT)
 
 test_capypdf$(EXEEXT): test_capypdf.lo libiris.la
@@ -28,8 +24,8 @@ test_capypdf_LDADD += .libs/test_capypdf.$(OBJEXT)
 test_capypdf_LDADD += libiris.la
 test_capypdf_DEPENDENCIES =
 test_capypdf_DEPENDENCIES += test_capypdf.lo
-test_capypdf_DEPENDENCIES += libiris.la
 
+DEP_FILES += .deps/test_capypdf.adbdep
 CLEANFILES += test_capypdf$(EXEEXT)
 
 test_gauche_binding$(EXEEXT): test_gauche_binding.lo libiris.la
@@ -43,8 +39,8 @@ test_gauche_binding_LDADD += .libs/test_gauche_binding.$(OBJEXT)
 test_gauche_binding_LDADD += libiris.la
 test_gauche_binding_DEPENDENCIES =
 test_gauche_binding_DEPENDENCIES += test_gauche_binding.lo
-test_gauche_binding_DEPENDENCIES += libiris.la
 
+DEP_FILES += .deps/test_gauche_binding.adbdep
 CLEANFILES += test_gauche_binding$(EXEEXT)
 
 test_database$(EXEEXT): test_database.lo libiris.la
@@ -58,6 +54,7 @@ test_database_LDADD += .libs/test_database.$(OBJEXT)
 test_database_LDADD += libiris.la
 test_database_DEPENDENCIES =
 test_database_DEPENDENCIES += test_database.lo
-test_database_DEPENDENCIES += libiris.la
 
+DEP_FILES += .deps/test_database.adbdep
 CLEANFILES += test_database$(EXEEXT)
+

@@ -176,26 +176,19 @@ am__uninstall_files_from_dir = { \
   || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
        $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
   }
-LIBRARIES = $(lib_LIBRARIES)
-ARFLAGS = cr
-AM_V_AR = $(am__v_AR_@AM_V@)
-am__v_AR_ = $(am__v_AR_@AM_DEFAULT_V@)
-am__v_AR_0 = @echo "  AR      " $@;
-am__v_AR_1 = 
-libiris_a_AR = $(AR) $(ARFLAGS)
-libiris_a_RANLIB = $(RANLIB)
+LTLIBRARIES = $(lib_LTLIBRARIES)
 am__objects_1 =
-am__objects_2 = gauche_runtime_init.$(OBJEXT) \
-	gauche_c_macros.$(OBJEXT) gauche_tkrzw.$(OBJEXT)
-am_libiris_a_OBJECTS = $(am__objects_1) $(am__objects_1) \
+am__objects_2 = gauche_runtime_init.lo gauche_c_macros.lo \
+	gauche_tkrzw.lo gauche_iris_db.lo
+am_libiris_la_OBJECTS = $(am__objects_1) $(am__objects_1) \
 	$(am__objects_2)
-libiris_a_OBJECTS = $(am_libiris_a_OBJECTS)
-am_iris_OBJECTS =
-iris_OBJECTS = $(am_iris_OBJECTS)
+libiris_la_OBJECTS = $(am_libiris_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+am_iris_OBJECTS =
+iris_OBJECTS = $(am_iris_OBJECTS)
 am_test_capypdf_OBJECTS =
 test_capypdf_OBJECTS = $(am_test_capypdf_OBJECTS)
 am_test_database_OBJECTS =
@@ -217,8 +210,10 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/gauche_c_macros.Po \
-	./$(DEPDIR)/gauche_runtime_init.Po ./$(DEPDIR)/gauche_tkrzw.Po
+am__depfiles_remade = ./$(DEPDIR)/gauche_c_macros.Plo \
+	./$(DEPDIR)/gauche_iris_db.Plo \
+	./$(DEPDIR)/gauche_runtime_init.Plo \
+	./$(DEPDIR)/gauche_tkrzw.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -238,9 +233,10 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libiris_a_SOURCES) $(iris_SOURCES) $(test_capypdf_SOURCES) \
-	$(test_database_SOURCES) $(test_gauche_binding_SOURCES)
-DIST_SOURCES = $(libiris_a_SOURCES) $(iris_SOURCES) \
+SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
+	$(test_capypdf_SOURCES) $(test_database_SOURCES) \
+	$(test_gauche_binding_SOURCES)
+DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
 	$(test_capypdf_SOURCES) $(test_database_SOURCES) \
 	$(test_gauche_binding_SOURCES)
 am__can_run_installinfo = \
@@ -447,14 +443,10 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4 --install
-ADB_FILES = 
-ADS_FILES = 
-TESTS_ADB = 
-TESTS_ADS = 
-DEP_FILES = $(ADB_FILES:%.adb=.deps/%.adbdep) \
-	$(ADS_FILES:%.ads=.deps/%.adsdep) \
-	$(TESTS_ADB:%.adb=.deps/%.adbdep) \
-	$(TESTS_ADS:%.ads=.deps/%.adsdep)
+DEP_FILES = $(LIBIRIS_ADB_FILES:%.adb=.deps/%.adbdep) \
+	$(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep) .deps/iris.adbdep \
+	.deps/test_capypdf.adbdep .deps/test_gauche_binding.adbdep \
+	.deps/test_database.adbdep
 MOSTLYCLEANFILES = 
 CLEANFILES = iris$(EXEEXT) test_capypdf$(EXEEXT) \
 	test_gauche_binding$(EXEEXT) test_database$(EXEEXT)
@@ -464,14 +456,16 @@ EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
 	r7rs/iris/db/builder.sld r7rs/iris/db/suggest.sld \
 	r7rs/iris/texmf/ls-R.sld.in doc/md/database.md iris-findfont \
 	iris-demo-q
-lib_LIBRARIES = libiris.a
+lib_LTLIBRARIES = libiris.la
 AM_ADAFLAGS = -gnat2022 -I$(call get-adainclude) -I$(builddir) \
 	-I$(srcdir)
 LIBIRIS_ADB_FILES = capypdf.adb capypdf_tests.adb database.adb
 LIBIRIS_ADS_FILES = capypdf.ads capypdf_tests.ads database.ads \
 	gauche_binding.ads
 LIBIRIS_C_FILES = gauche_runtime_init.c gauche_c_macros.c \
-	gauche_tkrzw.c
+	gauche_tkrzw.c gauche_iris_db.c
+LIBIRIS_OBJEXT = 
+LIBIRIS_DEPENDS = 
 ADALD = $(ADA)
 LTADACOMPILE = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=compile $(ADA) $(AM_ADAFLAGS) $(ADAFLAGS)
@@ -482,25 +476,27 @@ ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 	$(AM_ADAFLAGS) $(ADAFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $(@)
 
-libiris_a_SOURCES = $(LIBIRIS_ADB_FILES) $(LIBIRIS_ADS_FILES) \
+libiris_la_SOURCES = $(LIBIRIS_ADB_FILES) $(LIBIRIS_ADS_FILES) \
 	$(LIBIRIS_C_FILES)
-libiris_a_LIBADD = $(LIBIRIS_ADB_FILES:%.adb=.libs/%.$(OBJEXT)) \
-	$(LIBIRIS_ADS_FILES:%.ads=.libs/%.$(OBJEXT))
-libiris_a_DEPENDENCIES = $(LIBIRIS_ADB_FILES:%.adb=%.lo) \
-	$(LIBIRIS_ADS_FILES:%.ads=%.lo)
+libiris_la_LIBADD = $(LIBIRIS_ADB_FILES:%.adb=%.lo) $(filter-out \
+	$(LIBIRIS_ADB_FILES:%.adb=%.lo), \
+	$(LIBIRIS_ADS_FILES:%.ads=%.lo))
+libiris_la_DEPENDENCIES = $(LIBIRIS_ADB_FILES:%.adb=%.lo) $(filter-out \
+	$(LIBIRIS_ADB_FILES:%.adb=%.lo), \
+	$(LIBIRIS_ADS_FILES:%.ads=%.lo))
 iris_SOURCES = iris.adb
-iris_LDADD = .libs/iris.$(OBJEXT) libiris.a
-iris_DEPENDENCIES = iris.lo libiris.a
+iris_LDADD = .libs/iris.$(OBJEXT) libiris.la
+iris_DEPENDENCIES = iris.lo
 test_capypdf_SOURCES = test_capypdf.adb
-test_capypdf_LDADD = .libs/test_capypdf.$(OBJEXT) libiris.a
-test_capypdf_DEPENDENCIES = test_capypdf.lo libiris.a
+test_capypdf_LDADD = .libs/test_capypdf.$(OBJEXT) libiris.la
+test_capypdf_DEPENDENCIES = test_capypdf.lo
 test_gauche_binding_SOURCES = test_gauche_binding.adb
 test_gauche_binding_LDADD = .libs/test_gauche_binding.$(OBJEXT) \
-	libiris.a
-test_gauche_binding_DEPENDENCIES = test_gauche_binding.lo libiris.a
+	libiris.la
+test_gauche_binding_DEPENDENCIES = test_gauche_binding.lo
 test_database_SOURCES = test_database.adb
-test_database_LDADD = .libs/test_database.$(OBJEXT) libiris.a
-test_database_DEPENDENCIES = test_database.lo libiris.a
+test_database_LDADD = .libs/test_database.$(OBJEXT) libiris.la
+test_database_DEPENDENCIES = test_database.lo
 AUTOM4TE = $(SHELL) $(srcdir)/build-aux/missing --run autom4te
 TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
 	$(srcdir)/testsuite.at
@@ -600,9 +596,10 @@ clean-binPROGRAMS:
 clean-checkPROGRAMS:
 	$(am__rm_f) $(check_PROGRAMS)
 	test -z "$(EXEEXT)" || $(am__rm_f) $(check_PROGRAMS:$(EXEEXT)=)
-install-libLIBRARIES: $(lib_LIBRARIES)
+
+install-libLTLIBRARIES: $(lib_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
-	@list='$(lib_LIBRARIES)'; test -n "$(libdir)" || list=; \
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
 	list2=; for p in $$list; do \
 	  if test -f $$p; then \
 	    list2="$$list2 $$p"; \
@@ -611,31 +608,30 @@ install-libLIBRARIES: $(lib_LIBRARIES)
 	test -z "$$list2" || { \
 	  echo " $(MKDIR_P) '$(DESTDIR)$(libdir)'"; \
 	  $(MKDIR_P) "$(DESTDIR)$(libdir)" || exit 1; \
-	  echo " $(INSTALL_DATA) $$list2 '$(DESTDIR)$(libdir)'"; \
-	  $(INSTALL_DATA) $$list2 "$(DESTDIR)$(libdir)" || exit $$?; }
-	@$(POST_INSTALL)
-	@list='$(lib_LIBRARIES)'; test -n "$(libdir)" || list=; \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(libdir)'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(libdir)"; \
+	}
+
+uninstall-libLTLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
 	for p in $$list; do \
-	  if test -f $$p; then \
-	    $(am__strip_dir) \
-	    echo " ( cd '$(DESTDIR)$(libdir)' && $(RANLIB) $$f )"; \
-	    ( cd "$(DESTDIR)$(libdir)" && $(RANLIB) $$f ) || exit $$?; \
-	  else :; fi; \
+	  $(am__strip_dir) \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(libdir)/$$f'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$f"; \
 	done
 
-uninstall-libLIBRARIES:
-	@$(NORMAL_UNINSTALL)
-	@list='$(lib_LIBRARIES)'; test -n "$(libdir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(libdir)'; $(am__uninstall_files_from_dir)
+clean-libLTLIBRARIES:
+	-$(am__rm_f) $(lib_LTLIBRARIES)
+	@list='$(lib_LTLIBRARIES)'; \
+	locs=`for p in $$list; do echo $$p; done | \
+	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
+	      sort -u`; \
+	echo rm -f $${locs}; \
+	$(am__rm_f) $${locs}
 
-clean-libLIBRARIES:
-	-$(am__rm_f) $(lib_LIBRARIES)
-
-libiris.a: $(libiris_a_OBJECTS) $(libiris_a_DEPENDENCIES) $(EXTRA_libiris_a_DEPENDENCIES) 
-	$(AM_V_at)-rm -f libiris.a
-	$(AM_V_AR)$(libiris_a_AR) libiris.a $(libiris_a_OBJECTS) $(libiris_a_LIBADD)
-	$(AM_V_at)$(libiris_a_RANLIB) libiris.a
+libiris.la: $(libiris_la_OBJECTS) $(libiris_la_DEPENDENCIES) $(EXTRA_libiris_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK) -rpath $(libdir) $(libiris_la_OBJECTS) $(libiris_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -643,9 +639,10 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_c_macros.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_runtime_init.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_tkrzw.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_c_macros.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_iris_db.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_runtime_init.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_tkrzw.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -923,7 +920,11 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: check-am
-all-am: GNUmakefile $(PROGRAMS) $(LIBRARIES)
+all-am: GNUmakefile $(PROGRAMS) $(LTLIBRARIES)
+install-binPROGRAMS: install-libLTLIBRARIES
+
+install-checkPROGRAMS: install-libLTLIBRARIES
+
 installdirs:
 	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
@@ -964,13 +965,14 @@ maintainer-clean-generic:
 clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
-	clean-libLIBRARIES clean-libtool clean-local mostlyclean-am
+	clean-libLTLIBRARIES clean-libtool clean-local mostlyclean-am
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -f ./$(DEPDIR)/gauche_c_macros.Po
-	-rm -f ./$(DEPDIR)/gauche_runtime_init.Po
-	-rm -f ./$(DEPDIR)/gauche_tkrzw.Po
+	-rm -f ./$(DEPDIR)/gauche_c_macros.Plo
+	-rm -f ./$(DEPDIR)/gauche_iris_db.Plo
+	-rm -f ./$(DEPDIR)/gauche_runtime_init.Plo
+	-rm -f ./$(DEPDIR)/gauche_tkrzw.Plo
 	-rm -f GNUmakefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-libtool distclean-local distclean-tags
@@ -993,7 +995,7 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS install-libLIBRARIES
+install-exec-am: install-binPROGRAMS install-libLTLIBRARIES
 
 install-html: install-html-am
 
@@ -1018,9 +1020,10 @@ installcheck-am: installcheck-local
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -f ./$(DEPDIR)/gauche_c_macros.Po
-	-rm -f ./$(DEPDIR)/gauche_runtime_init.Po
-	-rm -f ./$(DEPDIR)/gauche_tkrzw.Po
+	-rm -f ./$(DEPDIR)/gauche_c_macros.Plo
+	-rm -f ./$(DEPDIR)/gauche_iris_db.Plo
+	-rm -f ./$(DEPDIR)/gauche_runtime_init.Plo
+	-rm -f ./$(DEPDIR)/gauche_tkrzw.Plo
 	-rm -f GNUmakefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -1037,7 +1040,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-libLIBRARIES \
+uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES \
 	uninstall-local
 
 .MAKE: check-am install-am install-strip
@@ -1045,7 +1048,7 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLIBRARIES \
 .PHONY: CTAGS GTAGS TAGS all all-am am--depfiles am--refresh check \
 	check-am check-local clean clean-binPROGRAMS \
 	clean-checkPROGRAMS clean-cscope clean-generic \
-	clean-libLIBRARIES clean-libtool clean-local cscope \
+	clean-libLTLIBRARIES clean-libtool clean-local cscope \
 	cscopelist-am ctags ctags-am dist dist-all dist-bzip2 \
 	dist-bzip3 dist-gzip dist-lzip dist-shar dist-tarZ dist-xz \
 	dist-zip dist-zstd distcheck distclean distclean-compile \
@@ -1055,13 +1058,13 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLIBRARIES \
 	install-binPROGRAMS install-data install-data-am \
 	install-data-local install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
-	install-info-am install-libLIBRARIES install-man install-pdf \
+	install-info-am install-libLTLIBRARIES install-man install-pdf \
 	install-pdf-am install-ps install-ps-am install-strip \
 	installcheck installcheck-am installcheck-local installdirs \
 	maintainer-clean maintainer-clean-generic mostlyclean \
 	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
 	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-libLIBRARIES uninstall-local
+	uninstall-binPROGRAMS uninstall-libLTLIBRARIES uninstall-local
 
 .PRECIOUS: GNUmakefile
 
@@ -1124,6 +1127,7 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLIBRARIES \
 # end:
 
 @GNU@include $(top_srcdir)/silent-rules.mk
+
 @GNU@-include $(DEP_FILES)
 
 #---------------------------------------------------------------------
@@ -1157,16 +1161,16 @@ distclean-local::
 # coding: utf-8
 # tab-width: 4
 # end:
-iris$(EXEEXT): iris.lo libiris.a
+iris$(EXEEXT): iris.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
-test_capypdf$(EXEEXT): test_capypdf.lo libiris.a
+test_capypdf$(EXEEXT): test_capypdf.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
-test_gauche_binding$(EXEEXT): test_gauche_binding.lo libiris.a
+test_gauche_binding$(EXEEXT): test_gauche_binding.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
-test_database$(EXEEXT): test_database.lo libiris.a
+test_database$(EXEEXT): test_database.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 distclean-local::
