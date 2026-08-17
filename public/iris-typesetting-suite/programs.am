@@ -1,4 +1,8 @@
-iris$(EXEEXT): iris.lo libiris.a
+#---------------------------------------------------------------------
+# SPDX-License-Identifier: MIT
+#---------------------------------------------------------------------
+
+iris$(EXEEXT): iris.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 bin_PROGRAMS += iris
@@ -6,14 +10,14 @@ iris_SOURCES =
 iris_SOURCES += iris.adb
 iris_LDADD =
 iris_LDADD += .libs/iris.$(OBJEXT)
-iris_LDADD += libiris.a
+iris_LDADD += libiris.la
 iris_DEPENDENCIES =
 iris_DEPENDENCIES += iris.lo
-iris_DEPENDENCIES += libiris.a
+iris_DEPENDENCIES += libiris.la
 
 CLEANFILES += iris$(EXEEXT)
 
-test_capypdf$(EXEEXT): test_capypdf.lo libiris.a
+test_capypdf$(EXEEXT): test_capypdf.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 check_PROGRAMS += test_capypdf
@@ -21,14 +25,14 @@ test_capypdf_SOURCES =
 test_capypdf_SOURCES += test_capypdf.adb
 test_capypdf_LDADD =
 test_capypdf_LDADD += .libs/test_capypdf.$(OBJEXT)
-test_capypdf_LDADD += libiris.a
+test_capypdf_LDADD += libiris.la
 test_capypdf_DEPENDENCIES =
 test_capypdf_DEPENDENCIES += test_capypdf.lo
-test_capypdf_DEPENDENCIES += libiris.a
+test_capypdf_DEPENDENCIES += libiris.la
 
 CLEANFILES += test_capypdf$(EXEEXT)
 
-test_gauche_binding$(EXEEXT): test_gauche_binding.lo libiris.a
+test_gauche_binding$(EXEEXT): test_gauche_binding.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 check_PROGRAMS += test_gauche_binding
@@ -36,14 +40,14 @@ test_gauche_binding_SOURCES =
 test_gauche_binding_SOURCES += test_gauche_binding.adb
 test_gauche_binding_LDADD =
 test_gauche_binding_LDADD += .libs/test_gauche_binding.$(OBJEXT)
-test_gauche_binding_LDADD += libiris.a
+test_gauche_binding_LDADD += libiris.la
 test_gauche_binding_DEPENDENCIES =
 test_gauche_binding_DEPENDENCIES += test_gauche_binding.lo
-test_gauche_binding_DEPENDENCIES += libiris.a
+test_gauche_binding_DEPENDENCIES += libiris.la
 
 CLEANFILES += test_gauche_binding$(EXEEXT)
 
-test_database$(EXEEXT): test_database.lo libiris.a
+test_database$(EXEEXT): test_database.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 check_PROGRAMS += test_database
@@ -51,10 +55,9 @@ test_database_SOURCES =
 test_database_SOURCES += test_database.adb
 test_database_LDADD =
 test_database_LDADD += .libs/test_database.$(OBJEXT)
-test_database_LDADD += libiris.a
+test_database_LDADD += libiris.la
 test_database_DEPENDENCIES =
 test_database_DEPENDENCIES += test_database.lo
-test_database_DEPENDENCIES += libiris.a
+test_database_DEPENDENCIES += libiris.la
 
 CLEANFILES += test_database$(EXEEXT)
-
