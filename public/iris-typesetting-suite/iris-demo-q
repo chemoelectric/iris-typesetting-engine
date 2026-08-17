@@ -9,48 +9,28 @@
         (gauche base)
         (gauche process)
         (iris fontconfig)
-        (iris dbm builder)
-        (iris tkrzw))
+        (iris dbm builder))
 
-(define (lookup-record-field rec-str)
-  (let* ((rec (if rec-str (read-from-string rec-str) #f))
-         (entry (if rec (assoc 'file rec) #f)))
-    (if entry (cdr entry) #f)))
-
-(define (query-db-for-font db query)
-  (let* ((id-key (string-append "ps:" query))
-         (id-str (tkrzw-get db id-key #f)))
-    (if (not id-str)
-        #f
-        (let* ((f-key (string-append "font:" id-str))
-               (rec-str (tkrzw-get db f-key #f)))
-          (lookup-record-field rec-str)))))
-
-(define (resolve-font-path query)
-  (let ((db-path (default-fonts-db-path)))
-    (if (not (file-exists? db-path))
-        #f
-        (let ((db (tkrzw-open db-path :rw-mode :read)))
-          (if (not db)
-              #f
-              (let ((path (query-db-for-font db query)))
-                (tkrzw-close db)
-                path))))))
-
-(define (find-font-fallback query)
-  (let ((found (fontconfig-search query)))
-    (if (pair? found)
-        (car found)
-        #f)))
+(define (query-fc-direct query)
+  (guard (ex (else #f))
+    (let* ((cmd (list "fc-match" "-f" "%{file}" query))
+           (proc (run-process cmd :output :pipe))
+           (out (process-output proc))
+           (line (read-line out))
+           (status (process-wait proc)))
+      (if (and status (equal? status 0)
+               (string? line) (not (string=? line "")))
+          line
+          #f))))
 
 (define (find-playfair-font)
-  (or (resolve-font-path "PlayfairDisplay-Regular")
-      (resolve-font-path "PlayfairDisplay")
-      (find-font-fallback "PlayfairDisplay-Regular")
-      (find-font-fallback "PlayfairDisplay")
-      (find-font-fallback "Playfair")
-      (find-font-fallback "NimbusRoman-Regular")
-      (find-font-fallback "DejaVuSerif")))
+  (or (query-fc-direct "PlayfairDisplay-Regular")
+      (query-fc-direct "PlayfairDisplay")
+      (query-fc-direct "Playfair")
+      (query-fc-direct "NimbusRoman-Regular")
+      (query-fc-direct "DejaVuSerif")
+      (query-fc-direct "serif")
+      "/usr/share/fonts/opentype/urw-base35/NimbusRoman-Regular.otf"))
 
 (define (build-ps-stream)
   (string-append
@@ -73,29 +53,30 @@
              (status (process-wait proc)))
         (and status (equal? status 0))))))
 
-(define (print-header out-file font-path)
+(define (print-header out-file)
   (display "========================================================\n")
   (display "  Iris Typesetting Suite --- Glyph Demo ('Q')          \n")
   (display "========================================================\n")
   (display "Page Format   : U.S. Letter (8.5 x 11 in / 612 x 792 pt)\n")
-  (display (string-append "Target Output : " out-file "\n"))
-  (display (string-append "Resolved Font : "
-                          (or font-path "PlayfairDisplay-Regular")
-                          "\n"))
-  (display "Rendering uppercase glyph 'Q'...\n"))
+  (display (string-append "Target Output : " out-file "\n")))
 
 (define (main args)
-  (let* ((out-file (if (> (length args) 1) (cadr args) "demo-q.pdf"))
-         (font-path (find-playfair-font)))
-    (print-header out-file font-path)
-    (let ((ok (render-ps-stream out-file font-path)))
-      (if ok
-          (begin
-            (display (string-append "Created: " out-file "\n"))
-            0)
-          (begin
-            (display "Render completed.\n")
-            0)))))
+  (let* ((out-file (if (> (length args) 1) (cadr args) "demo-q.pdf")))
+    ;; Print header immediately so user gets instantaneous visual feedback
+    (print-header out-file)
+    (display "Resolving font...\n")
+    (let ((font-path (find-playfair-font)))
+      (display (string-append "Resolved Font : "
+                              (or font-path "Standard Serif") "\n"))
+      (display "Rendering uppercase glyph 'Q'...\n")
+      (let ((ok (render-ps-stream out-file font-path)))
+        (if ok
+            (begin
+              (display (string-append "Created: " out-file "\n"))
+              0)
+            (begin
+              (display "Render completed.\n")
+              0))))))
 
 (main (command-line))
 
