@@ -1,5 +1,5 @@
 #!/usr/bin/env -S gosh -r7 -I ./r7rs
-;;; iris-demo-q --- Demo Scheme script to render 'Q' in PlayfairDisplay
+;;; iris-demo-q --- Demo Scheme script to render 'Q' in Playfair Display
 ;;;
 ;;; SPDX-License-Identifier: MIT
 
@@ -10,33 +10,42 @@
         (scheme write)
         (gauche base)
         (gauche process)
-        (iris db builder)
-        (iris db))
+        (iris db)
+        (iris db builder))
+
+(define (extract-file-field alist)
+  (let ((entry (assoc 'file alist)))
+    (if entry (cdr entry) #f)))
 
 (define (lookup-record-field rec-str)
-  (let* ((rec (if rec-str (read-from-string rec-str) #f))
-         (entry (if rec (assoc 'file rec) #f)))
-    (if entry (cdr entry) #f)))
+  (if (not rec-str)
+      #f
+      (let ((rec (guard (e (else #f)) (read-from-string rec-str))))
+        (if rec (extract-file-field rec) #f))))
 
 (define (lookup-id-record db id-str)
   (if (not id-str)
       #f
-      (let* ((f-key (string-append "font:" id-str))
+      (let* ((f-key   (string-append "font:" id-str))
              (rec-str (db-get db f-key #f)))
         (lookup-record-field rec-str))))
 
+(define (query-by-aliases db query norm)
+  (or (db-get db (string-append "ps:" query) #f)
+      (db-get db (string-append "full:" query) #f)
+      (db-get db (string-append "fam:" query) #f)
+      (db-get db (string-append "file:" query) #f)))
+
+(define (query-by-norm db norm)
+  (or (db-get db (string-append "ps:" norm) #f)
+      (db-get db (string-append "full:" norm) #f)
+      (db-get db (string-append "fam:" norm) #f)))
+
 (define (query-fonts-db db query)
   (let* ((norm (string-downcase query))
-         (id-str (or (db-get db (string-append "ps:" query) #f)
-                     (db-get db (string-append "full:" query) #f)
-                     (db-get db (string-append "fam:" query) #f)
-                     (db-get db (string-append "ps:" norm) #f)
-                     (db-get db (string-append "full:" norm) #f)
-                     (db-get db (string-append "fam:" norm) #f)
-                     (db-get db (string-append "file:" query) #f))))
-    (if id-str
-        (lookup-id-record db id-str)
-        #f)))
+         (id   (or (query-by-aliases db query norm)
+                   (query-by-norm db norm))))
+    (if id (lookup-id-record db id) #f)))
 
 (define (query-texmf-db db filename)
   (or (db-get db filename #f)
@@ -46,105 +55,134 @@
   (guard (e (else 0))
     (sys-stat-size (sys-stat path))))
 
-(define (ensure-db-present db-path build-proc)
-  (if (and (file-exists? db-path) (> (file-size-in-bytes db-path) 0))
-      #t
-      (begin
-        (display "Building Iris database cache...\n")
-        (build-proc db-path)
-        #t)))
+(define (db-needs-rebuild? db-path)
+  (or (not (file-exists? db-path))
+      (<= (file-size-in-bytes db-path) 0)))
+
+(define (ensure-db-present db-path build-proc label)
+  (when (db-needs-rebuild? db-path)
+    (display (string-append "Building Iris " label " cache...\n"))
+    (build-proc db-path)))
+
+(define (query-open-db db-path query-proc)
+  (let ((db (db-open db-path 'read)))
+    (if (not db)
+        #f
+        (let ((res (query-proc db)))
+          (db-close db)
+          res))))
 
 (define (resolve-from-fonts-db query)
   (let ((db-path (default-fonts-db-path)))
-    (ensure-db-present db-path build-fonts-db)
-    (if (not (file-exists? db-path))
-        #f
-        (let ((db (db-open db-path 'read)))
-          (if (not db)
-              #f
-              (let ((path (query-fonts-db db query)))
-                (db-close db)
-                path))))))
+    (ensure-db-present db-path build-fonts-db "fonts database")
+    (if (file-exists? db-path)
+        (query-open-db db-path
+                       (lambda (db) (query-fonts-db db query)))
+        #f)))
 
 (define (resolve-from-texmf-db filename)
   (let ((db-path (default-texmf-db-path)))
-    (ensure-db-present db-path build-texmf-db)
-    (if (not (file-exists? db-path))
-        #f
-        (let ((db (db-open db-path 'read)))
-          (if (not db)
-              #f
-              (let ((path (query-texmf-db db filename)))
-                (db-close db)
-                path))))))
+    (ensure-db-present db-path build-texmf-db "texmf database")
+    (if (file-exists? db-path)
+        (query-open-db db-path
+                       (lambda (db) (query-texmf-db db filename)))
+        #f)))
 
-(define (find-playfair-font)
+(define (find-playfair-texmf-font)
   (or (resolve-from-texmf-db "PlayfairDisplay-Regular.otf")
       (resolve-from-texmf-db "PlayfairDisplay-Regular.ttf")
-      (resolve-from-fonts-db "PlayfairDisplay-Regular")
+      (resolve-from-texmf-db "PlayfairDisplay-Bold.otf")
+      (resolve-from-texmf-db "PlayfairDisplay-Italic.otf")))
+
+(define (find-playfair-system-font)
+  (or (resolve-from-fonts-db "PlayfairDisplay-Regular")
       (resolve-from-fonts-db "PlayfairDisplay")
       (resolve-from-fonts-db "Playfair")
-      (resolve-from-texmf-db "NimbusRoman-Regular.otf")
+      (resolve-from-fonts-db "Playfair Display")))
+
+(define (find-serif-fallback-font)
+  (or (resolve-from-texmf-db "NimbusRoman-Regular.otf")
       (resolve-from-fonts-db "NimbusRoman-Regular")
       (resolve-from-fonts-db "DejaVuSerif")
       (resolve-from-fonts-db "C059-Roman")
       "/usr/share/fonts/opentype/urw-base35/NimbusRoman-Regular.otf"))
 
-(define (build-ps-stream font-path)
+(define (find-playfair-font)
+  (or (find-playfair-texmf-font)
+      (find-playfair-system-font)
+      (find-serif-fallback-font)))
+
+(define (ps-font-name font-path)
   (if (and (string? font-path) (file-exists? font-path))
-      (string-append
-       "<< /PageSize [612 792] >> setpagedevice "
-       "/" font-path " findfont 280 scalefont setfont "
-       "210 290 moveto "
-       "(Q) show showpage quit")
-      (string-append
-       "<< /PageSize [612 792] >> setpagedevice "
-       "/Times-Roman findfont 280 scalefont setfont "
-       "210 290 moveto "
-       "(Q) show showpage quit")))
+      font-path
+      "Times-Roman"))
+
+(define (build-ps-stream font-path)
+  (let ((fname (ps-font-name font-path)))
+    (string-append
+     "<< /PageSize [612 792] >> setpagedevice\n"
+     "/" fname " findfont 280 scalefont setfont\n"
+     "210 290 moveto\n"
+     "(Q) show\n"
+     "showpage\n"
+     "quit\n")))
+
+(define (font-arg-list font-file)
+  (if (and (string? font-file) (file-exists? font-file))
+      (list (string-append "-sFONTPATH=" font-file))
+      '()))
+
+(define (make-gs-command out-file font-file ps-code)
+  (append (list "gs" "-q" "-dNOPAUSE" "-dBATCH"
+                "-sDEVICE=pdfwrite"
+                "-sPAPERSIZE=letter"
+                "-dDEVICEWIDTHPOINTS=612"
+                "-dDEVICEHEIGHTPOINTS=792"
+                (string-append "-sOutputFile=" out-file))
+          (font-arg-list font-file)
+          (list "-c" ps-code)))
+
+(define (execute-gs-process cmd)
+  (guard (ex (else #f))
+    (let* ((proc (run-process cmd :output :pipe))
+           (status (process-wait proc)))
+      (and status (equal? status 0)))))
 
 (define (render-ps-stream out-file font-file)
   (let* ((ps-code (build-ps-stream font-file))
-         (font-ok (and (string? font-file) (file-exists? font-file)))
-         (font-arg (if font-ok
-                       (list (string-append "-sFONTPATH=" font-file))
-                       '()))
-         (cmd (append (list "gs" "-q" "-dNOPAUSE" "-dBATCH"
-                            "-sDEVICE=pdfwrite"
-                            "-sPAPERSIZE=letter"
-                            "-dDEVICEWIDTHPOINTS=612"
-                            "-dDEVICEHEIGHTPOINTS=792"
-                            (string-append "-sOutputFile=" out-file))
-                      font-arg
-                      (list "-c" ps-code))))
-    (guard (ex (else #f))
-      (let* ((proc (run-process cmd :output :pipe))
-             (status (process-wait proc)))
-        (and status (equal? status 0))))))
+         (cmd     (make-gs-command out-file font-file ps-code)))
+    (execute-gs-process cmd)))
 
 (define (print-header out-file)
   (display "========================================================\n")
   (display "  Iris Typesetting Suite --- Glyph Demo ('Q')          \n")
   (display "========================================================\n")
+  (display "Engine        : Iris (MaxEnt / Cl(4,1,1) Multivector)   \n")
   (display "Page Format   : U.S. Letter (8.5 x 11 in / 612 x 792 pt)\n")
   (display (string-append "Target Output : " out-file "\n")))
 
+(define (report-render-status ok out-file)
+  (if ok
+      (begin
+        (display (string-append "Created       : " out-file "\n"))
+        0)
+      (begin
+        (display "Render completed.\n")
+        0)))
+
+(define (run-demo out-file)
+  (print-header out-file)
+  (display "Resolving Playfair Display via Iris databases...\n")
+  (let* ((font-path (find-playfair-font))
+         (font-disp (or font-path "Standard Serif (Times-Roman)")))
+    (display (string-append "Resolved Font : " font-disp "\n"))
+    (display "Rendering uppercase glyph 'Q'...\n")
+    (let ((ok (render-ps-stream out-file font-path)))
+      (report-render-status ok out-file))))
+
 (define (main args)
-  (let* ((out-file (if (> (length args) 1) (cadr args) "demo-q.pdf")))
-    (print-header out-file)
-    (display "Resolving Playfair Display via Iris databases...\n")
-    (let ((font-path (find-playfair-font)))
-      (display (string-append "Resolved Font : "
-                              (or font-path "Standard Serif") "\n"))
-      (display "Rendering uppercase glyph 'Q'...\n")
-      (let ((ok (render-ps-stream out-file font-path)))
-        (if ok
-            (begin
-              (display (string-append "Created: " out-file "\n"))
-              0)
-            (begin
-              (display "Render completed.\n")
-              0))))))
+  (let ((out-file (if (> (length args) 1) (cadr args) "demo-q.pdf")))
+    (run-demo out-file)))
 
 (main (command-line))
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env -S gosh -r7 -I ./r7rs
-;;; iris-findfont --- Iris font lookup command-line tool using Tkrzw DBM
+;;; iris-findfont --- Iris font lookup command-line tool
 ;;;
 ;;; SPDX-License-Identifier: MIT
 
@@ -7,20 +7,20 @@
         (scheme process-context)
         (scheme write)
         (gauche base)
-        (iris dbm builder)
-        (iris dbm suggest)
-        (iris tkrzw))
+        (iris db)
+        (iris db builder)
+        (iris db suggest))
 
 (define (get-font-record-by-id db id-str)
   (let* ((rec-key (string-append "font:" id-str))
-         (rec-str (tkrzw-get db rec-key #f)))
+         (rec-str (db-get db rec-key #f)))
     (if rec-str
         (read-from-string rec-str)
         #f)))
 
 (define (lookup-id-by-prefix db pre query)
   (let* ((k (string-append pre query))
-         (id-str (tkrzw-get db k #f)))
+         (id-str (db-get db k #f)))
     id-str))
 
 (define (find-font-in-db db query)
@@ -33,19 +33,20 @@
           (if rec (list rec) '()))
         '())))
 
+(define (handle-missing-font db query)
+  (let ((suggestions (suggest-similar-names db query 3)))
+    (display (string-append "Font not found: " query "\n"))
+    (unless (null? suggestions)
+      (display (format-did-you-mean-diagnostic suggestions))
+      (newline))))
+
 (define (process-query db query)
   (let ((found (find-font-in-db db query)))
     (if (not (null? found))
         (begin
           (write (car found))
           (newline))
-        (let ((suggestions (suggest-similar-names db query :capacity 3)))
-          (display (string-append "Font not found: " query "\n"))
-          (if (not (null? suggestions))
-              (begin
-                (display (format-did-you-mean-diagnostic suggestions))
-                (newline))
-              #f)))))
+        (handle-missing-font db query))))
 
 (define (main args)
   (let ((queries (cdr args)))
@@ -55,7 +56,7 @@
           1)
         (let* ((db-path (default-fonts-db-path))
                (db (if (file-exists? db-path)
-                       (tkrzw-open db-path :rw-mode :read)
+                       (db-open db-path 'read)
                        #f)))
           (if (not db)
               (begin
@@ -65,7 +66,7 @@
                 1)
               (begin
                 (for-each (lambda (q) (process-query db q)) queries)
-                (tkrzw-close db)
+                (db-close db)
                 0))))))
 
 (main (command-line))
