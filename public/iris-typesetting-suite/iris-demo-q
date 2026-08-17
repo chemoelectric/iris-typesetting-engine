@@ -42,7 +42,7 @@
   (if (file-exists? db-path)
       #t
       (begin
-        (display "Initializing Tkrzw database cache...\n")
+        (display "Building Tkrzw database cache...\n")
         (build-proc db-path)
         #t)))
 
@@ -70,9 +70,18 @@
                 (tkrzw-close db)
                 path))))))
 
+(define (check-direct-font-file candidate-path)
+  (if (and (string? candidate-path) (file-exists? candidate-path))
+      candidate-path
+      #f))
+
 (define (find-playfair-font)
   (or (resolve-from-texmf-db "PlayfairDisplay-Regular.otf")
       (resolve-from-texmf-db "PlayfairDisplay-Regular.ttf")
+      (check-direct-font-file
+       "/usr/local/texlive/2026/texmf-dist/fonts/opentype/public/playfair/PlayfairDisplay-Regular.otf")
+      (check-direct-font-file
+       "/usr/share/texlive/texmf-dist/fonts/opentype/public/playfair/PlayfairDisplay-Regular.otf")
       (resolve-from-fonts-db "PlayfairDisplay-Regular")
       (resolve-from-fonts-db "PlayfairDisplay")
       (resolve-from-fonts-db "Playfair")
