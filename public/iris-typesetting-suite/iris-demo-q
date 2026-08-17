@@ -4,6 +4,7 @@
 ;;; SPDX-License-Identifier: MIT
 
 (import (scheme base)
+        (scheme char)
         (scheme file)
         (scheme process-context)
         (scheme write)
@@ -24,7 +25,7 @@
              (rec-str (tkrzw-get db f-key #f)))
         (lookup-record-field rec-str))))
 
-(define (query-db-for-font db query)
+(define (query-fonts-db db query)
   (let* ((id-key (string-append "ps:" query))
          (id-str (tkrzw-get db id-key #f)))
     (if id-str
@@ -33,40 +34,59 @@
                (fid-str  (tkrzw-get db full-key #f)))
           (lookup-id-record db fid-str)))))
 
-(define (ensure-fonts-db-present db-path)
+(define (query-texmf-db db filename)
+  (or (tkrzw-get db filename #f)
+      (tkrzw-get db (string-downcase filename) #f)))
+
+(define (ensure-db-present db-path build-proc)
   (if (file-exists? db-path)
       #t
       (begin
-        (display "Initializing Tkrzw fonts database cache...\n")
-        (build-fonts-db db-path)
+        (display "Initializing Tkrzw database cache...\n")
+        (build-proc db-path)
         #t)))
 
-(define (resolve-font-path query)
+(define (resolve-from-fonts-db query)
   (let ((db-path (default-fonts-db-path)))
-    (ensure-fonts-db-present db-path)
+    (ensure-db-present db-path build-fonts-db)
     (if (not (file-exists? db-path))
         #f
         (let ((db (tkrzw-open db-path :rw-mode :read)))
           (if (not db)
               #f
-              (let ((path (query-db-for-font db query)))
+              (let ((path (query-fonts-db db query)))
+                (tkrzw-close db)
+                path))))))
+
+(define (resolve-from-texmf-db filename)
+  (let ((db-path (default-texmf-db-path)))
+    (ensure-db-present db-path build-texmf-db)
+    (if (not (file-exists? db-path))
+        #f
+        (let ((db (tkrzw-open db-path :rw-mode :read)))
+          (if (not db)
+              #f
+              (let ((path (query-texmf-db db filename)))
                 (tkrzw-close db)
                 path))))))
 
 (define (find-playfair-font)
-  (or (resolve-font-path "PlayfairDisplay-Regular")
-      (resolve-font-path "PlayfairDisplay")
-      (resolve-font-path "Playfair")
-      (resolve-font-path "NimbusRoman-Regular")
-      (resolve-font-path "DejaVuSerif")
-      (resolve-font-path "C059-Roman")
+  (or (resolve-from-texmf-db "PlayfairDisplay-Regular.otf")
+      (resolve-from-texmf-db "PlayfairDisplay-Regular.ttf")
+      (resolve-from-fonts-db "PlayfairDisplay-Regular")
+      (resolve-from-fonts-db "PlayfairDisplay")
+      (resolve-from-fonts-db "Playfair")
+      (resolve-from-texmf-db "NimbusRoman-Regular.otf")
+      (resolve-from-fonts-db "NimbusRoman-Regular")
+      (resolve-from-fonts-db "DejaVuSerif")
+      (resolve-from-fonts-db "C059-Roman")
       "/usr/share/fonts/opentype/urw-base35/NimbusRoman-Regular.otf"))
 
 (define (build-ps-stream font-path)
   (if (and (string? font-path) (file-exists? font-path))
       (string-append
        "<< /PageSize [612 792] >> setpagedevice "
-       "(" font-path ") findfont 280 scalefont setfont "
+       "/" font-path " findfont 280 scalefont setfont "
        "210 290 moveto "
        "(Q) show showpage quit")
       (string-append
@@ -77,13 +97,17 @@
 
 (define (render-ps-stream out-file font-file)
   (let* ((ps-code (build-ps-stream font-file))
-         (cmd (list "gs" "-q" "-dNOPAUSE" "-dBATCH"
-                    "-sDEVICE=pdfwrite"
-                    "-sPAPERSIZE=letter"
-                    "-dDEVICEWIDTHPOINTS=612"
-                    "-dDEVICEHEIGHTPOINTS=792"
-                    (string-append "-sOutputFile=" out-file)
-                    "-c" ps-code)))
+         (font-arg (if (and (string? font-file) (file-exists? font-file))
+                       (list (string-append "-sFONTPATH=" font-file))
+                       '()))
+         (cmd (append (list "gs" "-q" "-dNOPAUSE" "-dBATCH"
+                            "-sDEVICE=pdfwrite"
+                            "-sPAPERSIZE=letter"
+                            "-dDEVICEWIDTHPOINTS=612"
+                            "-dDEVICEHEIGHTPOINTS=792"
+                            (string-append "-sOutputFile=" out-file))
+                      font-arg
+                      (list "-c" ps-code))))
     (guard (ex (else #f))
       (let* ((proc (run-process cmd :output :pipe))
              (status (process-wait proc)))
@@ -99,7 +123,7 @@
 (define (main args)
   (let* ((out-file (if (> (length args) 1) (cadr args) "demo-q.pdf")))
     (print-header out-file)
-    (display "Resolving font via Tkrzw DBM...\n")
+    (display "Resolving Playfair Display via Tkrzw DBM databases...\n")
     (let ((font-path (find-playfair-font)))
       (display (string-append "Resolved Font : "
                               (or font-path "Standard Serif") "\n"))
