@@ -178,8 +178,8 @@ gauche_iris_db_edit_distance (const char* str_a, const char* str_b,
 static ScmObj
 scm_iris_db_open (ScmObj *args, int argc, void *data)
 {
+  (void) argc;
   (void) data;
-  SCM_ASSERT_ARITY (argc, 3);
   const char *path = Scm_GetStringConst (SCM_STRING (args[0]));
   int writable = SCM_INT_VALUE (args[1]);
   const char *params = "";
@@ -193,8 +193,8 @@ scm_iris_db_open (ScmObj *args, int argc, void *data)
 static ScmObj
 scm_iris_db_close (ScmObj *args, int argc, void *data)
 {
+  (void) argc;
   (void) data;
-  SCM_ASSERT_ARITY (argc, 1);
   int res = gauche_iris_db_close (args[0]);
   return SCM_MAKE_INT (res);
 }
@@ -202,10 +202,11 @@ scm_iris_db_close (ScmObj *args, int argc, void *data)
 static ScmObj
 scm_iris_db_check (ScmObj *args, int argc, void *data)
 {
+  (void) argc;
   (void) data;
-  SCM_ASSERT_ARITY (argc, 2);
-  const char *key = Scm_GetStringConst (SCM_STRING (args[1]));
-  int klen = (int) SCM_STRING_BODY_SIZE (SCM_STRING (args[1]));
+  const ScmStringBody *body = SCM_STRING_BODY (args[1]);
+  const char *key = SCM_STRING_BODY_START (body);
+  int klen = (int) SCM_STRING_BODY_SIZE (body);
   int res = gauche_iris_db_check (args[0], key, klen);
   return SCM_MAKE_INT (res);
 }
@@ -213,22 +214,27 @@ scm_iris_db_check (ScmObj *args, int argc, void *data)
 static ScmObj
 scm_iris_db_get (ScmObj *args, int argc, void *data)
 {
+  (void) argc;
   (void) data;
-  SCM_ASSERT_ARITY (argc, 2);
-  const char *key = Scm_GetStringConst (SCM_STRING (args[1]));
-  int klen = (int) SCM_STRING_BODY_SIZE (SCM_STRING (args[1]));
+  const ScmStringBody *body = SCM_STRING_BODY (args[1]);
+  const char *key = SCM_STRING_BODY_START (body);
+  int klen = (int) SCM_STRING_BODY_SIZE (body);
   return gauche_iris_db_get (args[0], key, klen);
 }
 
 static ScmObj
 scm_iris_db_set (ScmObj *args, int argc, void *data)
 {
+  (void) argc;
   (void) data;
-  SCM_ASSERT_ARITY (argc, 4);
-  const char *key = Scm_GetStringConst (SCM_STRING (args[1]));
-  int klen = (int) SCM_STRING_BODY_SIZE (SCM_STRING (args[1]));
-  const char *val = Scm_GetStringConst (SCM_STRING (args[2]));
-  int vlen = (int) SCM_STRING_BODY_SIZE (SCM_STRING (args[2]));
+  const ScmStringBody *kbody = SCM_STRING_BODY (args[1]);
+  const char *key = SCM_STRING_BODY_START (kbody);
+  int klen = (int) SCM_STRING_BODY_SIZE (kbody);
+
+  const ScmStringBody *vbody = SCM_STRING_BODY (args[2]);
+  const char *val = SCM_STRING_BODY_START (vbody);
+  int vlen = (int) SCM_STRING_BODY_SIZE (vbody);
+
   int overwrite = SCM_INT_VALUE (args[3]);
   int res = gauche_iris_db_set (args[0], key, klen, val, vlen,
                                 overwrite);
@@ -238,10 +244,11 @@ scm_iris_db_set (ScmObj *args, int argc, void *data)
 static ScmObj
 scm_iris_db_remove (ScmObj *args, int argc, void *data)
 {
+  (void) argc;
   (void) data;
-  SCM_ASSERT_ARITY (argc, 2);
-  const char *key = Scm_GetStringConst (SCM_STRING (args[1]));
-  int klen = (int) SCM_STRING_BODY_SIZE (SCM_STRING (args[1]));
+  const ScmStringBody *body = SCM_STRING_BODY (args[1]);
+  const char *key = SCM_STRING_BODY_START (body);
+  int klen = (int) SCM_STRING_BODY_SIZE (body);
   int res = gauche_iris_db_remove (args[0], key, klen);
   return SCM_MAKE_INT (res);
 }
@@ -249,8 +256,8 @@ scm_iris_db_remove (ScmObj *args, int argc, void *data)
 static ScmObj
 scm_iris_db_count (ScmObj *args, int argc, void *data)
 {
+  (void) argc;
   (void) data;
-  SCM_ASSERT_ARITY (argc, 1);
   int64_t res = gauche_iris_db_count (args[0]);
   return Scm_MakeInteger64 (res);
 }
@@ -258,8 +265,8 @@ scm_iris_db_count (ScmObj *args, int argc, void *data)
 static ScmObj
 scm_iris_db_sync (ScmObj *args, int argc, void *data)
 {
+  (void) argc;
   (void) data;
-  SCM_ASSERT_ARITY (argc, 2);
   int hard = SCM_INT_VALUE (args[1]);
   int res = gauche_iris_db_sync (args[0], hard);
   return SCM_MAKE_INT (res);
@@ -268,36 +275,37 @@ scm_iris_db_sync (ScmObj *args, int argc, void *data)
 static ScmObj
 scm_iris_db_edit_distance (ScmObj *args, int argc, void *data)
 {
+  (void) argc;
   (void) data;
-  SCM_ASSERT_ARITY (argc, 2);
   const char *sa = Scm_GetStringConst (SCM_STRING (args[0]));
   const char *sb = Scm_GetStringConst (SCM_STRING (args[1]));
   int res = gauche_iris_db_edit_distance (sa, sb, 1);
   return SCM_MAKE_INT (res);
 }
 
+static void
+define_subr (ScmModule *mod, const char *name, ScmSubrProc *proc,
+             int in_arity, int opt_arity)
+{
+  ScmObj sname = SCM_INTERN (name);
+  ScmObj subr = Scm_MakeSubr (proc, NULL, in_arity, opt_arity, sname);
+  Scm_Define (mod, SCM_SYMBOL (sname), subr);
+}
+
 void
 gauche_iris_db_init (void)
 {
   ScmModule *mod = Scm_UserModule ();
-  Scm_DefinePrimitive (mod, "%iris-db-open", scm_iris_db_open, 3, 0,
-                       NULL);
-  Scm_DefinePrimitive (mod, "%iris-db-close", scm_iris_db_close, 1, 0,
-                       NULL);
-  Scm_DefinePrimitive (mod, "%iris-db-check", scm_iris_db_check, 2, 0,
-                       NULL);
-  Scm_DefinePrimitive (mod, "%iris-db-get", scm_iris_db_get, 2, 0,
-                       NULL);
-  Scm_DefinePrimitive (mod, "%iris-db-set", scm_iris_db_set, 4, 0,
-                       NULL);
-  Scm_DefinePrimitive (mod, "%iris-db-remove", scm_iris_db_remove, 2, 0,
-                       NULL);
-  Scm_DefinePrimitive (mod, "%iris-db-count", scm_iris_db_count, 1, 0,
-                       NULL);
-  Scm_DefinePrimitive (mod, "%iris-db-sync", scm_iris_db_sync, 2, 0,
-                       NULL);
-  Scm_DefinePrimitive (mod, "%iris-db-edit-distance",
-                       scm_iris_db_edit_distance, 2, 0, NULL);
+  define_subr (mod, "%iris-db-open", scm_iris_db_open, 3, 0);
+  define_subr (mod, "%iris-db-close", scm_iris_db_close, 1, 0);
+  define_subr (mod, "%iris-db-check", scm_iris_db_check, 2, 0);
+  define_subr (mod, "%iris-db-get", scm_iris_db_get, 2, 0);
+  define_subr (mod, "%iris-db-set", scm_iris_db_set, 4, 0);
+  define_subr (mod, "%iris-db-remove", scm_iris_db_remove, 2, 0);
+  define_subr (mod, "%iris-db-count", scm_iris_db_count, 1, 0);
+  define_subr (mod, "%iris-db-sync", scm_iris_db_sync, 2, 0);
+  define_subr (mod, "%iris-db-edit-distance",
+               scm_iris_db_edit_distance, 2, 0);
 }
 
 void
