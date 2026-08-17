@@ -3,6 +3,7 @@
 (define-library (iris texmf ls-R)
 
   (import (scheme base)
+          (scheme char)
           (scheme list)
           (scheme file)
           (scheme write)
@@ -38,7 +39,8 @@
       (let loop ((current-path path))
         (let ((index (string-contains current-path "/./")))
           (if index
-            (loop (string-replace current-path "/" index (+ index 3) 0 1))
+            (loop (string-replace current-path "/"
+                                  index (+ index 3) 0 1))
             current-path))))
 
     (define (require-slash s)
@@ -54,17 +56,42 @@
         "/usr/share/texmf/ls-R"
         "/var/lib/texmf/ls-R"))
 
+    (define (split-command-words str)
+      (let ((len (string-length str)))
+        (let loop ((i 0) (start #f) (words '()))
+          (if (= i len)
+              (reverse (if start
+                           (cons (substring str start len) words)
+                           words))
+              (let ((ch (string-ref str i)))
+                (if (char-whitespace? ch)
+                    (if start
+                        (loop (+ i 1) #f
+                              (cons (substring str start i) words))
+                        (loop (+ i 1) #f words))
+                    (if start
+                        (loop (+ i 1) start words)
+                        (loop (+ i 1) i words))))))))
+
+    (define (kpsewhich-command-parts)
+      (let ((tokens (split-command-words "kpsewhich")))
+        (if (null? tokens)
+            '("kpsewhich")
+            tokens)))
+
+    (define (get-file-paths filename)
+      (guard (ex (else '()))
+        (let* ((base-cmd (kpsewhich-command-parts))
+               (cmd      (append base-cmd (list "-all" filename)))
+               (raw      (process-output->string-list cmd))
+               (lines    (map string-trim raw)))
+          (filter file-exists? lines))))
+
     (define (get-ls-R-paths)
       (let* ((dynamic-paths (get-file-paths "ls-R"))
              (candidates    (standard-texmf-candidates))
              (existing      (filter file-exists? candidates)))
         (delete-duplicates (append dynamic-paths existing))))
-
-    (define (get-file-paths filename)
-      (guard (ex (else '()))
-        (let* ((cmd (list "kpsewhich" "-all" filename))
-               (lines (process-output->string-list cmd)))
-          (filter file-exists? lines))))
 
     (define (string-ends-with? str char)
       (let ((len (string-length str)))
@@ -76,7 +103,9 @@
         (cond
           ((eof-object? line)
            (if current-dir
-               (cons (cons current-dir (reverse current-files)) accumulator)
+               (cons (cons current-dir
+                           (reverse current-files))
+                     accumulator)
                accumulator))
 
           ((or (string=? line "")
@@ -95,7 +124,9 @@
              (parse-ls-R new-dir '() new-acc)))
 
           (else
-           (parse-ls-R current-dir (cons line current-files) accumulator)))))
+           (parse-ls-R current-dir
+                       (cons line current-files)
+                       accumulator)))))
 
     (define (get-ls-R-index filename)
       (guard (ex (else '()))

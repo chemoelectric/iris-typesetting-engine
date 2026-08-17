@@ -1,4 +1,4 @@
-;;; r7rs/iris/dbm/builder.sld --- Tkrzw database builder for TeXMF and System Fonts
+;;; r7rs/iris/dbm/builder.sld --- Tkrzw database builder
 ;;;
 ;;; SPDX-License-Identifier: MIT
 
@@ -67,7 +67,8 @@
     (define (build-texmf-db . args)
       (let* ((path (if (null? args) (default-texmf-db-path) (car args)))
              (_    (ensure-parent-dir path))
-             (db   (tkrzw-open path :rw-mode :create :params "align_pow=4"))
+             (db   (tkrzw-open path :rw-mode :create
+                                :params "align_pow=4"))
              (dirs (guard (e (else '())) (ls-R))))
         (if (not db)
             0
@@ -78,14 +79,22 @@
                dirs)
               (tkrzw-close db)
               (let* ((ro-db (tkrzw-open path :rw-mode :read))
-                     (cnt   (if ro-db (begin (let ((c (tkrzw-count ro-db))) (tkrzw-close ro-db) c)) 0)))
+                     (cnt   (if ro-db
+                                (let ((c (tkrzw-count ro-db)))
+                                  (tkrzw-close ro-db)
+                                  c)
+                                0)))
                 cnt)))))
 
     (define (get-fc-list-entries)
       (guard (e (else '()))
-        (let* ((cmd '(fc-list ":" "file" "family" "style"
-                              "postscriptname" "fullname" "format"))
-               (lines (process-output->string-list cmd)))
+        (let* ((fmt
+                (string-append
+                 "%{file}:%{family}:%{style}:"
+                 "%{postscriptname}:%{fullname}\n"))
+               (cmd (list "fc-list" "-f" fmt))
+               (raw (process-output->string-list cmd))
+               (lines (map string-trim raw)))
           (filter (lambda (s) (not (string=? s ""))) lines))))
 
     (define (split-by-char str delim)
@@ -114,23 +123,27 @@
          (postscript . ,ps)
          (fullname   . ,full))))
 
+    (define (index-single-alias db prefix alias id-str)
+      (unless (string=? alias "")
+        (let ((norm (normalize-name alias)))
+          (tkrzw-put! db (string-append prefix alias) id-str)
+          (tkrzw-put! db (string-append prefix norm) id-str)
+          (tkrzw-put! db (string-append "name:" norm) alias))))
+
+    (define (index-alias-list db prefix csv-str id-str)
+      (let ((aliases (split-by-char csv-str #\,)))
+        (for-each
+         (lambda (a)
+           (index-single-alias db prefix (string-trim a) id-str))
+         aliases)))
+
     (define (index-font-metadata db id id-str path fam sty ps full)
       (let ((meta-str (make-font-record id path fam sty ps full)))
         (tkrzw-put! db (string-append "font:" id-str) meta-str)
         (tkrzw-put! db (string-append "file:" path) id-str)
-        (unless (string=? ps "")
-          (tkrzw-put! db (string-append "ps:" ps) id-str)
-          (tkrzw-put! db (string-append "name:" (normalize-name ps)) ps))
-        (unless (string=? full "")
-          (tkrzw-put! db (string-append "full:" full) id-str)
-          (tkrzw-put! db (string-append "name:" (normalize-name full)) full))
-        (unless (string=? fam "")
-          (let ((fam-k (if (string=? sty "")
-                           (string-append "fam:" fam)
-                           (string-append "fam:" fam ":" sty))))
-            (tkrzw-put! db fam-k id-str)
-            (tkrzw-put! db (string-append "name:" (normalize-name fam))
-                        fam)))))
+        (index-alias-list db "ps:" ps id-str)
+        (index-alias-list db "full:" full id-str)
+        (index-alias-list db "fam:" fam id-str)))
 
     (define (ingest-font-line db line id-seq)
       (let* ((parts (split-by-char line #\:))
@@ -142,7 +155,8 @@
         (if (and (not (string=? path "")) (file-exists? path))
             (let* ((next-id (+ id-seq 1))
                    (id-str  (number->string next-id)))
-              (index-font-metadata db next-id id-str path fam sty ps full)
+              (index-font-metadata db next-id id-str
+                                   path fam sty ps full)
               next-id)
             id-seq)))
 
@@ -159,7 +173,11 @@
                   (begin
                     (tkrzw-close db)
                     (let* ((ro-db (tkrzw-open path :rw-mode :read))
-                           (cnt   (if ro-db (begin (let ((c (tkrzw-count ro-db))) (tkrzw-close ro-db) c)) 0)))
+                           (cnt   (if ro-db
+                                      (let ((c (tkrzw-count ro-db)))
+                                        (tkrzw-close ro-db)
+                                        c)
+                                      0)))
                       cnt))
                   (let ((next-id (ingest-font-line db (car rest) id)))
                     (loop (cdr rest) next-id)))))))

@@ -26,20 +26,28 @@
         (lookup-record-field rec-str))))
 
 (define (query-fonts-db db query)
-  (let* ((id-key (string-append "ps:" query))
-         (id-str (tkrzw-get db id-key #f)))
+  (let* ((norm (string-downcase query))
+         (id-str (or (tkrzw-get db (string-append "ps:" query) #f)
+                     (tkrzw-get db (string-append "full:" query) #f)
+                     (tkrzw-get db (string-append "fam:" query) #f)
+                     (tkrzw-get db (string-append "ps:" norm) #f)
+                     (tkrzw-get db (string-append "full:" norm) #f)
+                     (tkrzw-get db (string-append "fam:" norm) #f)
+                     (tkrzw-get db (string-append "file:" query) #f))))
     (if id-str
         (lookup-id-record db id-str)
-        (let* ((full-key (string-append "full:" query))
-               (fid-str  (tkrzw-get db full-key #f)))
-          (lookup-id-record db fid-str)))))
+        #f)))
 
 (define (query-texmf-db db filename)
   (or (tkrzw-get db filename #f)
       (tkrzw-get db (string-downcase filename) #f)))
 
+(define (file-size-in-bytes path)
+  (guard (e (else 0))
+    (sys-stat-size (sys-stat path))))
+
 (define (ensure-db-present db-path build-proc)
-  (if (file-exists? db-path)
+  (if (and (file-exists? db-path) (> (file-size-in-bytes db-path) 0))
       #t
       (begin
         (display "Building Tkrzw database cache...\n")
@@ -97,7 +105,8 @@
 
 (define (render-ps-stream out-file font-file)
   (let* ((ps-code (build-ps-stream font-file))
-         (font-arg (if (and (string? font-file) (file-exists? font-file))
+         (font-ok (and (string? font-file) (file-exists? font-file)))
+         (font-arg (if font-ok
                        (list (string-append "-sFONTPATH=" font-file))
                        '()))
          (cmd (append (list "gs" "-q" "-dNOPAUSE" "-dBATCH"

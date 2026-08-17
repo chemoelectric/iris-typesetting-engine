@@ -39,7 +39,8 @@
       (let loop ((current-path path))
         (let ((index (string-contains current-path "/./")))
           (if index
-            (loop (string-replace current-path "/" index (+ index 3) 0 1))
+            (loop (string-replace current-path "/"
+                                  index (+ index 3) 0 1))
             current-path))))
 
     (define (require-slash s)
@@ -47,8 +48,13 @@
         s
         (string-append s "/")))
 
-    (define (get-ls-R-paths)
-      (get-file-paths "ls-R"))
+    (define (standard-texmf-candidates)
+      '("/usr/local/texlive/2026/texmf-dist/ls-R"
+        "/usr/local/texlive/2025/texmf-dist/ls-R"
+        "/usr/local/texlive/2024/texmf-dist/ls-R"
+        "/usr/share/texlive/texmf-dist/ls-R"
+        "/usr/share/texmf/ls-R"
+        "/var/lib/texmf/ls-R"))
 
     (define (split-command-words str)
       (let ((len (string-length str)))
@@ -77,8 +83,15 @@
       (guard (ex (else '()))
         (let* ((base-cmd (kpsewhich-command-parts))
                (cmd      (append base-cmd (list "-all" filename)))
-               (lines    (process-output->string-list cmd)))
+               (raw      (process-output->string-list cmd))
+               (lines    (map string-trim raw)))
           (filter file-exists? lines))))
+
+    (define (get-ls-R-paths)
+      (let* ((dynamic-paths (get-file-paths "ls-R"))
+             (candidates    (standard-texmf-candidates))
+             (existing      (filter file-exists? candidates)))
+        (delete-duplicates (append dynamic-paths existing))))
 
     (define (string-ends-with? str char)
       (let ((len (string-length str)))
@@ -90,7 +103,9 @@
         (cond
           ((eof-object? line)
            (if current-dir
-               (cons (cons current-dir (reverse current-files)) accumulator)
+               (cons (cons current-dir
+                           (reverse current-files))
+                     accumulator)
                accumulator))
 
           ((or (string=? line "")
@@ -109,7 +124,9 @@
              (parse-ls-R new-dir '() new-acc)))
 
           (else
-           (parse-ls-R current-dir (cons line current-files) accumulator)))))
+           (parse-ls-R current-dir
+                       (cons line current-files)
+                       accumulator)))))
 
     (define (get-ls-R-index filename)
       (guard (ex (else '()))

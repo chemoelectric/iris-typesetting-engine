@@ -1,4 +1,4 @@
-;;; r7rs/iris/tkrzw.sld --- Tkrzw DBM key-value database interface for Iris
+;;; r7rs/iris/tkrzw.sld --- Tkrzw DBM database interface for Iris
 ;;;
 ;;; SPDX-License-Identifier: MIT
 
@@ -446,8 +446,10 @@
                   (hash-table-put! ht k v)
                   (slot-set! self 'keys-cache '())
                   (let ((sync (slot-ref self 'sync-mode)))
-                    (when (or (eq? sync :sync) (eq? sync :on-demand))
-                      (safe-file-write-records (slot-ref self 'path) ht)))
+                    (when (or (eq? sync :sync)
+                              (eq? sync :on-demand))
+                      (safe-file-write-records
+                       (slot-ref self 'path) ht)))
                   v)))))
 
     (define-method dbm-get ((self <tkrzw>) key . default)
