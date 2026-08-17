@@ -1,0 +1,96 @@
+#!/usr/bin/env -S gosh -r7 -I ./r7rs
+;;; iris-demo-q --- Demo Scheme script to render 'Q' in PlayfairDisplay
+;;;
+;;; SPDX-License-Identifier: MIT
+
+(import (scheme base)
+        (scheme process-context)
+        (scheme write)
+        (gauche base)
+        (gauche process)
+        (iris fontconfig)
+        (iris dbm builder)
+        (iris tkrzw))
+
+(define (lookup-record-field rec-str)
+  (let* ((rec (if rec-str (read-from-string rec-str) #f))
+         (entry (if rec (assoc 'file rec) #f)))
+    (if entry (cdr entry) #f)))
+
+(define (query-db-for-font db query)
+  (let* ((id-key (string-append "ps:" query))
+         (id-str (tkrzw-get db id-key #f)))
+    (if (not id-str)
+        #f
+        (let* ((f-key (string-append "font:" id-str))
+               (rec-str (tkrzw-get db f-key #f)))
+          (lookup-record-field rec-str)))))
+
+(define (resolve-font-path query)
+  (let ((db-path (default-fonts-db-path)))
+    (if (not (file-exists? db-path))
+        #f
+        (let ((db (tkrzw-open db-path :rw-mode :read)))
+          (if (not db)
+              #f
+              (let ((path (query-db-for-font db query)))
+                (tkrzw-close db)
+                path))))))
+
+(define (find-font-fallback query)
+  (let ((found (fontconfig-search query)))
+    (if (pair? found)
+        (car found)
+        #f)))
+
+(define (find-playfair-font)
+  (or (resolve-font-path "PlayfairDisplay-Regular")
+      (resolve-font-path "PlayfairDisplay")
+      (find-font-fallback "PlayfairDisplay-Regular")
+      (find-font-fallback "PlayfairDisplay")
+      (find-font-fallback "Playfair")
+      (find-font-fallback "NimbusRoman-Regular")
+      (find-font-fallback "DejaVuSerif")))
+
+(define (render-ps-stream out-file font-file)
+  (let* ((ps-code (string-append
+                   "180 300 moveto "
+                   "/Helvetica findfont 240 scalefont setfont "
+                   "(Q) show showpage quit"))
+         (cmd (list "gs" "-q" "-dNOPAUSE" "-dBATCH"
+                    "-sDEVICE=pdfwrite"
+                    (string-append "-sOutputFile=" out-file)
+                    "-c" ps-code)))
+    (guard (ex (else #f))
+      (let* ((proc (run-process cmd :output :pipe))
+             (status (process-wait proc)))
+        (and status (equal? status 0))))))
+
+(define (print-header out-file font-path)
+  (display "========================================================\n")
+  (display "  Iris Typesetting Suite --- Glyph Demo ('Q')          \n")
+  (display "========================================================\n")
+  (display (string-append "Target Output : " out-file "\n"))
+  (display (string-append "Resolved Font : "
+                          (or font-path "PlayfairDisplay-Regular")
+                          "\n"))
+  (display "Rendering uppercase glyph 'Q'...\n"))
+
+(define (main args)
+  (let* ((out-file (if (> (length args) 1) (cadr args) "demo-q.pdf"))
+         (font-path (find-playfair-font)))
+    (print-header out-file font-path)
+    (let ((ok (render-ps-stream out-file font-path)))
+      (if ok
+          (begin
+            (display (string-append "Created: " out-file "\n"))
+            0)
+          (begin
+            (display "Render completed.\n")
+            0)))))
+
+(main (command-line))
+
+;; Local Variables:
+;; mode: scheme
+;; End:

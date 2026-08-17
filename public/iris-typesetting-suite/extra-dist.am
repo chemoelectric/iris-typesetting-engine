@@ -11,3 +11,4 @@ EXTRA_DIST += r7rs/iris/texmf/ls-R.sld.in
 EXTRA_DIST += doc/md/fontconfig.md
 EXTRA_DIST += doc/md/tkrzw.md
 EXTRA_DIST += iris-findfont
+EXTRA_DIST += iris-demo-q
