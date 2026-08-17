@@ -11,6 +11,7 @@
           (gauche base)
           (gauche process)
           (gauche keyword)
+          (srfi 152) ;; string library.
           (iris tkrzw)
           (iris texmf ls-R)
           (iris fontconfig))
