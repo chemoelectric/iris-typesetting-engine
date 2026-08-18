@@ -211,9 +211,10 @@ package body database is
       if mode = read_only
         and then not ada.directories.exists (path_str)
       then
-         if path_str = default_fonts_db_path then
+         if path_str = to_unbounded_string (default_fonts_db_path) then
             fontconfig_db.build_fonts_database (path_str, cnt);
-         elsif path_str = default_texmf_db_path then
+         elsif path_str =
+               to_unbounded_string (default_texmf_db_path) then
             ls_r.build_texmf_database (path_str, cnt);
          end if;
       end if;
