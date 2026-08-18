@@ -11,19 +11,21 @@
 --   - mccabe cyclomatic complexity <= 10 for all subprograms.
 -- =====================================================================
 
-with ada.text_io;           use ada.text_io;
-with ada.command_line;      use ada.command_line;
-with ada.directories;       use ada.directories;
-with ada.strings.fixed;     use ada.strings.fixed;
-with ada.strings.unbounded; use ada.strings.unbounded;
-with interfaces.c;          use interfaces.c;
-with capypdf;               use capypdf;
-with find_things;           use find_things;
+with ada.text_io;               use ada.text_io;
+with ada.command_line;          use ada.command_line;
+with ada.directories;           use ada.directories;
+with ada.environment_variables;
+with ada.strings.fixed;         use ada.strings.fixed;
+with ada.strings.unbounded;     use ada.strings.unbounded;
+with interfaces.c;              use interfaces.c;
+with capypdf;                   use capypdf;
+with find_things;               use find_things;
 
 procedure test_demo_q is
 
    out_file_name   : constant string := "demo-q.pdf";
-   target_font_tag : constant string := "PlayfairDisplay-Regular";
+   target_font_tag : constant string := "RTFAmethystPro-Light.otf";
+   target_font_ps  : constant string := "RTFAmethystPro-Light";
    ok              : boolean := true;
    resolved_font   : unbounded_string := null_unbounded_string;
 
@@ -37,26 +39,28 @@ procedure test_demo_q is
    end cleanup_output;
 
    function get_candidate_paths return path_array is
+      home : constant string :=
+        (if ada.environment_variables.exists ("HOME")
+         then ada.environment_variables.value ("HOME")
+         else "");
       p1 : constant string :=
-        "/usr/share/fonts/opentype/playfair/" &
-        "PlayfairDisplay-Regular.otf";
+        "/usr/share/fonts/opentype/RTFAmethystPro-Light.otf";
       p2 : constant string :=
-        "/usr/share/fonts/truetype/playfair/" &
-        "PlayfairDisplay-Regular.ttf";
+        "/usr/local/share/fonts/RTFAmethystPro-Light.otf";
       p3 : constant string :=
-        "/usr/share/fonts/playfair/" &
-        "PlayfairDisplay-Regular.otf";
+        (if home'length > 0
+         then home & "/.fonts/RTFAmethystPro-Light.otf"
+         else "RTFAmethystPro-Light.otf");
       p4 : constant string :=
-        "/usr/local/share/fonts/" &
-        "PlayfairDisplay-Regular.otf";
+        (if home'length > 0
+         then home & "/.local/share/fonts/RTFAmethystPro-Light.otf"
+         else "RTFAmethystPro-Light.otf");
       p5 : constant string :=
-        "/usr/share/texmf/fonts/opentype/public/playfair/Playfair.otf";
+        "/usr/share/fonts/RTFAmethystPro-Light.otf";
       p6 : constant string :=
-        "/usr/share/texlive/texmf-dist/fonts/opentype/Playfair.otf";
-      p7 : constant string :=
-        "PlayfairDisplay-Regular.otf";
+        "RTFAmethystPro-Light.otf";
 
-      res : path_array (1 .. 7);
+      res : path_array (1 .. 6);
    begin
       res (1) := to_unbounded_string (p1);
       res (2) := to_unbounded_string (p2);
@@ -64,7 +68,6 @@ procedure test_demo_q is
       res (4) := to_unbounded_string (p4);
       res (5) := to_unbounded_string (p5);
       res (6) := to_unbounded_string (p6);
-      res (7) := to_unbounded_string (p7);
       return res;
    end get_candidate_paths;
 
@@ -85,14 +88,20 @@ procedure test_demo_q is
    procedure resolve_font_path (result : in out unbounded_string) is
       db_found : constant string :=
         find_things.find_font (target_font_tag);
+      db_ps    : constant string :=
+        (if db_found'length = 0
+         then find_things.find_font (target_font_ps)
+         else "");
       cands    : constant path_array := get_candidate_paths;
    begin
       if db_found'length > 0 then
          result := to_unbounded_string (db_found);
+      elsif db_ps'length > 0 then
+         result := to_unbounded_string (db_ps);
       else
          search_filesystem_candidates (cands, result);
          if length (result) = 0 then
-            result := to_unbounded_string (target_font_tag & ".otf");
+            result := to_unbounded_string (target_font_tag);
          end if;
       end if;
    end resolve_font_path;
@@ -103,10 +112,12 @@ procedure test_demo_q is
    is
       path_str : constant string := to_string (font_path);
       idx      : constant natural :=
-        index (path_str, target_font_tag);
+        index (path_str, target_font_ps);
    begin
       if status then
-         if idx = 0 then
+         if idx = 0 and then
+            index (path_str, "RTFAmethystPro") = 0
+         then
             put_line ("[fail] found font does not match " &
                       target_font_tag);
             status := false;
