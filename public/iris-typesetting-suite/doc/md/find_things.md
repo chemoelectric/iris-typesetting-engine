@@ -1,7 +1,8 @@
 # Find_Things Package Interface
 
-The `find_things` package provides a unified, memory-safe, high-performance
-associative database interface for the Iris Typesetting Engine.
+The `find_things` package provides a unified, memory-safe,
+high-performance associative database interface for the Iris
+Typesetting Engine.
 It encapsulates key-value record management, associative lookups,
 transparent font and TeXMF asset resolution,
 and string edit distance metrics with strict Ada 2022 contracts.
@@ -28,7 +29,8 @@ type open_mode is
   (read_only,
    read_write,
    create_new,
-   truncate_existing);
+   truncate_existing,
+   create_or_truncate);
 ```
 
 ## Subprograms
