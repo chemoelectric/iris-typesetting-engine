@@ -163,7 +163,7 @@ procedure test_demo_q is
             put_line ("[fail] output file was not created: " &
                       out_file_name);
             status := false;
-         elsif file_size (out_file_name) = 0 then
+         elsif size (out_file_name) = 0 then
             put_line ("[fail] output file is empty: " &
                       out_file_name);
             status := false;
