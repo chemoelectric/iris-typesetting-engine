@@ -200,6 +200,39 @@ with
 
 Calculates Levenshtein edit distance between two strings.
 
+### `build_texmf_database` / `build_fonts_database`
+
+```ada
+procedure build_texmf_database
+  (db_path : in string := "";
+   count   : out natural);
+
+procedure build_texmf_database
+  (db_path : in unbounded_string;
+   count   : out natural);
+
+procedure build_fonts_database
+  (db_path : in string := "";
+   count   : out natural);
+
+procedure build_fonts_database
+  (db_path : in unbounded_string;
+   count   : out natural);
+
+procedure build_all_databases
+  (texmf_count : out natural;
+   fonts_count : out natural);
+
+function default_texmf_db_path return string;
+function default_texmf_db_path return unbounded_string;
+
+function default_fonts_db_path return string;
+function default_fonts_db_path return unbounded_string;
+```
+
+Constructs and populates the Tkrzw databases for TeXMF (`kpsewhich`
+and `ls-R` indexes) and Fontconfig system fonts.
+
 ## C Foreign Function Interface Exports
 
 - `iris_db_open`

@@ -104,13 +104,12 @@ AC_SUBST([GNU],[])
 CHEM_REQUIRE_GNU_MAKE_IN_PATH
 CHEM_CONFIG_MAKEFILES
 AC_CONFIG_FILES([atconfig])
-AC_CONFIG_FILES([r7rs/iris/texmf/ls-R.sld.tmp:r7rs/iris/texmf/ls-R.sld.in])
+AC_CONFIG_FILES([ls_r.adb])
 
 AC_CONFIG_COMMANDS([r7rs],[
   AS_MKDIR_P(["${r7rs_dst}"])
   (cd "${r7rs_src}" && tar cf - .) | (cd "${r7rs_dst}" && tar xf -)
   chmod -R +w "${r7rs_dst}"
-  mv r7rs/iris/texmf/ls-R.sld{.tmp,}
 ],[
   r7rs_src="${srcdir}/r7rs"
   r7rs_dst="r7rs"

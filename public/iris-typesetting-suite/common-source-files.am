@@ -6,6 +6,12 @@ LIBIRIS_ADS_FILES += capypdf_tests.ads
 LIBIRIS_ADB_FILES += database.adb
 LIBIRIS_ADS_FILES += database.ads
 
+LIBIRIS_ADB_FILES += ls_r.adb
+LIBIRIS_ADS_FILES += ls_r.ads
+
+LIBIRIS_ADB_FILES += fontconfig_db.adb
+LIBIRIS_ADS_FILES += fontconfig_db.ads
+
 LIBIRIS_ADS_FILES += gauche_binding.ads
 
 LIBIRIS_C_FILES += gauche_runtime_init.c

@@ -112,11 +112,44 @@ procedure test_database is
       end if;
    end check_metrics;
 
+   procedure check_builders (status : in out boolean) is
+      texmf_test_db : constant string := "test_texmf.tkh";
+      fonts_test_db : constant string := "test_fonts.tkh";
+      texmf_cnt     : natural := 0;
+      fonts_cnt     : natural := 0;
+   begin
+      if exists (texmf_test_db) then
+         delete_file (texmf_test_db);
+      end if;
+      if exists (fonts_test_db) then
+         delete_file (fonts_test_db);
+      end if;
+
+      if status then
+         build_texmf_database (texmf_test_db, texmf_cnt);
+         build_fonts_database (fonts_test_db, fonts_cnt);
+
+         if not exists (texmf_test_db)
+           or else not exists (fonts_test_db)
+         then
+            status := false;
+         end if;
+      end if;
+
+      if exists (texmf_test_db) then
+         delete_file (texmf_test_db);
+      end if;
+      if exists (fonts_test_db) then
+         delete_file (fonts_test_db);
+      end if;
+   end check_builders;
+
 begin
    cleanup_file;
    check_init (ok);
    check_crud (ok);
    check_metrics (ok);
+   check_builders (ok);
    cleanup_file;
 
    if ok then

@@ -73,4 +73,3 @@ test_demo_q_DEPENDENCIES += test_demo_q.lo
 DEP_FILES += .deps/test_demo_q.adbdep
 CLEANFILES += test_demo_q$(EXEEXT)
 
-

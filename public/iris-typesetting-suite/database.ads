@@ -22,7 +22,35 @@ package database is
      (read_only,
       read_write,
       create_new,
-      truncate_existing);
+      truncate_existing,
+      create_or_truncate);
+
+   -- TeXMF (kpsewhich / ls-R) and Fontconfig Database Builders
+   procedure build_texmf_database
+     (db_path : in string := "";
+      count   : out natural);
+
+   procedure build_texmf_database
+     (db_path : in unbounded_string;
+      count   : out natural);
+
+   procedure build_fonts_database
+     (db_path : in string := "";
+      count   : out natural);
+
+   procedure build_fonts_database
+     (db_path : in unbounded_string;
+      count   : out natural);
+
+   procedure build_all_databases
+     (texmf_count : out natural;
+      fonts_count : out natural);
+
+   function default_texmf_db_path return string;
+   function default_texmf_db_path return unbounded_string;
+
+   function default_fonts_db_path return string;
+   function default_fonts_db_path return unbounded_string;
 
    -- Unbounded String Primary API
    function db_open

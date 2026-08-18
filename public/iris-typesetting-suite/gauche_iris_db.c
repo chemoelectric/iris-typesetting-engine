@@ -340,6 +340,60 @@ gauche_iris_db_init (void)
                scm_iris_db_edit_distance, 2, 0);
 }
 
+char *
+iris_run_command_output (const char *cmd)
+{
+  if (cmd == NULL)
+    {
+      return NULL;
+    }
+  FILE *fp = popen (cmd, "r");
+  if (fp == NULL)
+    {
+      return NULL;
+    }
+  size_t cap = 8192;
+  size_t len = 0;
+  char *buf = (char *) malloc (cap);
+  if (buf == NULL)
+    {
+      pclose (fp);
+      return NULL;
+    }
+  buf[0] = '\0';
+  char chunk[1024];
+  while (fgets (chunk, sizeof (chunk), fp) != NULL)
+    {
+      size_t clen = strlen (chunk);
+      if (len + clen + 1 >= cap)
+        {
+          cap *= 2;
+          char *nbuf = (char *) realloc (buf, cap);
+          if (nbuf == NULL)
+            {
+              free (buf);
+              pclose (fp);
+              return NULL;
+            }
+          buf = nbuf;
+        }
+      memcpy (buf + len, chunk, clen);
+      len += clen;
+      buf[len] = '\0';
+    }
+  pclose (fp);
+  return buf;
+}
+
+void
+iris_free_command_output (char *ptr)
+{
+  if (ptr != NULL)
+    {
+      free (ptr);
+    }
+}
+
 void
 Scm_Init_libiris (void)
 {

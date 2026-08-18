@@ -11,6 +11,8 @@ with ada.strings.unbounded; use ada.strings.unbounded;
 with ada.unchecked_deallocation;
 with interfaces.c;
 with interfaces.c.strings;
+with ls_r;
+with fontconfig_db;
 
 package body database is
 
@@ -18,12 +20,6 @@ package body database is
    use interfaces.c.strings;
 
    -- Internal C Interface Imports
-   function c_build_from_ls_r (path : in chars_ptr) return int
-   with
-     Import        => True,
-     Convention    => C,
-     External_Name => "gauche_iris_db_build_from_ls_r";
-
    function c_open
      (path     : in chars_ptr;
       writable : in int;
@@ -150,14 +146,88 @@ package body database is
       return result;
    end is_writable_mode;
 
+   procedure build_texmf_database
+     (db_path : in string := "";
+      count   : out natural) is
+   begin
+      ls_r.build_texmf_database (db_path, count);
+   end build_texmf_database;
+
+   procedure build_texmf_database
+     (db_path : in unbounded_string;
+      count   : out natural) is
+   begin
+      ls_r.build_texmf_database (db_path, count);
+   end build_texmf_database;
+
+   procedure build_fonts_database
+     (db_path : in string := "";
+      count   : out natural) is
+   begin
+      fontconfig_db.build_fonts_database (db_path, count);
+   end build_fonts_database;
+
+   procedure build_fonts_database
+     (db_path : in unbounded_string;
+      count   : out natural) is
+   begin
+      fontconfig_db.build_fonts_database (db_path, count);
+   end build_fonts_database;
+
+   procedure build_all_databases
+     (texmf_count : out natural;
+      fonts_count : out natural) is
+   begin
+      build_texmf_database ("", texmf_count);
+      build_fonts_database ("", fonts_count);
+   end build_all_databases;
+
+   function default_texmf_db_path return string is
+   begin
+      return ls_r.default_texmf_db_path;
+   end default_texmf_db_path;
+
+   function default_texmf_db_path return unbounded_string is
+   begin
+      return ls_r.default_texmf_db_path;
+   end default_texmf_db_path;
+
+   function default_fonts_db_path return string is
+   begin
+      return fontconfig_db.default_fonts_db_path;
+   end default_fonts_db_path;
+
+   function default_fonts_db_path return unbounded_string is
+   begin
+      return fontconfig_db.default_fonts_db_path;
+   end default_fonts_db_path;
+
+   function string_contains_font (s : in string) return boolean is
+   begin
+      if s'length < 4 then
+         return false;
+      end if;
+      for i in s'first .. s'last - 3 loop
+         if (s (i) = 'f' or else s (i) = 'F')
+           and then (s (i + 1) = 'o' or else s (i + 1) = 'O')
+           and then (s (i + 2) = 'n' or else s (i + 2) = 'N')
+           and then (s (i + 3) = 't' or else s (i + 3) = 'T')
+         then
+            return true;
+         end if;
+      end loop;
+      return false;
+   end string_contains_font;
+
    procedure ensure_database_exists (path_str : in string) is
-      c_path : chars_ptr := null_ptr;
-      status : int       := 0;
+      cnt : natural := 0;
    begin
       if not ada.directories.exists (path_str) then
-         c_path := new_string (path_str);
-         status := c_build_from_ls_r (c_path);
-         free (c_path);
+         if string_contains_font (path_str) then
+            fontconfig_db.build_fonts_database (path_str, cnt);
+         else
+            ls_r.build_texmf_database (path_str, cnt);
+         end if;
       end if;
    end ensure_database_exists;
 
