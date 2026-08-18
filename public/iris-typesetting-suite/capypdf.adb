@@ -151,6 +151,85 @@ package body capypdf is
       return capy_dc_cmd_s (dc.dc);
    end stroke_path;
 
+   function set_stroke_rgb
+     (dc : in pdf_draw_context;
+      r  : in interfaces.c.double;
+      g  : in interfaces.c.double;
+      b  : in interfaces.c.double) return capy_error
+   is
+   begin
+      if not dc.active then
+         return capy_err_invalid_state;
+      end if;
+      return capy_dc_cmd_RG (dc.dc, r, g, b);
+   end set_stroke_rgb;
+
+   function set_fill_rgb
+     (dc : in pdf_draw_context;
+      r  : in interfaces.c.double;
+      g  : in interfaces.c.double;
+      b  : in interfaces.c.double) return capy_error
+   is
+   begin
+      if not dc.active then
+         return capy_err_invalid_state;
+      end if;
+      return capy_dc_cmd_rg (dc.dc, r, g, b);
+   end set_fill_rgb;
+
+   function set_stroke_gray
+     (dc   : in pdf_draw_context;
+      gray : in interfaces.c.double) return capy_error
+   is
+   begin
+      if not dc.active then
+         return capy_err_invalid_state;
+      end if;
+      return capy_dc_cmd_G (dc.dc, gray);
+   end set_stroke_gray;
+
+   function set_fill_gray
+     (dc   : in pdf_draw_context;
+      gray : in interfaces.c.double) return capy_error
+   is
+   begin
+      if not dc.active then
+         return capy_err_invalid_state;
+      end if;
+      return capy_dc_cmd_g (dc.dc, gray);
+   end set_fill_gray;
+
+   function set_line_width
+     (dc : in pdf_draw_context;
+      w  : in interfaces.c.double) return capy_error
+   is
+   begin
+      if not dc.active then
+         return capy_err_invalid_state;
+      end if;
+      return capy_dc_cmd_w (dc.dc, w);
+   end set_line_width;
+
+   function save_state
+     (dc : in pdf_draw_context) return capy_error
+   is
+   begin
+      if not dc.active then
+         return capy_err_invalid_state;
+      end if;
+      return capy_dc_cmd_q (dc.dc);
+   end save_state;
+
+   function restore_state
+     (dc : in pdf_draw_context) return capy_error
+   is
+   begin
+      if not dc.active then
+         return capy_err_invalid_state;
+      end if;
+      return capy_dc_cmd_Q (dc.dc);
+   end restore_state;
+
    function load_font
      (doc       : in pdf_document;
       font_path : in string;

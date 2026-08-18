@@ -121,6 +121,50 @@ package capypdf is
    with
      pre => dc.active;
 
+   function set_stroke_rgb
+     (dc : in pdf_draw_context;
+      r  : in interfaces.c.double;
+      g  : in interfaces.c.double;
+      b  : in interfaces.c.double) return capy_error
+   with
+     pre => dc.active;
+
+   function set_fill_rgb
+     (dc : in pdf_draw_context;
+      r  : in interfaces.c.double;
+      g  : in interfaces.c.double;
+      b  : in interfaces.c.double) return capy_error
+   with
+     pre => dc.active;
+
+   function set_stroke_gray
+     (dc   : in pdf_draw_context;
+      gray : in interfaces.c.double) return capy_error
+   with
+     pre => dc.active;
+
+   function set_fill_gray
+     (dc   : in pdf_draw_context;
+      gray : in interfaces.c.double) return capy_error
+   with
+     pre => dc.active;
+
+   function set_line_width
+     (dc : in pdf_draw_context;
+      w  : in interfaces.c.double) return capy_error
+   with
+     pre => dc.active and then w >= 0.0;
+
+   function save_state
+     (dc : in pdf_draw_context) return capy_error
+   with
+     pre => dc.active;
+
+   function restore_state
+     (dc : in pdf_draw_context) return capy_error
+   with
+     pre => dc.active;
+
    function load_font
      (doc       : in pdf_document;
       font_path : in string;
@@ -250,6 +294,64 @@ private
      import        => true,
      convention    => c,
      external_name => "capy_dc_cmd_s";
+
+   function capy_dc_cmd_rg
+     (dc : in draw_context_handle;
+      r  : in interfaces.c.double;
+      g  : in interfaces.c.double;
+      b  : in interfaces.c.double) return capy_error
+   with
+     import        => true,
+     convention    => c,
+     external_name => "capy_dc_cmd_rg";
+
+   function capy_dc_cmd_RG
+     (dc : in draw_context_handle;
+      r  : in interfaces.c.double;
+      g  : in interfaces.c.double;
+      b  : in interfaces.c.double) return capy_error
+   with
+     import        => true,
+     convention    => c,
+     external_name => "capy_dc_cmd_RG";
+
+   function capy_dc_cmd_g
+     (dc   : in draw_context_handle;
+      gray : in interfaces.c.double) return capy_error
+   with
+     import        => true,
+     convention    => c,
+     external_name => "capy_dc_cmd_g";
+
+   function capy_dc_cmd_G
+     (dc   : in draw_context_handle;
+      gray : in interfaces.c.double) return capy_error
+   with
+     import        => true,
+     convention    => c,
+     external_name => "capy_dc_cmd_G";
+
+   function capy_dc_cmd_w
+     (dc : in draw_context_handle;
+      w  : in interfaces.c.double) return capy_error
+   with
+     import        => true,
+     convention    => c,
+     external_name => "capy_dc_cmd_w";
+
+   function capy_dc_cmd_q
+     (dc : in draw_context_handle) return capy_error
+   with
+     import        => true,
+     convention    => c,
+     external_name => "capy_dc_cmd_q";
+
+   function capy_dc_cmd_Q
+     (dc : in draw_context_handle) return capy_error
+   with
+     import        => true,
+     convention    => c,
+     external_name => "capy_dc_cmd_Q";
 
    function capy_generator_load_font
      (gen      : in generator_handle;

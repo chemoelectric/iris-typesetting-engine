@@ -147,16 +147,21 @@ procedure test_demo_q is
          end if;
 
          dc := create_draw_context (doc);
+
+         err := set_stroke_gray (dc, 0.2);
+         err := set_line_width (dc, 1.5);
          err := draw_rectangle (dc, 50.0, 50.0, 512.0, 692.0);
-         if err = capy_err_ok then
-            err := stroke_path (dc);
-         end if;
+         err := stroke_path (dc);
 
          if q_font /= invalid_font_id then
+            err := set_fill_gray (dc, 0.0);
             err := render_text (dc, "Q", q_font, 120.0, 100.0, 400.0);
             if err /= capy_err_ok then
                put_line ("[warn] failed to render text with capypdf");
             end if;
+            err := render_text
+              (dc, "Iris Typesetting Suite",
+               q_font, 18.0, 100.0, 350.0);
          end if;
 
          err := add_page_with_context (doc, dc);
