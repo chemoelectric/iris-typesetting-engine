@@ -6,7 +6,7 @@
 --
 
 with ada.characters.handling;
-with ada.directories;
+with ada.directories; use ada.directories;
 with ada.environment_variables;
 with ada.strings.unbounded; use ada.strings.unbounded;
 with interfaces.c; use interfaces.c;
