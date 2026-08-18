@@ -202,30 +202,18 @@ package body database is
       return fontconfig_db.default_fonts_db_path;
    end default_fonts_db_path;
 
-   function string_contains_font (s : in string) return boolean is
-   begin
-      if s'length < 4 then
-         return false;
-      end if;
-      for i in s'first .. s'last - 3 loop
-         if (s (i) = 'f' or else s (i) = 'F')
-           and then (s (i + 1) = 'o' or else s (i + 1) = 'O')
-           and then (s (i + 2) = 'n' or else s (i + 2) = 'N')
-           and then (s (i + 3) = 't' or else s (i + 3) = 'T')
-         then
-            return true;
-         end if;
-      end loop;
-      return false;
-   end string_contains_font;
-
-   procedure ensure_database_exists (path_str : in string) is
+   procedure ensure_database_exists
+     (path_str : in string;
+      mode     : in open_mode)
+   is
       cnt : natural := 0;
    begin
-      if not ada.directories.exists (path_str) then
-         if string_contains_font (path_str) then
+      if mode = read_only
+        and then not ada.directories.exists (path_str)
+      then
+         if path_str = default_fonts_db_path then
             fontconfig_db.build_fonts_database (path_str, cnt);
-         else
+         elsif path_str = default_texmf_db_path then
             ls_r.build_texmf_database (path_str, cnt);
          end if;
       end if;
@@ -245,7 +233,7 @@ package body database is
       raw_ptr  : system.address   := system.null_address;
       result   : database_type;
    begin
-      ensure_database_exists (path_str);
+      ensure_database_exists (path_str, mode);
       c_path := new_string (path_str);
       c_params := new_string (par_str);
       raw_ptr := c_open (c_path, writable, c_params);
