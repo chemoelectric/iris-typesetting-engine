@@ -305,7 +305,7 @@ private
      convention    => c,
      external_name => "capy_dc_cmd_rg";
 
-   function capy_dc_cmd_RG
+   function capy_dc_cmd_stroke_rg
      (dc : in draw_context_handle;
       r  : in interfaces.c.double;
       g  : in interfaces.c.double;
@@ -323,7 +323,7 @@ private
      convention    => c,
      external_name => "capy_dc_cmd_g";
 
-   function capy_dc_cmd_G
+   function capy_dc_cmd_stroke_g
      (dc   : in draw_context_handle;
       gray : in interfaces.c.double) return capy_error
    with
@@ -346,7 +346,7 @@ private
      convention    => c,
      external_name => "capy_dc_cmd_q";
 
-   function capy_dc_cmd_Q
+   function capy_dc_cmd_restore_q
      (dc : in draw_context_handle) return capy_error
    with
      import        => true,

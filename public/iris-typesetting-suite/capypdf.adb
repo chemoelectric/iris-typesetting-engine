@@ -161,7 +161,7 @@ package body capypdf is
       if not dc.active then
          return capy_err_invalid_state;
       end if;
-      return capy_dc_cmd_RG (dc.dc, r, g, b);
+      return capy_dc_cmd_stroke_rg (dc.dc, r, g, b);
    end set_stroke_rgb;
 
    function set_fill_rgb
@@ -185,7 +185,7 @@ package body capypdf is
       if not dc.active then
          return capy_err_invalid_state;
       end if;
-      return capy_dc_cmd_G (dc.dc, gray);
+      return capy_dc_cmd_stroke_g (dc.dc, gray);
    end set_stroke_gray;
 
    function set_fill_gray
@@ -227,7 +227,7 @@ package body capypdf is
       if not dc.active then
          return capy_err_invalid_state;
       end if;
-      return capy_dc_cmd_Q (dc.dc);
+      return capy_dc_cmd_restore_q (dc.dc);
    end restore_state;
 
    function load_font
