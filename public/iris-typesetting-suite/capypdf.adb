@@ -15,6 +15,18 @@
 package body capypdf is
 
    function create_document
+     (filename : in unbounded_string) return pdf_document
+   is
+      fname : constant string := to_string (filename);
+   begin
+      if fname'length = 0 then
+         raise constraint_error with
+           "empty filename passed to capypdf.create_document";
+      end if;
+      return create_document (fname);
+   end create_document;
+
+   function create_document
      (filename : in string) return pdf_document
    is
       doc      : pdf_document;
@@ -235,6 +247,20 @@ package body capypdf is
 
    function load_font
      (doc       : in pdf_document;
+      font_path : in unbounded_string;
+      font      : out font_id) return capy_error
+   is
+      fpath : constant string := to_string (font_path);
+   begin
+      if fpath'length = 0 then
+         raise constraint_error with
+           "empty filename passed to capypdf.load_font";
+      end if;
+      return load_font (doc, fpath, font);
+   end load_font;
+
+   function load_font
+     (doc       : in pdf_document;
       font_path : in string;
       font      : out font_id) return capy_error
    is
@@ -252,6 +278,19 @@ package body capypdf is
       end if;
       return capyerr;
    end load_font;
+
+   function render_text
+     (dc        : in pdf_draw_context;
+      text_str  : in unbounded_string;
+      font      : in font_id;
+      font_size : in interfaces.c.double;
+      x         : in interfaces.c.double;
+      y         : in interfaces.c.double) return capy_error
+   is
+      txtstr : constant string := to_string (text_str);
+   begin
+      return render_text (dc, txtstr, font, font_size, x, y);
+   end render_text;
 
    function render_text
      (dc        : in pdf_draw_context;

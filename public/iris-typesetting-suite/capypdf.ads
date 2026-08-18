@@ -14,6 +14,7 @@
 
 with interfaces.c; use interfaces.c;
 with interfaces.c.strings;
+with ada.strings.unbounded;
 
 package capypdf is
 
@@ -68,15 +69,23 @@ package capypdf is
    -- high-level ada 2022 subprogram specifications with contracts
    -- ------------------------------------------------------------------
 
+   use ada.strings.unbounded;
+
    function is_valid (doc : in pdf_document) return boolean is
      (doc.gen /= null_generator and then doc.is_open);
 
    function create_document
-     (filename : in string) return pdf_document
+     (filename : in unbounded_string) return pdf_document
    with
-     pre  => filename'length > 0,
      post => (if create_document'result.is_open then
                 is_valid (create_document'result));
+
+   function create_document
+     (filename : in string) return pdf_document
+     with
+       pre  => filename'length > 0,
+       post => (if create_document'result.is_open then
+                   is_valid (create_document'result));
 
    function close_document
      (doc : in out pdf_document) return capy_error
@@ -167,10 +176,28 @@ package capypdf is
 
    function load_font
      (doc       : in pdf_document;
+      font_path : in unbounded_string;
+      font      : out font_id) return capy_error
+     with
+       pre => is_valid (doc);
+
+   function load_font
+     (doc       : in pdf_document;
       font_path : in string;
       font      : out font_id) return capy_error
+     with
+       pre => is_valid (doc) and then font_path'length > 0;
+
+   function render_text
+     (dc        : in pdf_draw_context;
+      text_str  : in unbounded_string;
+      font      : in font_id;
+      font_size : in interfaces.c.double;
+      x         : in interfaces.c.double;
+      y         : in interfaces.c.double) return capy_error
    with
-     pre => is_valid (doc) and then font_path'length > 0;
+     pre => dc.active and then font /= invalid_font_id and then
+            font_size > 0.0;
 
    function render_text
      (dc        : in pdf_draw_context;
@@ -179,9 +206,9 @@ package capypdf is
       font_size : in interfaces.c.double;
       x         : in interfaces.c.double;
       y         : in interfaces.c.double) return capy_error
-   with
-     pre => dc.active and then font /= invalid_font_id and then
-            font_size > 0.0;
+     with
+       pre => dc.active and then font /= invalid_font_id and then
+              font_size > 0.0;
 
    function add_page_with_context
      (doc : in out pdf_document;
