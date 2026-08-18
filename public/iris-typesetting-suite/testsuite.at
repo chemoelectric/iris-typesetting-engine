@@ -23,7 +23,7 @@ AT_CLEANUP
 
 AT_SETUP([Q glyph demo])
 AT_KEYWORDS([demo Q playfair])
-AT_CHECK(["${abs_builddir}"/test_demo_q])
+AT_CHECK(["${abs_builddir}"/test_demo_q > /dev/null])
 AT_CLEANUP
 
 #---------------------------------------------------------------------
