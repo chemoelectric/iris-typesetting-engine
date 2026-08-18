@@ -48,26 +48,26 @@ package body capypdf is
       write_res   : capy_error;
       gen_dst_res : capy_error;
       opt_dst_res : capy_error;
+      retval      : capy_error := capy_err_invalid_state;
    begin
-      if not doc.is_open then
-         return capy_err_invalid_state;
+      if doc.is_open then
+         write_res   := capy_generator_write (doc.gen);
+         gen_dst_res := capy_generator_destroy (doc.gen);
+         opt_dst_res := capy_document_properties_destroy (doc.opt);
+
+         doc.gen     := null_generator;
+         doc.opt     := null_options;
+         doc.is_open := false;
+
+         if write_res /= capy_err_ok then
+            retval := write_res;
+         elsif gen_dst_res /= capy_err_ok then
+            retval := gen_dst_res;
+         else
+            retval := opt_dst_res;
+         end if;
       end if;
-
-      write_res   := capy_generator_write (doc.gen);
-      gen_dst_res := capy_generator_destroy (doc.gen);
-      opt_dst_res := capy_document_properties_destroy (doc.opt);
-
-      doc.gen     := null_generator;
-      doc.opt     := null_options;
-      doc.is_open := false;
-
-      if write_res /= capy_err_ok then
-         return write_res;
-      elsif gen_dst_res /= capy_err_ok then
-         return gen_dst_res;
-      else
-         return opt_dst_res;
-      end if;
+      return retval;
    end close_document;
 
    function create_page_config
