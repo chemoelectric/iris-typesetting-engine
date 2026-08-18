@@ -19,7 +19,7 @@ package fontconfig_db is
      (db          : in out database.database_type;
       added_count : in out natural)
    with
-     pre => database.is_open (db);
+     pre => database.db_is_open (db);
 
    -- Ingests font files found in a directory tree
    procedure ingest_font_directory
@@ -27,7 +27,7 @@ package fontconfig_db is
       dir_path    : in string;
       added_count : in out natural)
    with
-     pre => database.is_open (db);
+     pre => database.db_is_open (db);
 
    -- Builds or rebuilds the entire Fontconfig database
    procedure build_fonts_database

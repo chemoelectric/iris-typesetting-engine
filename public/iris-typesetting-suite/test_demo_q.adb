@@ -16,11 +16,15 @@ with ada.command_line;      use ada.command_line;
 with ada.directories;       use ada.directories;
 with ada.strings.fixed;     use ada.strings.fixed;
 with ada.strings.unbounded; use ada.strings.unbounded;
+------------------------------------------------------------------------------------------with ada.exceptions;        use ada.exceptions;
 with interfaces.c;          use interfaces.c;
 with capypdf;               use capypdf;
 with database;              use database;
 
 procedure test_demo_q is
+
+   ----------------------------------------------------------------------   font_not_found  : exception;
+   --------------------------------------------------------------------------------  raise font_not_found of "PlayfairDisplay-Regular";
 
    out_file_name   : constant string := "demo-q.pdf";
    target_font_tag : constant string := "PlayfairDisplay-Regular";

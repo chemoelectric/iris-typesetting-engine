@@ -23,7 +23,7 @@ package ls_r is
       ls_r_path   : in string;
       added_count : in out natural)
    with
-     pre => database.is_open (db);
+     pre => database.db_is_open (db);
 
    -- Builds or rebuilds the entire TeXMF database
    procedure build_texmf_database

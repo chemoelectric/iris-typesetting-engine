@@ -294,7 +294,7 @@ package body fontconfig_db is
       db := database.db_open
         (path   => target_path,
          mode   => database.create_or_truncate);
-      if database.is_open (db) then
+      if database.db_is_open (db) then
          ingest_fc_list_output (db, cnt);
          scan_standard_font_directories (db, cnt);
          database.db_sync (db);

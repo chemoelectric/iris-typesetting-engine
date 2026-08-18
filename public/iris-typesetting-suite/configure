@@ -16020,7 +16020,7 @@ printf "%s\n" "$as_me: WARNING: Please consider installing and using GNU Make:
 }
 ac_config_files="$ac_config_files atconfig"
 
-ac_config_files="$ac_config_files r7rs/iris/texmf/ls-R.sld.tmp:r7rs/iris/texmf/ls-R.sld.in"
+ac_config_files="$ac_config_files ls_r.adb"
 
 
 ac_config_commands="$ac_config_commands r7rs"
@@ -17076,7 +17076,7 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "GNUmakefile") CONFIG_FILES="$CONFIG_FILES GNUmakefile:Makefile.in" ;;
     "atconfig") CONFIG_FILES="$CONFIG_FILES atconfig" ;;
-    "r7rs/iris/texmf/ls-R.sld.tmp") CONFIG_FILES="$CONFIG_FILES r7rs/iris/texmf/ls-R.sld.tmp:r7rs/iris/texmf/ls-R.sld.in" ;;
+    "ls_r.adb") CONFIG_FILES="$CONFIG_FILES ls_r.adb" ;;
     "r7rs") CONFIG_COMMANDS="$CONFIG_COMMANDS r7rs" ;;
 
   *) as_fn_error $? "invalid argument: '$ac_config_target'" "$LINENO" 5;;
@@ -18170,7 +18170,6 @@ EOF
   as_dir="${r7rs_dst}"; as_fn_mkdir_p
   (cd "${r7rs_src}" && tar cf - .) | (cd "${r7rs_dst}" && tar xf -)
   chmod -R +w "${r7rs_dst}"
-  mv r7rs/iris/texmf/ls-R.sld{.tmp,}
  ;;
 
   esac
