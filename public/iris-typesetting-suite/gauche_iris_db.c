@@ -314,7 +314,7 @@ gauche_iris_db_build_from_ls_r (const char *path)
                 path);
 
       ScmEvalPacket packet;
-      int status = Scm_EvalCString (buf, Scm_UserModule (),
+      int status = Scm_EvalCString (buf, SCM_OBJ (Scm_UserModule ()),
                                     &packet);
       if (status >= 0)
         {
@@ -340,49 +340,68 @@ gauche_iris_db_init (void)
                scm_iris_db_edit_distance, 2, 0);
 }
 
+static bool
+append_chunk (char **pbuf, size_t *plen, size_t *pcap,
+              const char *chunk, size_t clen)
+{
+  bool ok = true;
+  if (*plen + clen + 1 >= *pcap)
+    {
+      *pcap *= 2;
+      char *nbuf = (char *) realloc (*pbuf, *pcap);
+      if (nbuf == NULL)
+        {
+          ok = false;
+        }
+      else
+        {
+          *pbuf = nbuf;
+        }
+    }
+  if (ok)
+    {
+      memcpy (*pbuf + *plen, chunk, clen);
+      *plen += clen;
+      (*pbuf)[*plen] = '\0';
+    }
+  return ok;
+}
+
 char *
 iris_run_command_output (const char *cmd)
 {
-  if (cmd == NULL)
+  char *res = NULL;
+  if (cmd != NULL)
     {
-      return NULL;
-    }
-  FILE *fp = popen (cmd, "r");
-  if (fp == NULL)
-    {
-      return NULL;
-    }
-  size_t cap = 8192;
-  size_t len = 0;
-  char *buf = (char *) malloc (cap);
-  if (buf == NULL)
-    {
-      pclose (fp);
-      return NULL;
-    }
-  buf[0] = '\0';
-  char chunk[1024];
-  while (fgets (chunk, sizeof (chunk), fp) != NULL)
-    {
-      size_t clen = strlen (chunk);
-      if (len + clen + 1 >= cap)
+      FILE *fp = popen (cmd, "r");
+      if (fp != NULL)
         {
-          cap *= 2;
-          char *nbuf = (char *) realloc (buf, cap);
-          if (nbuf == NULL)
+          size_t cap = 8192;
+          size_t len = 0;
+          char *buf = (char *) malloc (cap);
+          if (buf != NULL)
             {
-              free (buf);
-              pclose (fp);
-              return NULL;
+              buf[0] = '\0';
+              char chunk[1024];
+              bool ok = true;
+              while (ok && fgets (chunk, sizeof (chunk), fp) != NULL)
+                {
+                  size_t clen = strlen (chunk);
+                  ok = append_chunk (&buf, &len, &cap, chunk, clen);
+                }
+              if (ok)
+                {
+                  res = buf;
+                }
+              else
+                {
+                  free (buf);
+                }
             }
-          buf = nbuf;
+          pclose (fp);
         }
-      memcpy (buf + len, chunk, clen);
-      len += clen;
-      buf[len] = '\0';
     }
-  pclose (fp);
-  return buf;
+  return res;
 }
 
 void
