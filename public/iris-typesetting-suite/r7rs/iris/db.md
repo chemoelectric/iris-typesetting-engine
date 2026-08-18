@@ -12,7 +12,7 @@ storage are managed exclusively by the Ada database engine:
 ```
 +-------------------------------------------------------------+
 |               Scheme Application Layer / Scripts            |
-|                  (e.g., iris-demo-q, iris-findfont)         |
+|                  (e.g., iris-findfont, test_demo_q)         |
 +-------------------------------------------------------------+
                               |
                               v

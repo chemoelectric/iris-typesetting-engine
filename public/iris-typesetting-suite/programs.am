@@ -58,3 +58,19 @@ test_database_DEPENDENCIES += test_database.lo
 DEP_FILES += .deps/test_database.adbdep
 CLEANFILES += test_database$(EXEEXT)
 
+test_demo_q$(EXEEXT): test_demo_q.lo libiris.la
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+check_PROGRAMS += test_demo_q
+test_demo_q_SOURCES =
+test_demo_q_SOURCES += test_demo_q.adb
+test_demo_q_LDADD =
+test_demo_q_LDADD += .libs/test_demo_q.$(OBJEXT)
+test_demo_q_LDADD += libiris.la
+test_demo_q_DEPENDENCIES =
+test_demo_q_DEPENDENCIES += test_demo_q.lo
+
+DEP_FILES += .deps/test_demo_q.adbdep
+CLEANFILES += test_demo_q$(EXEEXT)
+
+
