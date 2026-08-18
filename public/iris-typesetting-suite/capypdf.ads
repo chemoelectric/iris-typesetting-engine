@@ -31,12 +31,14 @@ package capypdf is
    type generator_handle is new interfaces.c.size_t;
    type options_handle is new interfaces.c.size_t;
    type page_properties_handle is new interfaces.c.size_t;
+   type font_properties_handle is new interfaces.c.size_t;
    type draw_context_handle is new interfaces.c.size_t;
    type font_id is new interfaces.c.int;
 
    null_generator       : constant generator_handle := 0;
    null_options         : constant options_handle := 0;
    null_page_properties : constant page_properties_handle := 0;
+   null_font_properties : constant font_properties_handle := 0;
    null_draw_context    : constant draw_context_handle := 0;
    invalid_font_id      : constant font_id := -1;
 
@@ -252,6 +254,7 @@ private
    function capy_generator_load_font
      (gen      : in generator_handle;
       filename : in interfaces.c.strings.chars_ptr;
+      props    : in font_properties_handle;
       fid_out  : out font_id) return capy_error
    with
      import        => true,

@@ -165,7 +165,9 @@ package body capypdf is
       end if;
 
       c_path := interfaces.c.strings.new_string (font_path);
-      res    := capy_generator_load_font (doc.gen, c_path, font);
+      res    :=
+        capy_generator_load_font
+          (doc.gen, c_path, null_font_properties, font);
       interfaces.c.strings.free (c_path);
       return res;
    end load_font;
