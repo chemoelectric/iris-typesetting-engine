@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <gauche.h>
 
-// Declarations of Ada exported C functions from database.ads
+// Declarations of Ada exported C functions from find_things.ads
 extern void* iris_db_open (const char* path, int writable,
                            const char* params);
 extern int iris_db_close (void* db);

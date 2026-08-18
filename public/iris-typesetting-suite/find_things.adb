@@ -1,8 +1,8 @@
--- database.adb
+-- find_things.adb
 --
 -- SPDX-License-Identifier: MIT
 --
--- Implementation of the high-performance database interface.
+-- Implementation of the find_things database interface.
 
 with system; use system;
 with ada.characters.handling;
@@ -15,7 +15,7 @@ with interfaces.c.strings;
 with ls_r;
 with fontconfig_db;
 
-package body database is
+package body find_things is
 
    use interfaces.c;
    use interfaces.c.strings;
@@ -715,4 +715,4 @@ package body database is
       c_free (ptr);
    end iris_db_free;
 
-end database;
+end find_things;

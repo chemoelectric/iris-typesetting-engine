@@ -6,7 +6,7 @@
 --
 
 with ada.strings.unbounded; use ada.strings.unbounded;
-with database;
+with find_things;
 
 package fontconfig_db is
 
@@ -16,18 +16,18 @@ package fontconfig_db is
 
    -- Ingests font entries from fc-list output into open database
    procedure ingest_fc_list_output
-     (db          : in out database.database_type;
+     (db          : in out find_things.database_type;
       added_count : in out natural)
    with
-     pre => database.db_is_open (db);
+     pre => find_things.db_is_open (db);
 
    -- Ingests font files found in a directory tree
    procedure ingest_font_directory
-     (db          : in out database.database_type;
+     (db          : in out find_things.database_type;
       dir_path    : in string;
       added_count : in out natural)
    with
-     pre => database.db_is_open (db);
+     pre => find_things.db_is_open (db);
 
    -- Builds or rebuilds the entire Fontconfig database
    procedure build_fonts_database

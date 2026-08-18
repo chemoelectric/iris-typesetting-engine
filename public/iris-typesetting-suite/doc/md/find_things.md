@@ -1,8 +1,9 @@
-# Database Package Interface
+# Find_Things Package Interface
 
-The `database` package provides a unified, memory-safe, high-performance
+The `find_things` package provides a unified, memory-safe, high-performance
 associative database interface for the Iris Typesetting Engine.
 It encapsulates key-value record management, associative lookups,
+transparent font and TeXMF asset resolution,
 and string edit distance metrics with strict Ada 2022 contracts.
 
 At the programmer's API level, the interface operates natively on
@@ -13,9 +14,9 @@ memory leaks, length constraints, or double-free defects.
 
 ## Overview
 
-- **Package**: `database`
-- **Specification**: `database.ads`
-- **Body**: `database.adb`
+- **Package**: `find_things`
+- **Specification**: `find_things.ads`
+- **Body**: `find_things.adb`
 
 ## Types
 

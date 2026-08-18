@@ -57,7 +57,7 @@ package body fontconfig_db is
    end default_fonts_db_path;
 
    procedure insert_font_metadata
-     (db          : in out database.database_type;
+     (db          : in out find_things.database_type;
       file_path   : in string;
       family      : in string;
       style       : in string;
@@ -68,22 +68,24 @@ package body fontconfig_db is
       basename : constant string :=
         ada.directories.simple_name (file_path);
    begin
-      database.db_set (db, basename, file_path);
-      database.db_set (db, to_lower (basename), file_path);
+      find_things.db_set (db, basename, file_path);
+      find_things.db_set (db, to_lower (basename), file_path);
       if family'length > 0 then
-         database.db_set (db, "family:" & family, file_path);
-         database.db_set (db, "family:" & to_lower (family), file_path);
+         find_things.db_set (db, "family:" & family, file_path);
+         find_things.db_set
+           (db, "family:" & to_lower (family), file_path);
       end if;
       if psname'length > 0 then
-         database.db_set (db, "ps:" & psname, file_path);
-         database.db_set (db, "ps:" & to_lower (psname), file_path);
+         find_things.db_set (db, "ps:" & psname, file_path);
+         find_things.db_set (db, "ps:" & to_lower (psname), file_path);
       end if;
       if fullname'length > 0 then
-         database.db_set (db, "name:" & fullname, file_path);
-         database.db_set (db, "name:" & to_lower (fullname), file_path);
+         find_things.db_set (db, "name:" & fullname, file_path);
+         find_things.db_set
+           (db, "name:" & to_lower (fullname), file_path);
       end if;
       if family'length > 0 and then style'length > 0 then
-         database.db_set
+         find_things.db_set
            (db, "font:" & family & ":" & style, file_path);
       end if;
       added_count := added_count + 1;
@@ -94,7 +96,7 @@ package body fontconfig_db is
 
    procedure parse_fc_line
      (line        : in string;
-      db          : in out database.database_type;
+      db          : in out find_things.database_type;
       added_count : in out natural)
    is
       fields    : array (1 .. 5) of unbounded_string;
@@ -131,7 +133,7 @@ package body fontconfig_db is
    end parse_fc_line;
 
    procedure ingest_fc_list_output
-     (db          : in out database.database_type;
+     (db          : in out find_things.database_type;
       added_count : in out natural)
    is
       cmd     : constant string :=
@@ -185,7 +187,7 @@ package body fontconfig_db is
 
    procedure process_directory_entry
      (item        : in ada.directories.directory_entry_type;
-      db          : in out database.database_type;
+      db          : in out find_things.database_type;
       added_count : in out natural)
    is
       full : constant string := ada.directories.full_name (item);
@@ -210,8 +212,8 @@ package body fontconfig_db is
                   base : constant string :=
                     ada.directories.simple_name (full);
                begin
-                  database.db_set (db, base, full);
-                  database.db_set (db, to_lower (base), full);
+                  find_things.db_set (db, base, full);
+                  find_things.db_set (db, to_lower (base), full);
                   added_count := added_count + 1;
                end;
             end if;
@@ -223,7 +225,7 @@ package body fontconfig_db is
    end process_directory_entry;
 
    procedure ingest_font_directory
-     (db          : in out database.database_type;
+     (db          : in out find_things.database_type;
       dir_path    : in string;
       added_count : in out natural)
    is
@@ -249,7 +251,7 @@ package body fontconfig_db is
    end ingest_font_directory;
 
    procedure scan_standard_font_directories
-     (db  : in out database.database_type;
+     (db  : in out find_things.database_type;
       cnt : in out natural)
    is
       home : constant string :=
@@ -286,20 +288,20 @@ package body fontconfig_db is
    is
       target_path : constant string :=
         (if db_path'length > 0 then db_path else default_fonts_db_path);
-      db          : database.database_type;
+      db          : find_things.database_type;
       cnt         : natural := 0;
    begin
       count := 0;
       ensure_parent_directory (target_path);
-      db := database.db_open
+      db := find_things.db_open
         (path   => target_path,
-         mode   => database.create_or_truncate);
-      if database.db_is_open (db) then
+         mode   => find_things.create_or_truncate);
+      if find_things.db_is_open (db) then
          ingest_fc_list_output (db, cnt);
          scan_standard_font_directories (db, cnt);
-         database.db_sync (db);
-         count := natural (database.db_count (db));
-         database.db_close (db);
+         find_things.db_sync (db);
+         count := natural (find_things.db_count (db));
+         find_things.db_close (db);
       end if;
    end build_fonts_database;
 

@@ -1,8 +1,8 @@
--- database.ads
+-- find_things.ads
 --
 -- SPDX-License-Identifier: MIT
 --
--- Specification of the high-performance database interface.
+-- Specification of the high-performance find_things database interface.
 
 with system;
 with ada.finalization;
@@ -10,7 +10,7 @@ with ada.strings.unbounded; use ada.strings.unbounded;
 with interfaces.c;
 with interfaces.c.strings;
 
-package database is
+package find_things is
 
    use interfaces.c;
    use interfaces.c.strings;
@@ -297,4 +297,4 @@ private
    null_database : constant database_type :=
      (ada.finalization.controlled with core => null);
 
-end database;
+end find_things;

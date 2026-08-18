@@ -1,17 +1,17 @@
--- test_database.adb
+-- test_find_things.adb
 --
 -- SPDX-License-Identifier: MIT
 --
--- Test program for the Iris database package.
+-- Test program for the Iris find_things package.
 
 with ada.command_line;      use ada.command_line;
 with ada.directories;       use ada.directories;
 with ada.strings.unbounded; use ada.strings.unbounded;
-with database;              use database;
+with find_things;           use find_things;
 
-procedure test_database is
+procedure test_find_things is
 
-   test_file : constant string := "test_database.tkh";
+   test_file : constant string := "test_find_things.tkh";
    key_name  : constant string := "greeting";
    val_first : constant string := "Hello, Iris!";
    val_next  : constant string := "Welcome, Iris!";
@@ -171,4 +171,4 @@ begin
    else
       set_exit_status (failure);
    end if;
-end test_database;
+end test_find_things;

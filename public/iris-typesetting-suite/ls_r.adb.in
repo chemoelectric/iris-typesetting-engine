@@ -116,7 +116,7 @@ package body ls_r is
      (line        : in string;
       root_prefix : in string;
       current_dir : in out unbounded_string;
-      db          : in out database.database_type;
+      db          : in out find_things.database_type;
       added_count : in out natural)
    is
    begin
@@ -143,14 +143,14 @@ package body ls_r is
                then dir_str & "/" & line
                else line);
          begin
-            database.db_set (db, line, full_val);
+            find_things.db_set (db, line, full_val);
             added_count := added_count + 1;
          end;
       end if;
    end process_ls_r_line;
 
    procedure ingest_ls_r_file
-     (db          : in out database.database_type;
+     (db          : in out find_things.database_type;
       ls_r_path   : in string;
       added_count : in out natural)
    is
@@ -185,7 +185,7 @@ package body ls_r is
 
    procedure ingest_candidate
      (cand : in string;
-      db   : in out database.database_type;
+      db   : in out find_things.database_type;
       cnt  : in out natural)
    is
    begin
@@ -195,7 +195,7 @@ package body ls_r is
    end ingest_candidate;
 
    procedure ingest_standard_candidates
-     (db  : in out database.database_type;
+     (db  : in out find_things.database_type;
       cnt : in out natural)
    is
    begin
@@ -214,7 +214,7 @@ package body ls_r is
    end ingest_standard_candidates;
 
    procedure ingest_kpsewhich_output
-     (db  : in out database.database_type;
+     (db  : in out find_things.database_type;
       cnt : in out natural)
    is
       cmd      : constant string := kpsewhich_command & " -all ls-R";
@@ -271,20 +271,20 @@ package body ls_r is
    is
       target_path : constant string :=
         (if db_path'length > 0 then db_path else default_texmf_db_path);
-      db          : database.database_type;
+      db          : find_things.database_type;
       cnt         : natural := 0;
    begin
       count := 0;
       ensure_parent_directory (target_path);
-      db := database.db_open
+      db := find_things.db_open
         (path   => target_path,
-         mode   => database.create_or_truncate);
-      if database.db_is_open (db) then
+         mode   => find_things.create_or_truncate);
+      if find_things.db_is_open (db) then
          ingest_kpsewhich_output (db, cnt);
          ingest_standard_candidates (db, cnt);
-         database.db_sync (db);
-         count := natural (database.db_count (db));
-         database.db_close (db);
+         find_things.db_sync (db);
+         count := natural (find_things.db_count (db));
+         find_things.db_close (db);
       end if;
    end build_texmf_database;
 

@@ -5,5 +5,5 @@ EXTRA_DIST += r7rs/iris/db.md
 EXTRA_DIST += r7rs/iris/db/builder.sld
 EXTRA_DIST += r7rs/iris/db/suggest.sld
 EXTRA_DIST += ls_r.adb.in
-EXTRA_DIST += doc/md/database.md
+EXTRA_DIST += doc/md/find_things.md
 EXTRA_DIST += iris-findfont

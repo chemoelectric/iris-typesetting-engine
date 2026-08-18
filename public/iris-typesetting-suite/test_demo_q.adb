@@ -18,7 +18,7 @@ with ada.strings.fixed;     use ada.strings.fixed;
 with ada.strings.unbounded; use ada.strings.unbounded;
 with interfaces.c;          use interfaces.c;
 with capypdf;               use capypdf;
-with database;              use database;
+with find_things;           use find_things;
 
 procedure test_demo_q is
 
@@ -84,7 +84,7 @@ procedure test_demo_q is
 
    procedure resolve_font_path (result : in out unbounded_string) is
       db_found : constant string :=
-        database.find_font (target_font_tag);
+        find_things.find_font (target_font_tag);
       cands    : constant path_array := get_candidate_paths;
    begin
       if db_found'length > 0 then

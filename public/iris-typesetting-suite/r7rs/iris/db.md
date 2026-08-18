@@ -1,13 +1,13 @@
 # (iris db) --- Scheme Wrapper for Ada Database Engine
 
 The `(iris db)` library provides a high-performance R7RS Scheme
-wrapper around the C interface to the Iris Ada database engine
-(`database.ads` / `database.adb`).
+wrapper around the C interface to the Iris Ada find_things engine
+(`find_things.ads` / `find_things.adb`).
 
 ## Architecture
 
 All database handles, binary serialization, indexing, and on-disk
-storage are managed exclusively by the Ada database engine:
+storage are managed exclusively by the Ada find_things engine:
 
 ```
 +-------------------------------------------------------------+
@@ -30,13 +30,13 @@ storage are managed exclusively by the Ada database engine:
                               v
 +-------------------------------------------------------------+
 |          Ada C Foreign Function Interface Exports           |
-|            (database.ads / iris_db_* C symbols)             |
+|          (find_things.ads / iris_db_* C symbols)            |
 +-------------------------------------------------------------+
                               |
                               v
 +-------------------------------------------------------------+
-|                  Ada Database Engine Core                   |
-|              (database.adb / database_type)                 |
+|                Ada find_things Engine Core                  |
+|            (find_things.adb / database_type)                |
 |             Binary Database Format (.tkh / .tkt)            |
 +-------------------------------------------------------------+
 ```
