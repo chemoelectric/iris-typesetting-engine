@@ -1,8 +1,8 @@
--- database.ads
+-- find_things.ads
 --
 -- SPDX-License-Identifier: MIT
 --
--- Specification of the high-performance database interface.
+-- Specification of the high-performance find_things database interface.
 
 with system;
 with ada.finalization;
@@ -10,7 +10,7 @@ with ada.strings.unbounded; use ada.strings.unbounded;
 with interfaces.c;
 with interfaces.c.strings;
 
-package database is
+package find_things is
 
    use interfaces.c;
    use interfaces.c.strings;
@@ -51,6 +51,25 @@ package database is
 
    function default_fonts_db_path return string;
    function default_fonts_db_path return unbounded_string;
+
+   -- Transparent Font and File Resolution API
+   function find_font
+     (font_name : in string) return string;
+
+   function find_font
+     (font_name : in unbounded_string) return unbounded_string;
+
+   function find_texmf_file
+     (file_name : in string) return string;
+
+   function find_texmf_file
+     (file_name : in unbounded_string) return unbounded_string;
+
+   function find_file
+     (file_name : in string) return string;
+
+   function find_file
+     (file_name : in unbounded_string) return unbounded_string;
 
    -- Unbounded String Primary API
    function db_open
@@ -278,4 +297,4 @@ private
    null_database : constant database_type :=
      (ada.finalization.controlled with core => null);
 
-end database;
+end find_things;

@@ -125,7 +125,7 @@ build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = iris$(EXEEXT)
 check_PROGRAMS = test_capypdf$(EXEEXT) test_gauche_binding$(EXEEXT) \
-	test_database$(EXEEXT) test_demo_q$(EXEEXT)
+	test_find_things$(EXEEXT) test_demo_q$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -191,10 +191,10 @@ am_iris_OBJECTS =
 iris_OBJECTS = $(am_iris_OBJECTS)
 am_test_capypdf_OBJECTS =
 test_capypdf_OBJECTS = $(am_test_capypdf_OBJECTS)
-am_test_database_OBJECTS =
-test_database_OBJECTS = $(am_test_database_OBJECTS)
 am_test_demo_q_OBJECTS =
 test_demo_q_OBJECTS = $(am_test_demo_q_OBJECTS)
+am_test_find_things_OBJECTS =
+test_find_things_OBJECTS = $(am_test_find_things_OBJECTS)
 am_test_gauche_binding_OBJECTS =
 test_gauche_binding_OBJECTS = $(am_test_gauche_binding_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -236,11 +236,11 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
-	$(test_capypdf_SOURCES) $(test_database_SOURCES) \
-	$(test_demo_q_SOURCES) $(test_gauche_binding_SOURCES)
+	$(test_capypdf_SOURCES) $(test_demo_q_SOURCES) \
+	$(test_find_things_SOURCES) $(test_gauche_binding_SOURCES)
 DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
-	$(test_capypdf_SOURCES) $(test_database_SOURCES) \
-	$(test_demo_q_SOURCES) $(test_gauche_binding_SOURCES)
+	$(test_capypdf_SOURCES) $(test_demo_q_SOURCES) \
+	$(test_find_things_SOURCES) $(test_gauche_binding_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -447,22 +447,22 @@ ACLOCAL_AMFLAGS = -I m4 --install
 DEP_FILES = $(LIBIRIS_ADB_FILES:%.adb=.deps/%.adbdep) \
 	$(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep) .deps/iris.adbdep \
 	.deps/test_capypdf.adbdep .deps/test_gauche_binding.adbdep \
-	.deps/test_database.adbdep .deps/test_demo_q.adbdep
+	.deps/test_find_things.adbdep .deps/test_demo_q.adbdep
 MOSTLYCLEANFILES = 
 CLEANFILES = iris$(EXEEXT) test_capypdf$(EXEEXT) \
-	test_gauche_binding$(EXEEXT) test_database$(EXEEXT) \
+	test_gauche_binding$(EXEEXT) test_find_things$(EXEEXT) \
 	test_demo_q$(EXEEXT)
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
 EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
 	autogen.sh ada-programs.list r7rs/iris/db.sld r7rs/iris/db.md \
 	r7rs/iris/db/builder.sld r7rs/iris/db/suggest.sld ls_r.adb.in \
-	doc/md/database.md iris-findfont
+	doc/md/find_things.md iris-findfont
 lib_LTLIBRARIES = libiris.la
 AM_ADAFLAGS = -gnat2022 -I$(call get-adainclude) -I$(builddir) \
 	-I$(srcdir)
-LIBIRIS_ADB_FILES = capypdf.adb capypdf_tests.adb database.adb \
+LIBIRIS_ADB_FILES = capypdf.adb capypdf_tests.adb find_things.adb \
 	ls_r.adb fontconfig_db.adb
-LIBIRIS_ADS_FILES = capypdf.ads capypdf_tests.ads database.ads \
+LIBIRIS_ADS_FILES = capypdf.ads capypdf_tests.ads find_things.ads \
 	ls_r.ads fontconfig_db.ads gauche_binding.ads
 LIBIRIS_C_FILES = gauche_runtime_init.c gauche_c_macros.c \
 	gauche_tkrzw.c gauche_iris_db.c
@@ -496,9 +496,9 @@ test_gauche_binding_SOURCES = test_gauche_binding.adb
 test_gauche_binding_LDADD = .libs/test_gauche_binding.$(OBJEXT) \
 	libiris.la
 test_gauche_binding_DEPENDENCIES = test_gauche_binding.lo
-test_database_SOURCES = test_database.adb
-test_database_LDADD = .libs/test_database.$(OBJEXT) libiris.la
-test_database_DEPENDENCIES = test_database.lo
+test_find_things_SOURCES = test_find_things.adb
+test_find_things_LDADD = .libs/test_find_things.$(OBJEXT) libiris.la
+test_find_things_DEPENDENCIES = test_find_things.lo
 test_demo_q_SOURCES = test_demo_q.adb
 test_demo_q_LDADD = .libs/test_demo_q.$(OBJEXT) libiris.la
 test_demo_q_DEPENDENCIES = test_demo_q.lo
@@ -1175,7 +1175,7 @@ test_capypdf$(EXEEXT): test_capypdf.lo libiris.la
 test_gauche_binding$(EXEEXT): test_gauche_binding.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
-test_database$(EXEEXT): test_database.lo libiris.la
+test_find_things$(EXEEXT): test_find_things.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 test_demo_q$(EXEEXT): test_demo_q.lo libiris.la

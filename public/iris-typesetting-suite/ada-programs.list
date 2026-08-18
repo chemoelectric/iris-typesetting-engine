@@ -1,5 +1,5 @@
 bin iris
 check test_capypdf
 check test_gauche_binding
-check test_database
+check test_find_things
 check test_demo_q

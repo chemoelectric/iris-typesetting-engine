@@ -6,7 +6,7 @@
 --
 
 with ada.strings.unbounded; use ada.strings.unbounded;
-with database;
+with find_things;
 
 package ls_r is
 
@@ -19,11 +19,11 @@ package ls_r is
 
    -- Ingests a single ls-R file into an open database
    procedure ingest_ls_r_file
-     (db          : in out database.database_type;
+     (db          : in out find_things.database_type;
       ls_r_path   : in string;
       added_count : in out natural)
    with
-     pre => database.db_is_open (db);
+     pre => find_things.db_is_open (db);
 
    -- Builds or rebuilds the entire TeXMF database
    procedure build_texmf_database

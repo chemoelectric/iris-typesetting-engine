@@ -1,8 +1,9 @@
-# Database Package Interface
+# Find_Things Package Interface
 
-The `database` package provides a unified, memory-safe, high-performance
+The `find_things` package provides a unified, memory-safe, high-performance
 associative database interface for the Iris Typesetting Engine.
 It encapsulates key-value record management, associative lookups,
+transparent font and TeXMF asset resolution,
 and string edit distance metrics with strict Ada 2022 contracts.
 
 At the programmer's API level, the interface operates natively on
@@ -13,9 +14,9 @@ memory leaks, length constraints, or double-free defects.
 
 ## Overview
 
-- **Package**: `database`
-- **Specification**: `database.ads`
-- **Body**: `database.adb`
+- **Package**: `find_things`
+- **Specification**: `find_things.ads`
+- **Body**: `find_things.adb`
 
 ## Types
 
@@ -232,6 +233,34 @@ function default_fonts_db_path return unbounded_string;
 
 Constructs and populates the Tkrzw databases for TeXMF (`kpsewhich`
 and `ls-R` indexes) and Fontconfig system fonts.
+
+### `find_font` / `find_texmf_file` / `find_file`
+
+```ada
+function find_font
+  (font_name : in string) return string;
+
+function find_font
+  (font_name : in unbounded_string) return unbounded_string;
+
+function find_texmf_file
+  (file_name : in string) return string;
+
+function find_texmf_file
+  (file_name : in unbounded_string) return unbounded_string;
+
+function find_file
+  (file_name : in string) return string;
+
+function find_file
+  (file_name : in unbounded_string) return unbounded_string;
+```
+
+Transparently resolves font files or TeXMF asset paths. Database files
+in `$XDG_CACHE_HOME/iris/` (`$HOME/.cache/iris/fonts.tkh` and
+`$HOME/.cache/iris/texmf.tkh`) are automatically created in the
+background if they do not already exist. The caller does not need to
+manage or be aware of database files.
 
 ## C Foreign Function Interface Exports
 

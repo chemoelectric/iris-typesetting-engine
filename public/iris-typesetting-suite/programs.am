@@ -43,20 +43,20 @@ test_gauche_binding_DEPENDENCIES += test_gauche_binding.lo
 DEP_FILES += .deps/test_gauche_binding.adbdep
 CLEANFILES += test_gauche_binding$(EXEEXT)
 
-test_database$(EXEEXT): test_database.lo libiris.la
+test_find_things$(EXEEXT): test_find_things.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
-check_PROGRAMS += test_database
-test_database_SOURCES =
-test_database_SOURCES += test_database.adb
-test_database_LDADD =
-test_database_LDADD += .libs/test_database.$(OBJEXT)
-test_database_LDADD += libiris.la
-test_database_DEPENDENCIES =
-test_database_DEPENDENCIES += test_database.lo
+check_PROGRAMS += test_find_things
+test_find_things_SOURCES =
+test_find_things_SOURCES += test_find_things.adb
+test_find_things_LDADD =
+test_find_things_LDADD += .libs/test_find_things.$(OBJEXT)
+test_find_things_LDADD += libiris.la
+test_find_things_DEPENDENCIES =
+test_find_things_DEPENDENCIES += test_find_things.lo
 
-DEP_FILES += .deps/test_database.adbdep
-CLEANFILES += test_database$(EXEEXT)
+DEP_FILES += .deps/test_find_things.adbdep
+CLEANFILES += test_find_things$(EXEEXT)
 
 test_demo_q$(EXEEXT): test_demo_q.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
