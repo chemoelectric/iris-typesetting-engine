@@ -292,6 +292,38 @@ define_subr (ScmModule *mod, const char *name, ScmSubrProc *proc,
   Scm_Define (mod, SCM_SYMBOL (sname), subr);
 }
 
+int
+gauche_iris_db_build_from_ls_r (const char *path)
+{
+  int res = 0;
+  if (path != NULL)
+    {
+      extern void gauche_runtime_init (void);
+      gauche_runtime_init ();
+
+      char buf[2048];
+      snprintf (buf, sizeof (buf),
+                "(guard (e (else 0))"
+                "  (add-load-path \"r7rs\" :after)"
+                "  (add-load-path \".\" :after)"
+                "  (eval '(import (iris db builder))"
+                "        (interaction-environment))"
+                "  (eval '(import (iris texmf ls-R))"
+                "        (interaction-environment))"
+                "  (build-texmf-db \"%s\"))",
+                path);
+
+      ScmEvalPacket packet;
+      int status = Scm_EvalCString (buf, Scm_UserModule (),
+                                    &packet);
+      if (status >= 0)
+        {
+          res = 1;
+        }
+    }
+  return res;
+}
+
 void
 gauche_iris_db_init (void)
 {

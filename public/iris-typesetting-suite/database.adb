@@ -5,6 +5,7 @@
 -- Implementation of the high-performance database interface.
 
 with system; use system;
+with ada.directories;
 with ada.finalization;
 with ada.strings.unbounded; use ada.strings.unbounded;
 with ada.unchecked_deallocation;
@@ -17,6 +18,12 @@ package body database is
    use interfaces.c.strings;
 
    -- Internal C Interface Imports
+   function c_build_from_ls_r (path : in chars_ptr) return int
+   with
+     Import        => True,
+     Convention    => C,
+     External_Name => "gauche_iris_db_build_from_ls_r";
+
    function c_open
      (path     : in chars_ptr;
       writable : in int;
@@ -143,6 +150,17 @@ package body database is
       return result;
    end is_writable_mode;
 
+   procedure ensure_database_exists (path_str : in string) is
+      c_path : chars_ptr := null_ptr;
+      status : int       := 0;
+   begin
+      if not ada.directories.exists (path_str) then
+         c_path := new_string (path_str);
+         status := c_build_from_ls_r (c_path);
+         free (c_path);
+      end if;
+   end ensure_database_exists;
+
    function db_open
      (path   : in unbounded_string;
       mode   : in open_mode := read_only;
@@ -151,12 +169,15 @@ package body database is
    is
       path_str : constant string  := to_string (path);
       par_str  : constant string  := to_string (params);
-      c_path   : chars_ptr        := new_string (path_str);
-      c_params : chars_ptr        := new_string (par_str);
+      c_path   : chars_ptr        := null_ptr;
+      c_params : chars_ptr        := null_ptr;
       writable : constant int     := is_writable_mode (mode);
       raw_ptr  : system.address   := system.null_address;
       result   : database_type;
    begin
+      ensure_database_exists (path_str);
+      c_path := new_string (path_str);
+      c_params := new_string (par_str);
       raw_ptr := c_open (c_path, writable, c_params);
       free (c_path);
       free (c_params);
