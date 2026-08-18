@@ -39,8 +39,8 @@ package body ls_r is
 
    function default_texmf_db_path return unbounded_string is
       env_xdg  : constant string :=
-        (if ada.environment_variables.exists ("XDG_DATA_HOME")
-         then ada.environment_variables.value ("XDG_DATA_HOME")
+        (if ada.environment_variables.exists ("XDG_CACHE_HOME")
+         then ada.environment_variables.value ("XDG_CACHE_HOME")
          else "");
       env_home : constant string :=
         (if ada.environment_variables.exists ("HOME")
@@ -51,7 +51,7 @@ package body ls_r is
          return to_unbounded_string (env_xdg & "/iris/texmf.tkh");
       elsif env_home'length > 0 then
          return to_unbounded_string
-           (env_home & "/.local/share/iris/texmf.tkh");
+           (env_home & "/.cache/iris/texmf.tkh");
       else
          return to_unbounded_string ("/tmp/iris-texmf.tkh");
       end if;

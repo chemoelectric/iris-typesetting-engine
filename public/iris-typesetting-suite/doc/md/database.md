@@ -233,6 +233,34 @@ function default_fonts_db_path return unbounded_string;
 Constructs and populates the Tkrzw databases for TeXMF (`kpsewhich`
 and `ls-R` indexes) and Fontconfig system fonts.
 
+### `find_font` / `find_texmf_file` / `find_file`
+
+```ada
+function find_font
+  (font_name : in string) return string;
+
+function find_font
+  (font_name : in unbounded_string) return unbounded_string;
+
+function find_texmf_file
+  (file_name : in string) return string;
+
+function find_texmf_file
+  (file_name : in unbounded_string) return unbounded_string;
+
+function find_file
+  (file_name : in string) return string;
+
+function find_file
+  (file_name : in unbounded_string) return unbounded_string;
+```
+
+Transparently resolves font files or TeXMF asset paths. Database files
+in `$XDG_CACHE_HOME/iris/` (`$HOME/.cache/iris/fonts.tkh` and
+`$HOME/.cache/iris/texmf.tkh`) are automatically created in the
+background if they do not already exist. The caller does not need to
+manage or be aware of database files.
+
 ## C Foreign Function Interface Exports
 
 - `iris_db_open`

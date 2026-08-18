@@ -16,15 +16,11 @@ with ada.command_line;      use ada.command_line;
 with ada.directories;       use ada.directories;
 with ada.strings.fixed;     use ada.strings.fixed;
 with ada.strings.unbounded; use ada.strings.unbounded;
-------------------------------------------------------------------------------------------with ada.exceptions;        use ada.exceptions;
 with interfaces.c;          use interfaces.c;
 with capypdf;               use capypdf;
 with database;              use database;
 
 procedure test_demo_q is
-
-   ----------------------------------------------------------------------   font_not_found  : exception;
-   --------------------------------------------------------------------------------  raise font_not_found of "PlayfairDisplay-Regular";
 
    out_file_name   : constant string := "demo-q.pdf";
    target_font_tag : constant string := "PlayfairDisplay-Regular";
@@ -87,11 +83,17 @@ procedure test_demo_q is
    end search_filesystem_candidates;
 
    procedure resolve_font_path (result : in out unbounded_string) is
-      cands : constant path_array := get_candidate_paths;
+      db_found : constant string :=
+        database.find_font (target_font_tag);
+      cands    : constant path_array := get_candidate_paths;
    begin
-      search_filesystem_candidates (cands, result);
-      if length (result) = 0 then
-         result := to_unbounded_string (target_font_tag & ".otf");
+      if db_found'length > 0 then
+         result := to_unbounded_string (db_found);
+      else
+         search_filesystem_candidates (cands, result);
+         if length (result) = 0 then
+            result := to_unbounded_string (target_font_tag & ".otf");
+         end if;
       end if;
    end resolve_font_path;
 

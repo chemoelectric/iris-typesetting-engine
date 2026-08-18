@@ -33,8 +33,8 @@ package body fontconfig_db is
 
    function default_fonts_db_path return unbounded_string is
       env_xdg  : constant string :=
-        (if ada.environment_variables.exists ("XDG_DATA_HOME")
-         then ada.environment_variables.value ("XDG_DATA_HOME")
+        (if ada.environment_variables.exists ("XDG_CACHE_HOME")
+         then ada.environment_variables.value ("XDG_CACHE_HOME")
          else "");
       env_home : constant string :=
         (if ada.environment_variables.exists ("HOME")
@@ -45,7 +45,7 @@ package body fontconfig_db is
          return to_unbounded_string (env_xdg & "/iris/fonts.tkh");
       elsif env_home'length > 0 then
          return to_unbounded_string
-           (env_home & "/.local/share/iris/fonts.tkh");
+           (env_home & "/.cache/iris/fonts.tkh");
       else
          return to_unbounded_string ("/tmp/iris-fonts.tkh");
       end if;

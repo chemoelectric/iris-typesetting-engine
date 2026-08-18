@@ -144,12 +144,26 @@ procedure test_database is
       end if;
    end check_builders;
 
+   procedure check_resolution (status : in out boolean) is
+      f_res : constant string :=
+        find_font ("nonexistent_dummy_font_xyz");
+      m_res : constant string :=
+        find_texmf_file ("nonexistent_file_xyz.tex");
+   begin
+      if status then
+         if f_res'length /= 0 or else m_res'length /= 0 then
+            status := false;
+         end if;
+      end if;
+   end check_resolution;
+
 begin
    cleanup_file;
    check_init (ok);
    check_crud (ok);
    check_metrics (ok);
    check_builders (ok);
+   check_resolution (ok);
    cleanup_file;
 
    if ok then

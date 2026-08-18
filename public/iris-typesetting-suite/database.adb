@@ -5,6 +5,7 @@
 -- Implementation of the high-performance database interface.
 
 with system; use system;
+with ada.characters.handling;
 with ada.directories;
 with ada.finalization;
 with ada.strings.unbounded; use ada.strings.unbounded;
@@ -201,6 +202,146 @@ package body database is
    begin
       return fontconfig_db.default_fonts_db_path;
    end default_fonts_db_path;
+
+   function query_db_key
+     (db  : in database_type;
+      key : in string) return string
+   is
+      result : string := "";
+   begin
+      if db_is_open (db) and then key'length > 0 then
+         if db_exists (db, key) then
+            result := db_get (db, key);
+         end if;
+      end if;
+      return result;
+   end query_db_key;
+
+   function query_font_variations
+     (db        : in database_type;
+      font_name : in string;
+      low       : in string) return string
+   is
+      res : string := query_db_key (db, "ps:" & font_name);
+   begin
+      if res'length = 0 then
+         res := query_db_key (db, "ps:" & low);
+      end if;
+      if res'length = 0 then
+         res := query_db_key (db, font_name);
+      end if;
+      if res'length = 0 then
+         res := query_db_key (db, low);
+      end if;
+      if res'length = 0 then
+         res := query_db_key (db, "name:" & font_name);
+      end if;
+      if res'length = 0 then
+         res := query_db_key (db, "name:" & low);
+      end if;
+      if res'length = 0 then
+         res := query_db_key (db, "family:" & font_name);
+      end if;
+      if res'length = 0 then
+         res := query_db_key (db, "family:" & low);
+      end if;
+      return res;
+   end query_font_variations;
+
+   function query_fonts_db (font_name : in string) return string is
+      db  : database_type := null_database;
+      res : string := "";
+      low : constant string :=
+        ada.characters.handling.to_lower (font_name);
+   begin
+      db := db_open (default_fonts_db_path, read_only);
+      if db_is_open (db) then
+         res := query_font_variations (db, font_name, low);
+         if res'length = 0 then
+            res := query_db_key (db, font_name & ".otf");
+            if res'length = 0 then
+               res := query_db_key (db, font_name & ".ttf");
+            end if;
+         end if;
+         db_close (db);
+      end if;
+      return res;
+   end query_fonts_db;
+
+   function query_texmf_db (file_name : in string) return string is
+      db  : database_type := null_database;
+      res : string := "";
+      low : constant string :=
+        ada.characters.handling.to_lower (file_name);
+   begin
+      db := db_open (default_texmf_db_path, read_only);
+      if db_is_open (db) then
+         res := query_db_key (db, file_name);
+         if res'length = 0 then
+            res := query_db_key (db, low);
+         end if;
+         if res'length = 0 then
+            res := query_db_key (db, file_name & ".otf");
+            if res'length = 0 then
+               res := query_db_key (db, file_name & ".ttf");
+            end if;
+         end if;
+         db_close (db);
+      end if;
+      return res;
+   end query_texmf_db;
+
+   function find_font (font_name : in string) return string is
+      res : string := "";
+   begin
+      if font_name'length > 0 then
+         res := query_fonts_db (font_name);
+         if res'length = 0 then
+            res := query_texmf_db (font_name);
+         end if;
+      end if;
+      return res;
+   end find_font;
+
+   function find_font
+     (font_name : in unbounded_string) return unbounded_string is
+   begin
+      return to_unbounded_string (find_font (to_string (font_name)));
+   end find_font;
+
+   function find_texmf_file (file_name : in string) return string is
+      res : string := "";
+   begin
+      if file_name'length > 0 then
+         res := query_texmf_db (file_name);
+      end if;
+      return res;
+   end find_texmf_file;
+
+   function find_texmf_file
+     (file_name : in unbounded_string) return unbounded_string is
+   begin
+      return to_unbounded_string
+        (find_texmf_file (to_string (file_name)));
+   end find_texmf_file;
+
+   function find_file (file_name : in string) return string is
+      res : string := "";
+   begin
+      if file_name'length > 0 then
+         res := find_font (file_name);
+         if res'length = 0 then
+            res := find_texmf_file (file_name);
+         end if;
+      end if;
+      return res;
+   end find_file;
+
+   function find_file
+     (file_name : in unbounded_string) return unbounded_string is
+   begin
+      return to_unbounded_string (find_file (to_string (file_name)));
+   end find_file;
 
    procedure ensure_database_exists
      (path_str : in string;

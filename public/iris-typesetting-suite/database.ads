@@ -52,6 +52,25 @@ package database is
    function default_fonts_db_path return string;
    function default_fonts_db_path return unbounded_string;
 
+   -- Transparent Font and File Resolution API
+   function find_font
+     (font_name : in string) return string;
+
+   function find_font
+     (font_name : in unbounded_string) return unbounded_string;
+
+   function find_texmf_file
+     (file_name : in string) return string;
+
+   function find_texmf_file
+     (file_name : in unbounded_string) return unbounded_string;
+
+   function find_file
+     (file_name : in string) return string;
+
+   function find_file
+     (file_name : in unbounded_string) return unbounded_string;
+
    -- Unbounded String Primary API
    function db_open
      (path   : in unbounded_string;
