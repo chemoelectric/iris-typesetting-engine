@@ -211,7 +211,7 @@ package body find_things is
    begin
       if db_is_open (db) and then key'length > 0 then
          if db_exists (db, key) then
-            result := db_get (db, key);
+            result := to_unbounded_string (db_get (db, key));
          end if;
       end if;
       return result;
