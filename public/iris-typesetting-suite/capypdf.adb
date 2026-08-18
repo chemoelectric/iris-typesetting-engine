@@ -151,6 +151,47 @@ package body capypdf is
       return capy_dc_cmd_s (dc.dc);
    end stroke_path;
 
+   function load_font
+     (doc       : in pdf_document;
+      font_path : in string;
+      font      : out font_id) return capy_error
+   is
+      c_path : interfaces.c.strings.chars_ptr;
+      res    : capy_error;
+   begin
+      if not is_valid (doc) then
+         font := invalid_font_id;
+         return capy_err_invalid_state;
+      end if;
+
+      c_path := interfaces.c.strings.new_string (font_path);
+      res    := capy_generator_load_font (doc.gen, c_path, font);
+      interfaces.c.strings.free (c_path);
+      return res;
+   end load_font;
+
+   function render_text
+     (dc        : in pdf_draw_context;
+      text_str  : in string;
+      font      : in font_id;
+      font_size : in interfaces.c.double;
+      x         : in interfaces.c.double;
+      y         : in interfaces.c.double) return capy_error
+   is
+      c_str : interfaces.c.strings.chars_ptr;
+      res   : capy_error;
+   begin
+      if not dc.active then
+         return capy_err_invalid_state;
+      end if;
+
+      c_str := interfaces.c.strings.new_string (text_str);
+      res   :=
+        capy_dc_render_text (dc.dc, c_str, font, font_size, x, y);
+      interfaces.c.strings.free (c_str);
+      return res;
+   end render_text;
+
    function add_page_with_context
      (doc : in out pdf_document;
       dc  : in out pdf_draw_context) return capy_error

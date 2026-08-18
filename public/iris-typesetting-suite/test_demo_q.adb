@@ -129,23 +129,37 @@ procedure test_demo_q is
    end check_found_font;
 
    procedure render_glyph_page
-     (doc    : in out pdf_document;
-      status : in out boolean)
+     (doc       : in out pdf_document;
+      font_path : in unbounded_string;
+      status    : in out boolean)
    is
-      cfg : page_config :=
+      cfg    : page_config :=
         create_page_config (612.0, 792.0);
-      dc  : pdf_draw_context;
-      err : capy_error;
+      dc     : pdf_draw_context;
+      q_font : font_id := invalid_font_id;
+      err    : capy_error;
    begin
       if status and then is_valid (doc) then
+         err := load_font (doc, to_string (font_path), q_font);
+         if err /= capy_err_ok then
+            put_line ("[warn] failed to load font in capypdf: " &
+                      to_string (font_path));
+         end if;
+
          dc := create_draw_context (doc);
          err := draw_rectangle (dc, 50.0, 50.0, 512.0, 692.0);
          if err = capy_err_ok then
             err := stroke_path (dc);
          end if;
-         if err = capy_err_ok then
-            err := add_page_with_context (doc, dc);
+
+         if q_font /= invalid_font_id then
+            err := render_text (dc, "Q", q_font, 120.0, 100.0, 400.0);
+            if err /= capy_err_ok then
+               put_line ("[warn] failed to render text with capypdf");
+            end if;
          end if;
+
+         err := add_page_with_context (doc, dc);
          if err /= capy_err_ok then
             status := false;
          end if;
@@ -153,7 +167,10 @@ procedure test_demo_q is
       destroy_page_config (cfg);
    end render_glyph_page;
 
-   procedure produce_q_output (status : in out boolean) is
+   procedure produce_q_output
+     (font_path : in unbounded_string;
+      status    : in out boolean)
+   is
       doc : pdf_document;
       err : capy_error;
    begin
@@ -163,7 +180,7 @@ procedure test_demo_q is
             put_line ("[fail] failed to create capypdf document");
             status := false;
          else
-            render_glyph_page (doc, status);
+            render_glyph_page (doc, font_path, status);
             err := close_document (doc);
             if err /= capy_err_ok then
                put_line ("[fail] error closing capypdf document");
@@ -197,7 +214,7 @@ begin
    cleanup_output (ok);
    resolve_font_path (resolved_font);
    check_found_font (resolved_font, ok);
-   produce_q_output (ok);
+   produce_q_output (resolved_font, ok);
    check_output_file (ok);
 
    if ok then

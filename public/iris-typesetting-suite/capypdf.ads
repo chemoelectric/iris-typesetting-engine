@@ -119,6 +119,24 @@ package capypdf is
    with
      pre => dc.active;
 
+   function load_font
+     (doc       : in pdf_document;
+      font_path : in string;
+      font      : out font_id) return capy_error
+   with
+     pre => is_valid (doc) and then font_path'length > 0;
+
+   function render_text
+     (dc        : in pdf_draw_context;
+      text_str  : in string;
+      font      : in font_id;
+      font_size : in interfaces.c.double;
+      x         : in interfaces.c.double;
+      y         : in interfaces.c.double) return capy_error
+   with
+     pre => dc.active and then font /= invalid_font_id and then
+            font_size > 0.0;
+
    function add_page_with_context
      (doc : in out pdf_document;
       dc  : in out pdf_draw_context) return capy_error
@@ -230,5 +248,26 @@ private
      import        => true,
      convention    => c,
      external_name => "capy_dc_cmd_s";
+
+   function capy_generator_load_font
+     (gen      : in generator_handle;
+      filename : in interfaces.c.strings.chars_ptr;
+      fid_out  : out font_id) return capy_error
+   with
+     import        => true,
+     convention    => c,
+     external_name => "capy_generator_load_font";
+
+   function capy_dc_render_text
+     (dc       : in draw_context_handle;
+      text_str : in interfaces.c.strings.chars_ptr;
+      fid      : in font_id;
+      ptsize   : in interfaces.c.double;
+      x        : in interfaces.c.double;
+      y        : in interfaces.c.double) return capy_error
+   with
+     import        => true,
+     convention    => c,
+     external_name => "capy_dc_render_text";
 
 end capypdf;
