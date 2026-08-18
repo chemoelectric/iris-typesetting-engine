@@ -45,26 +45,20 @@ package body capypdf is
    function close_document
      (doc : in out pdf_document) return capy_error
    is
-      write_res   : capy_error;
-      gen_dst_res : capy_error;
-      opt_dst_res : capy_error;
-      retval      : capy_error := capy_err_invalid_state;
+      retval : capy_error := capy_err_invalid_state;
    begin
       if doc.is_open then
-         write_res   := capy_generator_write (doc.gen);
-         gen_dst_res := capy_generator_destroy (doc.gen);
-         opt_dst_res := capy_document_properties_destroy (doc.opt);
-
-         doc.gen     := null_generator;
-         doc.opt     := null_options;
-         doc.is_open := false;
-
-         if write_res /= capy_err_ok then
-            retval := write_res;
-         elsif gen_dst_res /= capy_err_ok then
-            retval := gen_dst_res;
-         else
-            retval := opt_dst_res;
+         retval := capy_generator_write (doc.gen);
+         if retval = capy_err_ok then
+            retval := capy_generator_destroy (doc.gen);
+         end if;
+         if retval = capy_err_ok then
+            retval := capy_document_properties_destroy (doc.opt);
+         end if;
+         if retval = capy_err_ok then
+            doc.gen     := null_generator;
+            doc.opt     := null_options;
+            doc.is_open := false;
          end if;
       end if;
       return retval;
