@@ -3,6 +3,7 @@
 #---------------------------------------------------------------------
 
 lib_LTLIBRARIES += libiris.la
+nodist_libiris_la_SOURCES =
 libiris_la_SOURCES =
 libiris_la_SOURCES += $(LIBIRIS_ADB_FILES)
 libiris_la_SOURCES += $(LIBIRIS_ADS_FILES)
@@ -20,6 +21,8 @@ libiris_la_DEPENDENCIES += \
 
 DEP_FILES += $(LIBIRIS_ADB_FILES:%.adb=.deps/%.adbdep)
 DEP_FILES += $(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep)
+
+@GNU@include ada-interfaces.mk
 
 #---------------------------------------------------------------------
 # local variables:

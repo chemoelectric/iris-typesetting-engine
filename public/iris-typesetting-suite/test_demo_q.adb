@@ -133,8 +133,7 @@ procedure test_demo_q is
       font_path : in unbounded_string;
       status    : in out boolean)
    is
-      cfg    : page_config :=
-        create_page_config (612.0, 792.0);
+      cfg    : page_config := create_page_config (612.0, 792.0);
       dc     : pdf_draw_context;
       q_font : font_id := invalid_font_id;
       err    : capy_error;

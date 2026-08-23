@@ -12,9 +12,11 @@
 --   - mccabe cyclomatic complexity <= 10 per subprogram.
 -- =====================================================================
 
-with interfaces.c; use interfaces.c;
+with interfaces.c;
 with interfaces.c.strings;
 with ada.strings.unbounded;
+
+use interfaces.c;
 
 package capypdf is
 
@@ -93,17 +95,24 @@ package capypdf is
      pre  => is_valid (doc),
      post => not is_valid (doc) and then not doc.is_open;
 
-   function create_page_config
+   function create_page_config  ------------------------------------------ FIXME: IS THIS USED?
      (width_pt  : in interfaces.c.double;
       height_pt : in interfaces.c.double) return page_config
-   with
-     pre  => width_pt > 0.0 and then height_pt > 0.0,
-     post => create_page_config'result.prop /= null_page_properties;
+     with
+       pre  => width_pt > 0.0 and then height_pt > 0.0,
+       post => create_page_config'result.prop /= null_page_properties;
 
-   procedure destroy_page_config
+   procedure destroy_page_config  ------------------------------------------ FIXME: IS THIS USED?
      (config : in out page_config)
-   with
-     post => config.prop = null_page_properties;
+     with
+       post => config.prop = null_page_properties;
+
+   procedure set_page_box
+     (doc : in pdf_document;
+      x1, y1 : in double;
+      x2, y2 : in double)
+     with
+       pre => is_valid (doc);
 
    function create_draw_context
      (doc : in pdf_document) return pdf_draw_context

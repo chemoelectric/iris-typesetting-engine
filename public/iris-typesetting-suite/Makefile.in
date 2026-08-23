@@ -124,8 +124,9 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = iris$(EXEEXT)
-check_PROGRAMS = test_capypdf$(EXEEXT) test_gauche_binding$(EXEEXT) \
-	test_find_things$(EXEEXT) test_demo_q$(EXEEXT)
+check_PROGRAMS = test_capypdf$(EXEEXT) test_capypdf_2$(EXEEXT) \
+	test_gauche_binding$(EXEEXT) test_find_things$(EXEEXT) \
+	test_demo_q$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -182,7 +183,9 @@ am__objects_2 = gauche_runtime_init.lo gauche_c_macros.lo \
 	gauche_tkrzw.lo gauche_iris_db.lo
 am_libiris_la_OBJECTS = $(am__objects_1) $(am__objects_1) \
 	$(am__objects_2)
-libiris_la_OBJECTS = $(am_libiris_la_OBJECTS)
+nodist_libiris_la_OBJECTS =
+libiris_la_OBJECTS = $(am_libiris_la_OBJECTS) \
+	$(nodist_libiris_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -191,6 +194,8 @@ am_iris_OBJECTS =
 iris_OBJECTS = $(am_iris_OBJECTS)
 am_test_capypdf_OBJECTS =
 test_capypdf_OBJECTS = $(am_test_capypdf_OBJECTS)
+am_test_capypdf_2_OBJECTS =
+test_capypdf_2_OBJECTS = $(am_test_capypdf_2_OBJECTS)
 am_test_demo_q_OBJECTS =
 test_demo_q_OBJECTS = $(am_test_demo_q_OBJECTS)
 am_test_find_things_OBJECTS =
@@ -235,12 +240,14 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
-	$(test_capypdf_SOURCES) $(test_demo_q_SOURCES) \
+SOURCES = $(libiris_la_SOURCES) $(nodist_libiris_la_SOURCES) \
+	$(iris_SOURCES) $(test_capypdf_SOURCES) \
+	$(test_capypdf_2_SOURCES) $(test_demo_q_SOURCES) \
 	$(test_find_things_SOURCES) $(test_gauche_binding_SOURCES)
 DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
-	$(test_capypdf_SOURCES) $(test_demo_q_SOURCES) \
-	$(test_find_things_SOURCES) $(test_gauche_binding_SOURCES)
+	$(test_capypdf_SOURCES) $(test_capypdf_2_SOURCES) \
+	$(test_demo_q_SOURCES) $(test_find_things_SOURCES) \
+	$(test_gauche_binding_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -446,12 +453,13 @@ top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4 --install
 DEP_FILES = $(LIBIRIS_ADB_FILES:%.adb=.deps/%.adbdep) \
 	$(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep) .deps/iris.adbdep \
-	.deps/test_capypdf.adbdep .deps/test_gauche_binding.adbdep \
-	.deps/test_find_things.adbdep .deps/test_demo_q.adbdep
+	.deps/test_capypdf.adbdep .deps/test_capypdf_2.adbdep \
+	.deps/test_gauche_binding.adbdep .deps/test_find_things.adbdep \
+	.deps/test_demo_q.adbdep
 MOSTLYCLEANFILES = 
 CLEANFILES = iris$(EXEEXT) test_capypdf$(EXEEXT) \
-	test_gauche_binding$(EXEEXT) test_find_things$(EXEEXT) \
-	test_demo_q$(EXEEXT)
+	test_capypdf_2$(EXEEXT) test_gauche_binding$(EXEEXT) \
+	test_find_things$(EXEEXT) test_demo_q$(EXEEXT)
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
 EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
 	autogen.sh ada-programs.list r7rs/iris/db.sld r7rs/iris/db.md \
@@ -478,6 +486,7 @@ ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 	$(AM_ADAFLAGS) $(ADAFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $(@)
 
+nodist_libiris_la_SOURCES = 
 libiris_la_SOURCES = $(LIBIRIS_ADB_FILES) $(LIBIRIS_ADS_FILES) \
 	$(LIBIRIS_C_FILES)
 libiris_la_LIBADD = $(LIBIRIS_ADB_FILES:%.adb=%.lo) $(filter-out \
@@ -492,6 +501,9 @@ iris_DEPENDENCIES = iris.lo
 test_capypdf_SOURCES = test_capypdf.adb
 test_capypdf_LDADD = .libs/test_capypdf.$(OBJEXT) libiris.la
 test_capypdf_DEPENDENCIES = test_capypdf.lo
+test_capypdf_2_SOURCES = test_capypdf_2.adb
+test_capypdf_2_LDADD = .libs/test_capypdf_2.$(OBJEXT) libiris.la
+test_capypdf_2_DEPENDENCIES = test_capypdf_2.lo
 test_gauche_binding_SOURCES = test_gauche_binding.adb
 test_gauche_binding_LDADD = .libs/test_gauche_binding.$(OBJEXT) \
 	libiris.la
@@ -1161,6 +1173,8 @@ distclean-local::
 # tab-width: 4
 # end:
 
+@GNU@include ada-interfaces.mk
+
 #---------------------------------------------------------------------
 # local variables:
 # coding: utf-8
@@ -1170,6 +1184,9 @@ iris$(EXEEXT): iris.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 test_capypdf$(EXEEXT): test_capypdf.lo libiris.la
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+test_capypdf_2$(EXEEXT): test_capypdf_2.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 test_gauche_binding$(EXEEXT): test_gauche_binding.lo libiris.la

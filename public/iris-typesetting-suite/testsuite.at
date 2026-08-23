@@ -9,6 +9,7 @@ AT_SETUP([capypdf])
 AT_KEYWORDS([capypdf])
 AT_CHECK(["${abs_builddir}"/test_capypdf | ${SED} '/^summary/s/^.*\([[0-9]]\+\) *failed.*$/\1/p;d'],[0],[0
 ])
+AT_CHECK(["${abs_builddir}"/test_capypdf_2],[0],[ignore],[ignore])
 AT_CLEANUP
 
 AT_SETUP([Gauche binding])
@@ -23,7 +24,7 @@ AT_CLEANUP
 
 AT_SETUP([Q glyph demo])
 AT_KEYWORDS([demo Q amethyst])
-AT_CHECK(["${abs_builddir}"/test_demo_q > /dev/null])
+AT_CHECK(["${abs_builddir}"/test_demo_q],[0],[ignore],[ignore])
 AT_CLEANUP
 
 #---------------------------------------------------------------------

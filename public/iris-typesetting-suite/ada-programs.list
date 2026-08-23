@@ -1,5 +1,6 @@
 bin iris
 check test_capypdf
+check test_capypdf_2
 check test_gauche_binding
 check test_find_things
 check test_demo_q

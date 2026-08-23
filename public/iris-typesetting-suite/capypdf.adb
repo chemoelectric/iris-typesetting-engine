@@ -122,6 +122,15 @@ package body capypdf is
       return context;
    end create_draw_context;
 
+   procedure set_page_box ------------------------------ FIXME: FINISH THIS.
+     (doc : in pdf_document;
+      x1, y1 : in double;
+      x2, y2 : in double)
+   is
+   begin
+      null;
+   end set_page_box;
+
    function draw_rectangle
      (dc     : in pdf_draw_context;
       x      : in interfaces.c.double;
