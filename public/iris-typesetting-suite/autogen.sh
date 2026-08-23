@@ -134,6 +134,12 @@ require_pkg_config() {
         "Your operating system may have a \`pkg-config' or \`pkgconfig' package."
 }
 
+require_gcc() {
+    require_command gcc \
+        'http://gcc.gnu.org' \
+        'Ada support is needed.'
+}
+
 require_gnulib_tool() {
     require_command gnulib-tool \
         'http://www.gnu.org/software/gnulib/' \
@@ -208,13 +214,71 @@ CLEANFILES += $2\$(EXEEXT)
 EOF
 }
 
+mk_temp_dir() {
+    done=false
+    while ! ${done}; do
+        rand_suffix=$(od -An -N8 -tx /dev/urandom | tr -d ' ')
+        tmp_dir="${TMPDIR:-/tmp}/tmp.${rand_suffix}"
+        (umask 077 && mkdir "${tmp_dir}") && done=true
+    done
+    printf '%s' "${tmp_dir}"
+}
+
+write_ada_interfaces_am() {
+    echo "Generating FFIs and writing ada-interfaces.am"
+    set -e
+    source_dir="${PWD}"
+    ada_interfaces_am="${source_dir}/ada-interfaces.am"
+    ada_interfaces="$(mk_temp_dir)"
+    rm -f "${ada_interfaces_am}" 
+    (
+        cd "${ada_interfaces}"
+        includes="$(pkg-config --cflags fontconfig) \
+                  -I$(pkg-config --variable=includedir fontconfig) \
+                  $(pkg-config --cflags capypdf)"
+        c_headers="$(pkg-config --variable=includedir fontconfig)/fontconfig/fontconfig.h \
+                   $(pkg-config --variable=includedir capypdf)/capypdf-0/capypdf.h"
+        gcc ${includes} -fdump-ada-spec -c ${c_headers}
+        for f in *.ads; do
+          sed -e 's/^\([[:space:]]*\)function capy_dc_cmd_B\([^[:alpha:]]\)/\1function capy_dc_cmd_xB\2/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_Bstar\([^[:alpha:]]\)/\1function capy_dc_cmd_xBstar\2/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_Bstar\([^[:alpha:]]\)/\1function capy_dc_cmd_xBstar\2/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_G\([^[:alpha:]]\)/\1function capy_dc_cmd_xG\2/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_K\([^[:alpha:]]\)/\1function capy_dc_cmd_xK\2/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_Q\([^[:alpha:]]\)/\1function capy_dc_cmd_xQ\2/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_RG\([^[:alpha:]]\)/\1function capy_dc_cmd_xRG\2/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_S\([^[:alpha:]]\)/\1function capy_dc_cmd_xS\2/' \
+              -e 's/^\([[:space:]]*\)function capy_text_cmd_TD\([^[:alpha:]]\)/\1function capy_text_cmd_xTD\2/' \
+              -e 's/^\([[:space:]]*\)function capy_graphics_state_set_CA\([^[:alpha:]]\)/\1function capy_graphics_state_set_xCA\2/' \
+              -e 's/^\([[:space:]]*\)function capy_graphics_state_set_OP\([^[:alpha:]]\)/\1function capy_graphics_state_set_xOP\2/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_B$/\1function capy_dc_cmd_xB/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_Bstar$/\1function capy_dc_cmd_xBstar/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_Bstar$/\1function capy_dc_cmd_xBstar/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_G$/\1function capy_dc_cmd_xG/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_K$/\1function capy_dc_cmd_xK/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_Q$/\1function capy_dc_cmd_xQ/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_RG$/\1function capy_dc_cmd_xRG/' \
+              -e 's/^\([[:space:]]*\)function capy_dc_cmd_S$/\1function capy_dc_cmd_xS/' \
+              -e 's/^\([[:space:]]*\)function capy_text_cmd_TD$/\1function capy_text_cmd_xTD/' \
+              -e 's/^\([[:space:]]*\)function capy_graphics_state_set_CA$/\1function capy_graphics_state_set_xCA/' \
+              -e 's/^\([[:space:]]*\)function capy_graphics_state_set_OP$/\1function capy_graphics_state_set_xOP/' \
+              "${f}" > "${source_dir}"/"${f}"
+          printf "LIBIRIS_ADS_FILES += %s\n" "${f}" >> "${ada_interfaces_am}"
+        done
+    )
+    rm -R -f "${ada_interfaces}"
+}
+
 write_programs_am() {
     echo "Writing programs.am"
     rm -f programs.am
     touch programs.am
     while IFS= read -r args; do
-        echo "  write_ada_program ${args}"
-        write_ada_program ${args}
+        if printf "%s" "${args}" |
+                grep -q -E '^[[:space:]]*(bin|check)[[:space:]]'; then
+          echo "  write_ada_program ${args}"
+          write_ada_program ${args}
+        fi
     done < ada-programs.list
 }
 
@@ -223,6 +287,10 @@ write_programs_am() {
 (
     cd "${srcdir}"
 
+    require_pkg_config
+    require_gcc
+
+    write_ada_interfaces_am
     write_programs_am
 
     need_sortsmill_tig && require_sortsmill_tig

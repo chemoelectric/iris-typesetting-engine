@@ -10,6 +10,7 @@ ACLOCAL_AMFLAGS = -I m4 --install
 
 include inits.am
 include common-source-files.am
+include ada-interfaces.am
 include definitions.am
 include mk-includes.am
 include rules.am

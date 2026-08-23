@@ -106,55 +106,6 @@ CHEM_CONFIG_MAKEFILES
 AC_CONFIG_FILES([atconfig])
 AC_CONFIG_FILES([ls_r.adb])
 
-AC_CONFIG_COMMANDS([ada-interfaces],[
-  set -e
-  AS_MKDIR_P([ada-interfaces])
-  rm -f ada-interfaces.mk
-  touch ada-interfaces.mk
-  (cd ada-interfaces
-   ${ADA} ${ADAFLAGS} ${C_HDRS}
-   for f in *.ads; do
-     ${SED} -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_B\([[^[:alpha:]]]\)/\1function capy_dc_cmd_xB\2/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_Bstar\([[^[:alpha:]]]\)/\1function capy_dc_cmd_xBstar\2/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_Bstar\([[^[:alpha:]]]\)/\1function capy_dc_cmd_xBstar\2/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_G\([[^[:alpha:]]]\)/\1function capy_dc_cmd_xG\2/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_K\([[^[:alpha:]]]\)/\1function capy_dc_cmd_xK\2/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_Q\([[^[:alpha:]]]\)/\1function capy_dc_cmd_xQ\2/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_RG\([[^[:alpha:]]]\)/\1function capy_dc_cmd_xRG\2/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_S\([[^[:alpha:]]]\)/\1function capy_dc_cmd_xS\2/' \
-            -e 's/^\([[[:space:]]]*\)function capy_text_cmd_TD\([[^[:alpha:]]]\)/\1function capy_text_cmd_xTD\2/' \
-            -e 's/^\([[[:space:]]]*\)function capy_graphics_state_set_CA\([[^[:alpha:]]]\)/\1function capy_graphics_state_set_xCA\2/' \
-            -e 's/^\([[[:space:]]]*\)function capy_graphics_state_set_OP\([[^[:alpha:]]]\)/\1function capy_graphics_state_set_xOP\2/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_B$/\1function capy_dc_cmd_xB/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_Bstar$/\1function capy_dc_cmd_xBstar/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_Bstar$/\1function capy_dc_cmd_xBstar/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_G$/\1function capy_dc_cmd_xG/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_K$/\1function capy_dc_cmd_xK/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_Q$/\1function capy_dc_cmd_xQ/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_RG$/\1function capy_dc_cmd_xRG/' \
-            -e 's/^\([[[:space:]]]*\)function capy_dc_cmd_S$/\1function capy_dc_cmd_xS/' \
-            -e 's/^\([[[:space:]]]*\)function capy_text_cmd_TD$/\1function capy_text_cmd_xTD/' \
-            -e 's/^\([[[:space:]]]*\)function capy_graphics_state_set_CA$/\1function capy_graphics_state_set_xCA/' \
-            -e 's/^\([[[:space:]]]*\)function capy_graphics_state_set_OP$/\1function capy_graphics_state_set_xOP/' \
-            "${f}" > ../"${f}"
-     printf "nodist_libiris_la_SOURCES += %s\n" "${f}" >> ../ada-interfaces.mk
-     printf "libiris_la_LIBADD += %s\n" $(basename "${f}" .ads).lo >> ../ada-interfaces.mk
-     printf "libiris_la_DEPENDENCIES += %s\n" $(basename "${f}" .ads).lo >> ../ada-interfaces.mk
-     printf "libiris.la: %s\n" $(basename "${f}" .ads).lo >> ../ada-interfaces.mk
-   done)
-   rm -R -f ada-interfaces
-],[
-  SED="${SED}"
-  PKG_CONFIG="${PKG_CONFIG}"
-  ADA="${ADA}"
-  ADAFLAGS="$(${PKG_CONFIG} --cflags fontconfig) \
-            -I$(${PKG_CONFIG} --variable=includedir fontconfig) \
-            $(${PKG_CONFIG} --cflags capypdf) \
-            -fdump-ada-spec -c"
-  C_HDRS="$(${PKG_CONFIG} --variable=includedir fontconfig)/fontconfig/fontconfig.h \
-          $(${PKG_CONFIG} --variable=includedir capypdf)/capypdf-0/capypdf.h"
-])
-
 AC_CONFIG_COMMANDS([r7rs],[
   AS_MKDIR_P(["${r7rs_dst}"])
   (cd "${r7rs_src}" && tar cf - .) | (cd "${r7rs_dst}" && tar xf -)

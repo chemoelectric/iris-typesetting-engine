@@ -22,6 +22,22 @@
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
 
+#LIBIRIS_ADB_FILES += capypdf.adb
+#LIBIRIS_ADS_FILES += capypdf.ads
+#LIBIRIS_ADB_FILES += capypdf_tests.adb
+#LIBIRIS_ADS_FILES += capypdf_tests.ads
+
+#LIBIRIS_ADB_FILES += find_things.adb
+#LIBIRIS_ADS_FILES += find_things.ads
+
+#LIBIRIS_ADB_FILES += ls_r.adb
+#LIBIRIS_ADS_FILES += ls_r.ads
+
+#LIBIRIS_ADB_FILES += fontconfig_db.adb
+#LIBIRIS_ADS_FILES += fontconfig_db.ads
+
+#LIBIRIS_ADS_FILES += gauche_binding.ads
+
 #---------------------------------------------------------------------
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
@@ -124,9 +140,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = iris$(EXEEXT)
-check_PROGRAMS = test_capypdf$(EXEEXT) test_capypdf_2$(EXEEXT) \
-	test_gauche_binding$(EXEEXT) test_find_things$(EXEEXT) \
-	test_demo_q$(EXEEXT)
+check_PROGRAMS =
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -178,11 +192,10 @@ am__uninstall_files_from_dir = { \
        $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
   }
 LTLIBRARIES = $(lib_LTLIBRARIES)
+am__DEPENDENCIES_1 =
 am__objects_1 =
-am__objects_2 = gauche_runtime_init.lo gauche_c_macros.lo \
-	gauche_tkrzw.lo gauche_iris_db.lo
 am_libiris_la_OBJECTS = $(am__objects_1) $(am__objects_1) \
-	$(am__objects_2)
+	$(am__objects_1)
 nodist_libiris_la_OBJECTS =
 libiris_la_OBJECTS = $(am_libiris_la_OBJECTS) \
 	$(nodist_libiris_la_OBJECTS)
@@ -192,16 +205,6 @@ am__v_lt_0 = --silent
 am__v_lt_1 = 
 am_iris_OBJECTS =
 iris_OBJECTS = $(am_iris_OBJECTS)
-am_test_capypdf_OBJECTS =
-test_capypdf_OBJECTS = $(am_test_capypdf_OBJECTS)
-am_test_capypdf_2_OBJECTS =
-test_capypdf_2_OBJECTS = $(am_test_capypdf_2_OBJECTS)
-am_test_demo_q_OBJECTS =
-test_demo_q_OBJECTS = $(am_test_demo_q_OBJECTS)
-am_test_find_things_OBJECTS =
-test_find_things_OBJECTS = $(am_test_find_things_OBJECTS)
-am_test_gauche_binding_OBJECTS =
-test_gauche_binding_OBJECTS = $(am_test_gauche_binding_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -215,13 +218,6 @@ am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
 am__v_at_0 = @
 am__v_at_1 = 
 DEFAULT_INCLUDES = -I.@am__isrc@
-depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
-am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/gauche_c_macros.Plo \
-	./$(DEPDIR)/gauche_iris_db.Plo \
-	./$(DEPDIR)/gauche_runtime_init.Plo \
-	./$(DEPDIR)/gauche_tkrzw.Plo
-am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -241,13 +237,8 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libiris_la_SOURCES) $(nodist_libiris_la_SOURCES) \
-	$(iris_SOURCES) $(test_capypdf_SOURCES) \
-	$(test_capypdf_2_SOURCES) $(test_demo_q_SOURCES) \
-	$(test_find_things_SOURCES) $(test_gauche_binding_SOURCES)
-DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
-	$(test_capypdf_SOURCES) $(test_capypdf_2_SOURCES) \
-	$(test_demo_q_SOURCES) $(test_find_things_SOURCES) \
-	$(test_gauche_binding_SOURCES)
+	$(iris_SOURCES)
+DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -271,20 +262,19 @@ am__define_uniq_tagged_files = \
     if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
   done | $(am__uniquify_input)`
 AM_RECURSIVE_TARGETS = cscope
-am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/atconfig.in \
-	$(srcdir)/common-source-files.am $(srcdir)/definitions.am \
-	$(srcdir)/extra-dist.am $(srcdir)/inits.am \
-	$(srcdir)/libiris.am $(srcdir)/ls_r.adb.in \
+am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/ada-interfaces.am \
+	$(srcdir)/atconfig.in $(srcdir)/common-source-files.am \
+	$(srcdir)/definitions.am $(srcdir)/extra-dist.am \
+	$(srcdir)/inits.am $(srcdir)/libiris.am $(srcdir)/ls_r.adb.in \
 	$(srcdir)/mk-includes.am $(srcdir)/programs.am \
 	$(srcdir)/r7rs.am $(srcdir)/rules.am $(srcdir)/tests.am \
 	$(top_srcdir)/build-aux/compile \
 	$(top_srcdir)/build-aux/config.guess \
 	$(top_srcdir)/build-aux/config.sub \
-	$(top_srcdir)/build-aux/depcomp \
 	$(top_srcdir)/build-aux/install-sh \
 	$(top_srcdir)/build-aux/ltmain.sh \
 	$(top_srcdir)/build-aux/missing COPYING build-aux/compile \
-	build-aux/config.guess build-aux/config.sub build-aux/depcomp \
+	build-aux/config.guess build-aux/config.sub \
 	build-aux/install-sh build-aux/ltmain.sh build-aux/missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
@@ -452,14 +442,9 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4 --install
 DEP_FILES = $(LIBIRIS_ADB_FILES:%.adb=.deps/%.adbdep) \
-	$(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep) .deps/iris.adbdep \
-	.deps/test_capypdf.adbdep .deps/test_capypdf_2.adbdep \
-	.deps/test_gauche_binding.adbdep .deps/test_find_things.adbdep \
-	.deps/test_demo_q.adbdep
+	$(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep) .deps/iris.adbdep
 MOSTLYCLEANFILES = 
-CLEANFILES = iris$(EXEEXT) test_capypdf$(EXEEXT) \
-	test_capypdf_2$(EXEEXT) test_gauche_binding$(EXEEXT) \
-	test_find_things$(EXEEXT) test_demo_q$(EXEEXT)
+CLEANFILES = iris$(EXEEXT)
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
 EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
 	autogen.sh ada-programs.list r7rs/iris/db.sld r7rs/iris/db.md \
@@ -468,12 +453,21 @@ EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
 lib_LTLIBRARIES = libiris.la
 AM_ADAFLAGS = -gnat2022 -I$(call get-adainclude) -I$(builddir) \
 	-I$(srcdir)
-LIBIRIS_ADB_FILES = capypdf.adb capypdf_tests.adb find_things.adb \
-	ls_r.adb fontconfig_db.adb
-LIBIRIS_ADS_FILES = capypdf.ads capypdf_tests.ads find_things.ads \
-	ls_r.ads fontconfig_db.ads gauche_binding.ads
-LIBIRIS_C_FILES = gauche_runtime_init.c gauche_c_macros.c \
-	gauche_tkrzw.c gauche_iris_db.c
+LIBIRIS_ADB_FILES = 
+LIBIRIS_ADS_FILES = bits_atomic_wide_counter_h.ads bits_byteswap_h.ads \
+	bits_pthreadtypes_h.ads bits_stdint_intn_h.ads \
+	bits_stdint_least_h.ads bits_stdint_uintn_h.ads \
+	bits_struct_mutex_h.ads bits_struct_rwlock_h.ads \
+	bits_struct_stat_h.ads bits_thread_shared_types_h.ads \
+	bits_types_clockid_t_h.ads bits_types_clock_t_h.ads \
+	bits_types_h.ads bits_types_sigset_t_h.ads \
+	bits_types_struct_timespec_h.ads \
+	bits_types_struct_timeval_h.ads bits_types_timer_t_h.ads \
+	bits_types_time_t_h.ads bits_types_u_sigset_t_h.ads \
+	bits_uintn_identity_h.ads capypdf_0_capypdf_h.ads \
+	fontconfig_fontconfig_h.ads stdarg_h.ads stddef_h.ads \
+	stdint_h.ads sys_select_h.ads sys_stat_h.ads sys_types_h.ads
+LIBIRIS_C_FILES = 
 LIBIRIS_OBJEXT = 
 LIBIRIS_DEPENDS = 
 ADALD = $(ADA)
@@ -498,22 +492,6 @@ libiris_la_DEPENDENCIES = $(LIBIRIS_ADB_FILES:%.adb=%.lo) $(filter-out \
 iris_SOURCES = iris.adb
 iris_LDADD = .libs/iris.$(OBJEXT) libiris.la
 iris_DEPENDENCIES = iris.lo
-test_capypdf_SOURCES = test_capypdf.adb
-test_capypdf_LDADD = .libs/test_capypdf.$(OBJEXT) libiris.la
-test_capypdf_DEPENDENCIES = test_capypdf.lo
-test_capypdf_2_SOURCES = test_capypdf_2.adb
-test_capypdf_2_LDADD = .libs/test_capypdf_2.$(OBJEXT) libiris.la
-test_capypdf_2_DEPENDENCIES = test_capypdf_2.lo
-test_gauche_binding_SOURCES = test_gauche_binding.adb
-test_gauche_binding_LDADD = .libs/test_gauche_binding.$(OBJEXT) \
-	libiris.la
-test_gauche_binding_DEPENDENCIES = test_gauche_binding.lo
-test_find_things_SOURCES = test_find_things.adb
-test_find_things_LDADD = .libs/test_find_things.$(OBJEXT) libiris.la
-test_find_things_DEPENDENCIES = test_find_things.lo
-test_demo_q_SOURCES = test_demo_q.adb
-test_demo_q_LDADD = .libs/test_demo_q.$(OBJEXT) libiris.la
-test_demo_q_DEPENDENCIES = test_demo_q.lo
 AUTOM4TE = $(SHELL) $(srcdir)/build-aux/missing --run autom4te
 TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
 	$(srcdir)/testsuite.at
@@ -526,10 +504,9 @@ ALL_THE_CHECK_FLAGS = $(color-flag) $(jobs-flag) $(TESTSUITEFLAGS)
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .lo .o .obj
 am--refresh: GNUmakefile
 	@:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/inits.am $(srcdir)/common-source-files.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/libiris.am $(srcdir)/programs.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/extra-dist.am $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/inits.am $(srcdir)/common-source-files.am $(srcdir)/ada-interfaces.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/libiris.am $(srcdir)/programs.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/extra-dist.am $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -551,7 +528,7 @@ GNUmakefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__maybe_remake_depfiles)'; \
 	    cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__maybe_remake_depfiles);; \
 	esac;
-$(srcdir)/inits.am $(srcdir)/common-source-files.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/libiris.am $(srcdir)/programs.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/extra-dist.am $(am__empty):
+$(srcdir)/inits.am $(srcdir)/common-source-files.am $(srcdir)/ada-interfaces.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/libiris.am $(srcdir)/programs.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/extra-dist.am $(am__empty):
 
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
@@ -655,38 +632,6 @@ mostlyclean-compile:
 
 distclean-compile:
 	-rm -f *.tab.c
-
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_c_macros.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_iris_db.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_runtime_init.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gauche_tkrzw.Plo@am__quote@ # am--include-marker
-
-$(am__depfiles_remade):
-	@$(MKDIR_P) $(@D)
-	@: >>$@
-
-am--depfiles: $(am__depfiles_remade)
-
-.c.o:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
-
-.c.obj:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
-
-.c.lo:
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -986,10 +931,6 @@ clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -f ./$(DEPDIR)/gauche_c_macros.Plo
-	-rm -f ./$(DEPDIR)/gauche_iris_db.Plo
-	-rm -f ./$(DEPDIR)/gauche_runtime_init.Plo
-	-rm -f ./$(DEPDIR)/gauche_tkrzw.Plo
 	-rm -f GNUmakefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-libtool distclean-local distclean-tags
@@ -1037,10 +978,6 @@ installcheck-am: installcheck-local
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -f ./$(DEPDIR)/gauche_c_macros.Plo
-	-rm -f ./$(DEPDIR)/gauche_iris_db.Plo
-	-rm -f ./$(DEPDIR)/gauche_runtime_init.Plo
-	-rm -f ./$(DEPDIR)/gauche_tkrzw.Plo
 	-rm -f GNUmakefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -1062,26 +999,26 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES \
 
 .MAKE: check-am install-am install-strip
 
-.PHONY: CTAGS GTAGS TAGS all all-am am--depfiles am--refresh check \
-	check-am check-local clean clean-binPROGRAMS \
-	clean-checkPROGRAMS clean-cscope clean-generic \
-	clean-libLTLIBRARIES clean-libtool clean-local cscope \
-	cscopelist-am ctags ctags-am dist dist-all dist-bzip2 \
-	dist-bzip3 dist-gzip dist-lzip dist-shar dist-tarZ dist-xz \
-	dist-zip dist-zstd distcheck distclean distclean-compile \
-	distclean-generic distclean-libtool distclean-local \
-	distclean-tags distcleancheck distdir distuninstallcheck dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-binPROGRAMS install-data install-data-am \
-	install-data-local install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-libLTLIBRARIES install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installcheck-local installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-libLTLIBRARIES uninstall-local
+.PHONY: CTAGS GTAGS TAGS all all-am am--refresh check check-am \
+	check-local clean clean-binPROGRAMS clean-checkPROGRAMS \
+	clean-cscope clean-generic clean-libLTLIBRARIES clean-libtool \
+	clean-local cscope cscopelist-am ctags ctags-am dist dist-all \
+	dist-bzip2 dist-bzip3 dist-gzip dist-lzip dist-shar dist-tarZ \
+	dist-xz dist-zip dist-zstd distcheck distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-local distclean-tags distcleancheck distdir \
+	distuninstallcheck dvi dvi-am html html-am info info-am \
+	install install-am install-binPROGRAMS install-data \
+	install-data-am install-data-local install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-libLTLIBRARIES \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installcheck-local installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-libLTLIBRARIES uninstall-local
 
 .PRECIOUS: GNUmakefile
 
@@ -1093,6 +1030,11 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES \
 # coding: utf-8
 # tab-width: 4
 # end:
+
+#LIBIRIS_C_FILES += gauche_runtime_init.c
+#LIBIRIS_C_FILES += gauche_c_macros.c
+#LIBIRIS_C_FILES += gauche_tkrzw.c
+#LIBIRIS_C_FILES += gauche_iris_db.c
 
 @GNU@define get-adainclude
 @GNU@$(shell $(ADA) --print-file-name=adainclude)
@@ -1173,29 +1115,12 @@ distclean-local::
 # tab-width: 4
 # end:
 
-@GNU@include ada-interfaces.mk
-
 #---------------------------------------------------------------------
 # local variables:
 # coding: utf-8
 # tab-width: 4
 # end:
 iris$(EXEEXT): iris.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
-
-test_capypdf$(EXEEXT): test_capypdf.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
-
-test_capypdf_2$(EXEEXT): test_capypdf_2.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
-
-test_gauche_binding$(EXEEXT): test_gauche_binding.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
-
-test_find_things$(EXEEXT): test_find_things.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
-
-test_demo_q$(EXEEXT): test_demo_q.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 distclean-local::

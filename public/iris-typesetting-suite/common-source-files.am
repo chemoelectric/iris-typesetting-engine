@@ -1,20 +1,20 @@
-LIBIRIS_ADB_FILES += capypdf.adb
-LIBIRIS_ADS_FILES += capypdf.ads
-LIBIRIS_ADB_FILES += capypdf_tests.adb
-LIBIRIS_ADS_FILES += capypdf_tests.ads
+#LIBIRIS_ADB_FILES += capypdf.adb
+#LIBIRIS_ADS_FILES += capypdf.ads
+#LIBIRIS_ADB_FILES += capypdf_tests.adb
+#LIBIRIS_ADS_FILES += capypdf_tests.ads
 
-LIBIRIS_ADB_FILES += find_things.adb
-LIBIRIS_ADS_FILES += find_things.ads
+#LIBIRIS_ADB_FILES += find_things.adb
+#LIBIRIS_ADS_FILES += find_things.ads
 
-LIBIRIS_ADB_FILES += ls_r.adb
-LIBIRIS_ADS_FILES += ls_r.ads
+#LIBIRIS_ADB_FILES += ls_r.adb
+#LIBIRIS_ADS_FILES += ls_r.ads
 
-LIBIRIS_ADB_FILES += fontconfig_db.adb
-LIBIRIS_ADS_FILES += fontconfig_db.ads
+#LIBIRIS_ADB_FILES += fontconfig_db.adb
+#LIBIRIS_ADS_FILES += fontconfig_db.ads
 
-LIBIRIS_ADS_FILES += gauche_binding.ads
+#LIBIRIS_ADS_FILES += gauche_binding.ads
 
-LIBIRIS_C_FILES += gauche_runtime_init.c
-LIBIRIS_C_FILES += gauche_c_macros.c
-LIBIRIS_C_FILES += gauche_tkrzw.c
-LIBIRIS_C_FILES += gauche_iris_db.c
+#LIBIRIS_C_FILES += gauche_runtime_init.c
+#LIBIRIS_C_FILES += gauche_c_macros.c
+#LIBIRIS_C_FILES += gauche_tkrzw.c
+#LIBIRIS_C_FILES += gauche_iris_db.c
