@@ -8,7 +8,7 @@ with Interfaces.C.Extensions;
 
 package bits_atomic_wide_counter_h is
 
-   type anon_struct1205 is record
+   type anon_struct1236 is record
       uu_low : aliased unsigned;  -- /usr/local/include/bits/atomic_wide_counter.h:30
       uu_high : aliased unsigned;  -- /usr/local/include/bits/atomic_wide_counter.h:31
    end record
@@ -18,7 +18,7 @@ package bits_atomic_wide_counter_h is
          when 0 =>
             uu_value64 : aliased Extensions.unsigned_long_long;  -- /usr/local/include/bits/atomic_wide_counter.h:27
          when others =>
-            uu_value32 : aliased anon_struct1205;  -- /usr/local/include/bits/atomic_wide_counter.h:32
+            uu_value32 : aliased anon_struct1236;  -- /usr/local/include/bits/atomic_wide_counter.h:32
       end case;
    end record
    with Convention => C_Pass_By_Copy,

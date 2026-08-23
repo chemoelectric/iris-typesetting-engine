@@ -24,6 +24,20 @@ package sys_types_h is
 
    subtype loff_t is bits_types_h.uu_loff_t;  -- /usr/local/include/sys/types.h:42
 
+   subtype ino_t is bits_types_h.uu_ino_t;  -- /usr/local/include/sys/types.h:47
+
+   subtype dev_t is bits_types_h.uu_dev_t;  -- /usr/local/include/sys/types.h:59
+
+   subtype gid_t is bits_types_h.uu_gid_t;  -- /usr/local/include/sys/types.h:64
+
+   subtype mode_t is bits_types_h.uu_mode_t;  -- /usr/local/include/sys/types.h:69
+
+   subtype nlink_t is bits_types_h.uu_nlink_t;  -- /usr/local/include/sys/types.h:74
+
+   subtype uid_t is bits_types_h.uu_uid_t;  -- /usr/local/include/sys/types.h:79
+
+   subtype off_t is bits_types_h.uu_off_t;  -- /usr/local/include/sys/types.h:85
+
    subtype pid_t is bits_types_h.uu_pid_t;  -- /usr/local/include/sys/types.h:97
 
    subtype id_t is bits_types_h.uu_id_t;  -- /usr/local/include/sys/types.h:103

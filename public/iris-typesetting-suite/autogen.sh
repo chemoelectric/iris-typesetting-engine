@@ -136,8 +136,7 @@ require_pkg_config() {
 
 require_gcc() {
     require_command gcc \
-        'http://gcc.gnu.org' \
-        'Ada support is needed.'
+        'http://gcc.gnu.org'
 }
 
 require_gnulib_tool() {
@@ -233,11 +232,16 @@ write_ada_interfaces_am() {
     rm -f "${ada_interfaces_am}" 
     (
         cd "${ada_interfaces}"
-        includes="$(pkg-config --cflags fontconfig) \
-                  -I$(pkg-config --variable=includedir fontconfig) \
-                  $(pkg-config --cflags capypdf)"
-        c_headers="$(pkg-config --variable=includedir fontconfig)/fontconfig/fontconfig.h \
-                   $(pkg-config --variable=includedir capypdf)/capypdf-0/capypdf.h"
+        includes="\
+          $(pkg-config --cflags fontconfig) \
+          $(pkg-config --cflags capypdf) \
+          $(pkg-config --cflags tkrzw) \
+          "
+        c_headers="\
+          $(pkg-config --variable=includedir fontconfig)/fontconfig/fontconfig.h \
+          $(pkg-config --variable=includedir capypdf)/capypdf-0/capypdf.h \
+          $(pkg-config --variable=includedir tkrzw)/tkrzw_langc.h \
+          "
         gcc ${includes} -fdump-ada-spec -c ${c_headers}
         for f in *.ads; do
           sed -e 's/^\([[:space:]]*\)function capy_dc_cmd_B\([^[:alpha:]]\)/\1function capy_dc_cmd_xB\2/' \
@@ -264,6 +268,8 @@ write_ada_interfaces_am() {
               -e 's/^\([[:space:]]*\)function capy_graphics_state_set_OP$/\1function capy_graphics_state_set_xOP/' \
               "${f}" > "${source_dir}"/"${f}"
           printf "LIBIRIS_ADS_FILES += %s\n" "${f}" >> "${ada_interfaces_am}"
+          printf 'extremelyclean:: ; -rm -f $(srcdir)/%s\n' "${f}" >> "${ada_interfaces_am}"
+          printf '\n' >> "${ada_interfaces_am}"
         done
     )
     rm -R -f "${ada_interfaces}"

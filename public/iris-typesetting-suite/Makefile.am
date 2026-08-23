@@ -6,6 +6,9 @@
 
 ACLOCAL_AMFLAGS = -I m4 --install
 
+.PHONY: extremelyclean
+extremelyclean:: distclean
+
 #---------------------------------------------------------------------
 
 include inits.am

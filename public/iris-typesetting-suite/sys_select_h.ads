@@ -25,9 +25,9 @@ package sys_select_h is
 
    subtype uu_fd_mask is long;  -- /usr/local/include/sys/select.h:49
 
-   type anon_array1179 is array (0 .. 15) of aliased uu_fd_mask;
+   type anon_array1208 is array (0 .. 15) of aliased uu_fd_mask;
    type fd_set is record
-      uu_fds_bits : aliased anon_array1179;  -- /usr/local/include/sys/select.h:67
+      uu_fds_bits : aliased anon_array1208;  -- /usr/local/include/sys/select.h:67
    end record
    with Convention => C_Pass_By_Copy;  -- /usr/local/include/sys/select.h:70
 

@@ -1,0 +1,93 @@
+LIBIRIS_ADS_FILES += alloca_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/alloca_h.ads
+
+LIBIRIS_ADS_FILES += bits_atomic_wide_counter_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_atomic_wide_counter_h.ads
+
+LIBIRIS_ADS_FILES += bits_byteswap_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_byteswap_h.ads
+
+LIBIRIS_ADS_FILES += bits_pthreadtypes_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_pthreadtypes_h.ads
+
+LIBIRIS_ADS_FILES += bits_stdint_intn_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_stdint_intn_h.ads
+
+LIBIRIS_ADS_FILES += bits_stdint_least_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_stdint_least_h.ads
+
+LIBIRIS_ADS_FILES += bits_stdint_uintn_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_stdint_uintn_h.ads
+
+LIBIRIS_ADS_FILES += bits_struct_mutex_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_struct_mutex_h.ads
+
+LIBIRIS_ADS_FILES += bits_struct_rwlock_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_struct_rwlock_h.ads
+
+LIBIRIS_ADS_FILES += bits_struct_stat_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_struct_stat_h.ads
+
+LIBIRIS_ADS_FILES += bits_thread_shared_types_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_thread_shared_types_h.ads
+
+LIBIRIS_ADS_FILES += bits_types_clockid_t_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_clockid_t_h.ads
+
+LIBIRIS_ADS_FILES += bits_types_clock_t_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_clock_t_h.ads
+
+LIBIRIS_ADS_FILES += bits_types_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_h.ads
+
+LIBIRIS_ADS_FILES += bits_types_sigset_t_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_sigset_t_h.ads
+
+LIBIRIS_ADS_FILES += bits_types_struct_timespec_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_struct_timespec_h.ads
+
+LIBIRIS_ADS_FILES += bits_types_struct_timeval_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_struct_timeval_h.ads
+
+LIBIRIS_ADS_FILES += bits_types_timer_t_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_timer_t_h.ads
+
+LIBIRIS_ADS_FILES += bits_types_time_t_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_time_t_h.ads
+
+LIBIRIS_ADS_FILES += bits_types_u_sigset_t_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_u_sigset_t_h.ads
+
+LIBIRIS_ADS_FILES += bits_uintn_identity_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_uintn_identity_h.ads
+
+LIBIRIS_ADS_FILES += capypdf_0_capypdf_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/capypdf_0_capypdf_h.ads
+
+LIBIRIS_ADS_FILES += fontconfig_fontconfig_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/fontconfig_fontconfig_h.ads
+
+LIBIRIS_ADS_FILES += stdarg_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/stdarg_h.ads
+
+LIBIRIS_ADS_FILES += stddef_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/stddef_h.ads
+
+LIBIRIS_ADS_FILES += stdint_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/stdint_h.ads
+
+LIBIRIS_ADS_FILES += stdlib_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/stdlib_h.ads
+
+LIBIRIS_ADS_FILES += sys_select_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/sys_select_h.ads
+
+LIBIRIS_ADS_FILES += sys_stat_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/sys_stat_h.ads
+
+LIBIRIS_ADS_FILES += sys_types_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/sys_types_h.ads
+
+LIBIRIS_ADS_FILES += tkrzw_langc_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/tkrzw_langc_h.ads
+

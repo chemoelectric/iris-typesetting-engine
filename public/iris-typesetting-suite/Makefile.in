@@ -454,19 +454,20 @@ lib_LTLIBRARIES = libiris.la
 AM_ADAFLAGS = -gnat2022 -I$(call get-adainclude) -I$(builddir) \
 	-I$(srcdir)
 LIBIRIS_ADB_FILES = 
-LIBIRIS_ADS_FILES = bits_atomic_wide_counter_h.ads bits_byteswap_h.ads \
-	bits_pthreadtypes_h.ads bits_stdint_intn_h.ads \
-	bits_stdint_least_h.ads bits_stdint_uintn_h.ads \
-	bits_struct_mutex_h.ads bits_struct_rwlock_h.ads \
-	bits_struct_stat_h.ads bits_thread_shared_types_h.ads \
-	bits_types_clockid_t_h.ads bits_types_clock_t_h.ads \
-	bits_types_h.ads bits_types_sigset_t_h.ads \
-	bits_types_struct_timespec_h.ads \
+LIBIRIS_ADS_FILES = alloca_h.ads bits_atomic_wide_counter_h.ads \
+	bits_byteswap_h.ads bits_pthreadtypes_h.ads \
+	bits_stdint_intn_h.ads bits_stdint_least_h.ads \
+	bits_stdint_uintn_h.ads bits_struct_mutex_h.ads \
+	bits_struct_rwlock_h.ads bits_struct_stat_h.ads \
+	bits_thread_shared_types_h.ads bits_types_clockid_t_h.ads \
+	bits_types_clock_t_h.ads bits_types_h.ads \
+	bits_types_sigset_t_h.ads bits_types_struct_timespec_h.ads \
 	bits_types_struct_timeval_h.ads bits_types_timer_t_h.ads \
 	bits_types_time_t_h.ads bits_types_u_sigset_t_h.ads \
 	bits_uintn_identity_h.ads capypdf_0_capypdf_h.ads \
 	fontconfig_fontconfig_h.ads stdarg_h.ads stddef_h.ads \
-	stdint_h.ads sys_select_h.ads sys_stat_h.ads sys_types_h.ads
+	stdint_h.ads stdlib_h.ads sys_select_h.ads sys_stat_h.ads \
+	sys_types_h.ads tkrzw_langc_h.ads
 LIBIRIS_C_FILES = 
 LIBIRIS_OBJEXT = 
 LIBIRIS_DEPENDS = 
@@ -1025,6 +1026,9 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES \
 
 .DELETE_ON_ERROR:
 
+.PHONY: extremelyclean
+extremelyclean:: distclean
+
 #---------------------------------------------------------------------
 # local variables:
 # coding: utf-8
@@ -1035,6 +1039,37 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES \
 #LIBIRIS_C_FILES += gauche_c_macros.c
 #LIBIRIS_C_FILES += gauche_tkrzw.c
 #LIBIRIS_C_FILES += gauche_iris_db.c
+extremelyclean:: ; -rm -f $(srcdir)/alloca_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_atomic_wide_counter_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_byteswap_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_pthreadtypes_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_stdint_intn_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_stdint_least_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_stdint_uintn_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_struct_mutex_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_struct_rwlock_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_struct_stat_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_thread_shared_types_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_clockid_t_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_clock_t_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_sigset_t_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_struct_timespec_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_struct_timeval_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_timer_t_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_time_t_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_types_u_sigset_t_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/bits_uintn_identity_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/capypdf_0_capypdf_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/fontconfig_fontconfig_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/stdarg_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/stddef_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/stdint_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/stdlib_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/sys_select_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/sys_stat_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/sys_types_h.ads
+extremelyclean:: ; -rm -f $(srcdir)/tkrzw_langc_h.ads
 
 @GNU@define get-adainclude
 @GNU@$(shell $(ADA) --print-file-name=adainclude)
