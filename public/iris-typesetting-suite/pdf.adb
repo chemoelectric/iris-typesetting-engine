@@ -188,6 +188,70 @@ package body pdf is
    end set_tagged;
 
    ---------------------------------------------------------------------
+   --
+   -- pdf_page_properties
+   --
+
+   --
+   procedure require_open (properties : in pdf_page_properties) is
+   begin
+      if not properties.is_open then
+         raise pdf_error
+           with "attempt to use a closed pdf_page_properties";
+      end if;
+   end require_open;
+
+   --
+   procedure open (properties : in out pdf_page_properties) is
+      err       : capypdf_ec;
+      pageprops : aliased access capypdf_pageproperties;
+   begin
+      --
+      -- It is allowed to “open” an already opened properties.
+      --
+      if not properties.is_open then
+         err := capy_page_properties_new (pageprops'address);
+         if err = 0 then
+            properties.is_open := true;
+            properties.pageprops := pageprops;
+         else
+            raise pdf_error with "error opening pdf_page_properties";
+         end if;
+      end if;
+   end open;
+
+   --
+
+   procedure close (properties : in out pdf_page_properties) is
+      err : capypdf_ec;
+   begin
+      --
+      -- It is allowed to “close” an already closed properties.
+      --
+      if properties.is_open then
+         err := capy_page_properties_destroy (properties.pageprops);
+         if err = 0 then
+            properties.is_open := false;
+         else
+            raise pdf_error with "error closing pdf_page_properties";
+         end if;
+      end if;
+   end close;
+
+   overriding
+   procedure finalize (properties : in out pdf_page_properties) is
+   begin
+      properties.close;
+   end finalize;
+
+   --
+   function is_open (properties : in pdf_page_properties) return boolean
+   is
+   begin
+      return properties.is_open;
+   end is_open;
+
+   ---------------------------------------------------------------------
 
 end pdf;
 

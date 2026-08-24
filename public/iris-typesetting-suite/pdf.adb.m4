@@ -36,6 +36,16 @@ package body pdf is
    -- m4_pdf_set_boolean(document_properties, tagged)
 
    ---------------------------------------------------------------------
+   --
+   -- pdf_page_properties
+   --
+
+   -- m4_pdf_require_open(page_properties)
+   -- m4_pdf_open(page_properties)
+   -- m4_pdf_close_and_finalize(page_properties)
+   -- m4_pdf_is_open(page_properties)
+
+   ---------------------------------------------------------------------
 
 end pdf;
 

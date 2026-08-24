@@ -30,10 +30,10 @@ package pdf is
      (properties : in out pdf_document_properties;
       is_tagged  : in boolean);
 
---   type pdf_page_properties is new limited_controlled with private;
---   procedure open (properties : in out pdf_page_properties);
---   procedure close (properties : in out pdf_page_properties);
---   function is_open (properties : in pdf_page_properties) return boolean;
+   type pdf_page_properties is new limited_controlled with private;
+   procedure open (properties : in out pdf_page_properties);
+   procedure close (properties : in out pdf_page_properties);
+   function is_open (properties : in pdf_page_properties) return boolean;
 
 private
 
@@ -46,11 +46,11 @@ private
    overriding
    procedure finalize (properties : in out pdf_document_properties);
 
---   type pdf_page_properties is new limited_controlled with record
---      is_open  : boolean := false;
---      pageprops : access capypdf_pageproperties;
---   end record;
---   overriding
---   procedure finalize (properties : in out pdf_page_properties);
+   type pdf_page_properties is new limited_controlled with record
+      is_open  : boolean := false;
+      pageprops : access capypdf_pageproperties;
+   end record;
+   overriding
+   procedure finalize (properties : in out pdf_page_properties);
 
 end pdf;
