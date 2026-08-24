@@ -31,10 +31,6 @@ package pdf is
       pdf_page_box_art   => capypdf_page_box'enum_rep (capy_box_art));
 
    type pdf_page_properties is new limited_controlled with private;
-   procedure open (properties : in out pdf_page_properties);
-   procedure close (properties : in out pdf_page_properties);
-   function is_open
-     (properties : in pdf_page_properties) return boolean;
    procedure set_page_box
      (properties : in out pdf_page_properties;
       box_type   : in pdf_page_box_type;
@@ -42,10 +38,6 @@ package pdf is
       x2, y2     : in double);
 
    type pdf_document_properties is new limited_controlled with private;
-   procedure open (properties : in out pdf_document_properties);
-   procedure close (properties : in out pdf_document_properties);
-   function is_open
-     (properties : in pdf_document_properties) return boolean;
    procedure set_title
      (properties : in out pdf_document_properties; title : in string);
    procedure set_author
@@ -62,16 +54,16 @@ package pdf is
 private
 
    type pdf_page_properties is new limited_controlled with record
-      is_open   : boolean := false;
       pageprops : access capypdf_pageproperties;
    end record;
+   procedure initialize (properties : in out pdf_page_properties);
    overriding
    procedure finalize (properties : in out pdf_page_properties);
 
    type pdf_document_properties is new limited_controlled with record
-      is_open  : boolean := false;
       docprops : access capypdf_documentproperties;
    end record;
+   procedure initialize (properties : in out pdf_document_properties);
    overriding
    procedure finalize (properties : in out pdf_document_properties);
 

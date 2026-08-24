@@ -26,10 +26,8 @@ package body pdf is
    -- pdf_page_properties
    --
 
-   -- m4_pdf_require_open(page_properties)
-   -- m4_pdf_open(page_properties)
-   -- m4_pdf_close_and_finalize(page_properties)
-   -- m4_pdf_is_open(page_properties)
+   -- m4_pdf_initialize(page_properties)
+   -- m4_pdf_finalize(page_properties)
 
    procedure set_page_box
      (properties : in out pdf_page_properties;
@@ -39,7 +37,6 @@ package body pdf is
    is
       err : capypdf_ec;
    begin
-      properties.require_open;
       err :=
         capy_page_properties_set_pagebox
           (properties.pageprops,
@@ -56,10 +53,9 @@ package body pdf is
    -- pdf_document_properties
    --
 
-   -- m4_pdf_require_open(document_properties)
-   -- m4_pdf_open(document_properties)
-   -- m4_pdf_close_and_finalize(document_properties)
-   -- m4_pdf_is_open(document_properties)
+   -- m4_pdf_initialize(document_properties)
+   -- m4_pdf_finalize(document_properties)
+
    -- m4_pdf_set_string(document_properties, title)
    -- m4_pdf_set_string(document_properties, author)
    -- m4_pdf_set_string(document_properties, creator)
@@ -71,11 +67,6 @@ package body pdf is
    is
       err : capypdf_ec;
    begin
-      properties.require_open;
-      if not page_properties.is_open then
-         raise pdf_error with
-           "attempt to set unopened default page properties";
-      end if;
       err :=
         capy_document_properties_set_default_page_properties
           (properties.docprops, page_properties.pageprops);
