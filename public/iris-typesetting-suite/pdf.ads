@@ -1,8 +1,10 @@
+------------------------------------------------------------------------
 --
 -- SPDX-License-Identifier: MIT
 --
 -- A wrapper around the CapyPDF FFI.
 --
+------------------------------------------------------------------------
 
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
@@ -15,8 +17,13 @@ package pdf is
    pdf_error : exception;
 
    type pdf_document_properties is new limited_controlled with private;
-   procedure open (object : in out pdf_document_properties);
-   procedure close (object : in out pdf_document_properties);
+   procedure open (properties : in out pdf_document_properties);
+   procedure close (properties : in out pdf_document_properties);
+   procedure set_title
+     (properties : in out pdf_document_properties; title : in string);
+   procedure set_tagged
+     (properties : in out pdf_document_properties;
+      is_tagged  : in boolean);
 
 private
 
@@ -28,6 +35,6 @@ private
    end record;
 
    overriding
-   procedure finalize (object : in out pdf_document_properties);
+   procedure finalize (properties : in out pdf_document_properties);
 
 end pdf;

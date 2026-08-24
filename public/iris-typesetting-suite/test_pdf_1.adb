@@ -9,9 +9,11 @@ procedure test_pdf_1 is
 
    use pdf;
 
-   docprops : pdf_document_properties;
+   properties : pdf_document_properties;
 
 begin
-   docprops.open;
+   properties.open;
+   properties.set_title ("document");
+   properties.set_tagged (false);
+   properties.close;
 end test_pdf_1;
-
