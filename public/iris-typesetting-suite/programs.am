@@ -13,18 +13,18 @@ iris_DEPENDENCIES += iris.lo
 DEP_FILES += .deps/iris.adbdep
 CLEANFILES += iris$(EXEEXT)
 
-test_capypdf_1$(EXEEXT): test_capypdf_1.lo libiris.la
+test_pdf_1$(EXEEXT): test_pdf_1.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
-check_PROGRAMS += test_capypdf_1
-test_capypdf_1_SOURCES =
-test_capypdf_1_SOURCES += test_capypdf_1.adb
-test_capypdf_1_LDADD =
-test_capypdf_1_LDADD += .libs/test_capypdf_1.$(OBJEXT)
-test_capypdf_1_LDADD += libiris.la
-test_capypdf_1_DEPENDENCIES =
-test_capypdf_1_DEPENDENCIES += test_capypdf_1.lo
+check_PROGRAMS += test_pdf_1
+test_pdf_1_SOURCES =
+test_pdf_1_SOURCES += test_pdf_1.adb
+test_pdf_1_LDADD =
+test_pdf_1_LDADD += .libs/test_pdf_1.$(OBJEXT)
+test_pdf_1_LDADD += libiris.la
+test_pdf_1_DEPENDENCIES =
+test_pdf_1_DEPENDENCIES += test_pdf_1.lo
 
-DEP_FILES += .deps/test_capypdf_1.adbdep
-CLEANFILES += test_capypdf_1$(EXEEXT)
+DEP_FILES += .deps/test_pdf_1.adbdep
+CLEANFILES += test_pdf_1$(EXEEXT)
 

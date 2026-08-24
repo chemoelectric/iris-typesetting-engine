@@ -3,15 +3,15 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
-with capypdf_document_properties;
+with pdf;
 
-procedure test_capypdf_1 is
+procedure test_pdf_1 is
 
-   use capypdf_document_properties;
+   use pdf;
 
    docprops : pdf_document_properties;
 
 begin
    docprops.open;
-end test_capypdf_1;
+end test_pdf_1;
 

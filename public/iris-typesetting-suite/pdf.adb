@@ -1,12 +1,7 @@
+--
 -- SPDX-License-Identifier: MIT
 --
--- A wrapper around
---
---   capy_document_properties_new
---
---   capy_document_properties_destroy
---
--- and various document properties functionalities of CapyPDF.
+-- A wrapper around the CapyPDF FFI.
 --
 
 pragma wide_character_encoding (utf8);
@@ -15,7 +10,7 @@ pragma ada_2022;
 with interfaces.c;
 with capypdf_0_capypdf_h;
 
-package body capypdf_document_properties is
+package body pdf is
 
    use interfaces.c;
    use capypdf_0_capypdf_h;
@@ -33,8 +28,8 @@ package body capypdf_document_properties is
             object.is_open := true;
             object.docprops := docprops;
          else
-            raise pdf_document_properties_error
-            with "error opening pdf_document_properties";
+            raise pdf_error
+              with "error opening pdf_document_properties";
          end if;
       end if;
    end open;
@@ -50,7 +45,7 @@ package body capypdf_document_properties is
          if err = 0 then
             object.is_open := false;
          else
-            raise pdf_document_properties_error
+            raise pdf_error
               with "error closing pdf_document_properties";
          end if;
       end if;
@@ -62,4 +57,4 @@ package body capypdf_document_properties is
       object.close;
    end finalize;
 
-end capypdf_document_properties;
+end pdf;
