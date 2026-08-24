@@ -288,6 +288,17 @@ write_programs_am() {
     done < ada-programs.list
 }
 
+expand_m4() {
+    printf 'm4 %s.prelude.m4 %s.m4 > %s' "$1" "$1" "$1"
+    m4 "$1".prelude.m4 "$1".m4 > "$1"
+    if command -v gnatformat > /dev/null; then
+        printf '; gnatformat -w 72 --charset utf-8 %s\n' "$1"
+        gnatformat -w 72 --charset utf-8 "$1"
+    else
+        printf '\n'
+    fi
+}
+
 # Run everything in a subshell, so the user does not get stuck in a
 # new directory if the process is interrupted.
 (
@@ -298,6 +309,8 @@ write_programs_am() {
 
     write_ada_interfaces_am
     write_programs_am
+
+    expand_m4 pdf.adb
 
     need_sortsmill_tig && require_sortsmill_tig
     need_pkg_config && require_pkg_config

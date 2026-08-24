@@ -26,6 +26,7 @@ package body pdf is
    -- pdf_document_properties
    --
 
+   --
    procedure require_open (properties : in pdf_document_properties) is
    begin
       if not properties.is_open then
@@ -34,6 +35,7 @@ package body pdf is
       end if;
    end require_open;
 
+   --
    procedure open (properties : in out pdf_document_properties) is
       err      : capypdf_ec;
       docprops : aliased access capypdf_documentproperties;
@@ -53,6 +55,8 @@ package body pdf is
       end if;
    end open;
 
+   --
+
    procedure close (properties : in out pdf_document_properties) is
       err : capypdf_ec;
    begin
@@ -70,6 +74,20 @@ package body pdf is
       end if;
    end close;
 
+   overriding
+   procedure finalize (properties : in out pdf_document_properties) is
+   begin
+      properties.close;
+   end finalize;
+
+   --
+   function is_open
+     (properties : in pdf_document_properties) return boolean is
+   begin
+      return properties.is_open;
+   end is_open;
+
+   --
    procedure set_title
      (properties : in out pdf_document_properties; title : in string)
    is
@@ -83,6 +101,10 @@ package body pdf is
       err :=
         capy_document_properties_set_title
           (properties.docprops, s, int32_t (n));
+      if err /= 0 then
+         free (s);
+         raise pdf_error with "pdf_document_properties.set_title error";
+      end if;
       free (s);
    exception
       when others =>
@@ -92,6 +114,63 @@ package body pdf is
          raise;
    end set_title;
 
+   --
+   procedure set_author
+     (properties : in out pdf_document_properties; author : in string)
+   is
+      err : capypdf_ec;
+      s   : chars_ptr;
+      n   : size_t;
+   begin
+      properties.require_open;
+      s := new_string (author);
+      n := strlen (s);
+      err :=
+        capy_document_properties_set_author
+          (properties.docprops, s, int32_t (n));
+      if err /= 0 then
+         free (s);
+         raise pdf_error
+           with "pdf_document_properties.set_author error";
+      end if;
+      free (s);
+   exception
+      when others =>
+         if s /= null_ptr then
+            free (s);
+         end if;
+         raise;
+   end set_author;
+
+   --
+   procedure set_creator
+     (properties : in out pdf_document_properties; creator : in string)
+   is
+      err : capypdf_ec;
+      s   : chars_ptr;
+      n   : size_t;
+   begin
+      properties.require_open;
+      s := new_string (creator);
+      n := strlen (s);
+      err :=
+        capy_document_properties_set_creator
+          (properties.docprops, s, int32_t (n));
+      if err /= 0 then
+         free (s);
+         raise pdf_error
+           with "pdf_document_properties.set_creator error";
+      end if;
+      free (s);
+   exception
+      when others =>
+         if s /= null_ptr then
+            free (s);
+         end if;
+         raise;
+   end set_creator;
+
+   --
    procedure set_tagged
      (properties : in out pdf_document_properties;
       is_tagged  : in boolean)
@@ -108,12 +187,10 @@ package body pdf is
       end if;
    end set_tagged;
 
-   overriding
-   procedure finalize (properties : in out pdf_document_properties) is
-   begin
-      properties.close;
-   end finalize;
-
    ---------------------------------------------------------------------
 
 end pdf;
+
+-- local variables:
+-- mode: ada
+-- end:

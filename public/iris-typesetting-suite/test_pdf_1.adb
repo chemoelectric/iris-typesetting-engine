@@ -13,7 +13,8 @@ procedure test_pdf_1 is
 
 begin
    properties.open;
-   properties.set_title ("document");
-   properties.set_tagged (false);
+   properties.set_title (title => "title");
+   properties.set_author (author => "author");
+   properties.set_tagged (is_tagged => false);
    properties.close;
 end test_pdf_1;
