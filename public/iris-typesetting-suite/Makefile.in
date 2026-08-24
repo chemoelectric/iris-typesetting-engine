@@ -22,22 +22,6 @@
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
 
-#LIBIRIS_ADB_FILES += capypdf.adb
-#LIBIRIS_ADS_FILES += capypdf.ads
-#LIBIRIS_ADB_FILES += capypdf_tests.adb
-#LIBIRIS_ADS_FILES += capypdf_tests.ads
-
-#LIBIRIS_ADB_FILES += find_things.adb
-#LIBIRIS_ADS_FILES += find_things.ads
-
-#LIBIRIS_ADB_FILES += ls_r.adb
-#LIBIRIS_ADS_FILES += ls_r.ads
-
-#LIBIRIS_ADB_FILES += fontconfig_db.adb
-#LIBIRIS_ADS_FILES += fontconfig_db.ads
-
-#LIBIRIS_ADS_FILES += gauche_binding.ads
-
 #---------------------------------------------------------------------
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
@@ -140,7 +124,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = iris$(EXEEXT)
-check_PROGRAMS =
+check_PROGRAMS = test_capypdf_1$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -192,7 +176,6 @@ am__uninstall_files_from_dir = { \
        $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
   }
 LTLIBRARIES = $(lib_LTLIBRARIES)
-am__DEPENDENCIES_1 =
 am__objects_1 =
 am_libiris_la_OBJECTS = $(am__objects_1) $(am__objects_1) \
 	$(am__objects_1)
@@ -205,6 +188,8 @@ am__v_lt_0 = --silent
 am__v_lt_1 = 
 am_iris_OBJECTS =
 iris_OBJECTS = $(am_iris_OBJECTS)
+am_test_capypdf_1_OBJECTS =
+test_capypdf_1_OBJECTS = $(am_test_capypdf_1_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -237,8 +222,9 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libiris_la_SOURCES) $(nodist_libiris_la_SOURCES) \
-	$(iris_SOURCES)
-DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES)
+	$(iris_SOURCES) $(test_capypdf_1_SOURCES)
+DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
+	$(test_capypdf_1_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -442,9 +428,10 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4 --install
 DEP_FILES = $(LIBIRIS_ADB_FILES:%.adb=.deps/%.adbdep) \
-	$(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep) .deps/iris.adbdep
+	$(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep) .deps/iris.adbdep \
+	.deps/test_capypdf_1.adbdep
 MOSTLYCLEANFILES = 
-CLEANFILES = iris$(EXEEXT)
+CLEANFILES = iris$(EXEEXT) test_capypdf_1$(EXEEXT)
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
 EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
 	autogen.sh ada-programs.list r7rs/iris/db.sld r7rs/iris/db.md \
@@ -453,15 +440,16 @@ EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
 lib_LTLIBRARIES = libiris.la
 AM_ADAFLAGS = -gnat2022 -I$(call get-adainclude) -I$(builddir) \
 	-I$(srcdir)
-LIBIRIS_ADB_FILES = 
-LIBIRIS_ADS_FILES = alloca_h.ads bits_atomic_wide_counter_h.ads \
-	bits_byteswap_h.ads bits_pthreadtypes_h.ads \
-	bits_stdint_intn_h.ads bits_stdint_least_h.ads \
-	bits_stdint_uintn_h.ads bits_struct_mutex_h.ads \
-	bits_struct_rwlock_h.ads bits_struct_stat_h.ads \
-	bits_thread_shared_types_h.ads bits_types_clockid_t_h.ads \
-	bits_types_clock_t_h.ads bits_types_h.ads \
-	bits_types_sigset_t_h.ads bits_types_struct_timespec_h.ads \
+LIBIRIS_ADB_FILES = capypdf_document_properties.adb
+LIBIRIS_ADS_FILES = capypdf_document_properties.ads alloca_h.ads \
+	bits_atomic_wide_counter_h.ads bits_byteswap_h.ads \
+	bits_pthreadtypes_h.ads bits_stdint_intn_h.ads \
+	bits_stdint_least_h.ads bits_stdint_uintn_h.ads \
+	bits_struct_mutex_h.ads bits_struct_rwlock_h.ads \
+	bits_struct_stat_h.ads bits_thread_shared_types_h.ads \
+	bits_types_clockid_t_h.ads bits_types_clock_t_h.ads \
+	bits_types_h.ads bits_types_sigset_t_h.ads \
+	bits_types_struct_timespec_h.ads \
 	bits_types_struct_timeval_h.ads bits_types_timer_t_h.ads \
 	bits_types_time_t_h.ads bits_types_u_sigset_t_h.ads \
 	bits_uintn_identity_h.ads capypdf_0_capypdf_h.ads \
@@ -493,6 +481,9 @@ libiris_la_DEPENDENCIES = $(LIBIRIS_ADB_FILES:%.adb=%.lo) $(filter-out \
 iris_SOURCES = iris.adb
 iris_LDADD = .libs/iris.$(OBJEXT) libiris.la
 iris_DEPENDENCIES = iris.lo
+test_capypdf_1_SOURCES = test_capypdf_1.adb
+test_capypdf_1_LDADD = .libs/test_capypdf_1.$(OBJEXT) libiris.la
+test_capypdf_1_DEPENDENCIES = test_capypdf_1.lo
 AUTOM4TE = $(SHELL) $(srcdir)/build-aux/missing --run autom4te
 TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
 	$(srcdir)/testsuite.at
@@ -1035,6 +1026,22 @@ extremelyclean:: distclean
 # tab-width: 4
 # end:
 
+#LIBIRIS_ADB_FILES += capypdf.adb
+#LIBIRIS_ADS_FILES += capypdf.ads
+#LIBIRIS_ADB_FILES += capypdf_tests.adb
+#LIBIRIS_ADS_FILES += capypdf_tests.ads
+
+#LIBIRIS_ADB_FILES += find_things.adb
+#LIBIRIS_ADS_FILES += find_things.ads
+
+#LIBIRIS_ADB_FILES += ls_r.adb
+#LIBIRIS_ADS_FILES += ls_r.ads
+
+#LIBIRIS_ADB_FILES += fontconfig_db.adb
+#LIBIRIS_ADS_FILES += fontconfig_db.ads
+
+#LIBIRIS_ADS_FILES += gauche_binding.ads
+
 #LIBIRIS_C_FILES += gauche_runtime_init.c
 #LIBIRIS_C_FILES += gauche_c_macros.c
 #LIBIRIS_C_FILES += gauche_tkrzw.c
@@ -1156,6 +1163,9 @@ distclean-local::
 # tab-width: 4
 # end:
 iris$(EXEEXT): iris.lo libiris.la
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+test_capypdf_1$(EXEEXT): test_capypdf_1.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 distclean-local::

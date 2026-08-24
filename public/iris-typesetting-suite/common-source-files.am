@@ -1,3 +1,7 @@
+LIBIRIS_ADS_FILES += capypdf_document_properties.ads
+LIBIRIS_ADB_FILES += capypdf_document_properties.adb
+
+
 #LIBIRIS_ADB_FILES += capypdf.adb
 #LIBIRIS_ADS_FILES += capypdf.ads
 #LIBIRIS_ADB_FILES += capypdf_tests.adb
