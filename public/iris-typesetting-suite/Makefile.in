@@ -124,7 +124,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = iris$(EXEEXT)
-check_PROGRAMS = test_pdf_1$(EXEEXT)
+check_PROGRAMS = test_pdf_01$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -188,8 +188,8 @@ am__v_lt_0 = --silent
 am__v_lt_1 = 
 am_iris_OBJECTS =
 iris_OBJECTS = $(am_iris_OBJECTS)
-am_test_pdf_1_OBJECTS =
-test_pdf_1_OBJECTS = $(am_test_pdf_1_OBJECTS)
+am_test_pdf_01_OBJECTS =
+test_pdf_01_OBJECTS = $(am_test_pdf_01_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -222,9 +222,9 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libiris_la_SOURCES) $(nodist_libiris_la_SOURCES) \
-	$(iris_SOURCES) $(test_pdf_1_SOURCES)
+	$(iris_SOURCES) $(test_pdf_01_SOURCES)
 DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
-	$(test_pdf_1_SOURCES)
+	$(test_pdf_01_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -429,9 +429,9 @@ top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4 --install
 DEP_FILES = $(LIBIRIS_ADB_FILES:%.adb=.deps/%.adbdep) \
 	$(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep) .deps/iris.adbdep \
-	.deps/test_pdf_1.adbdep
+	.deps/test_pdf_01.adbdep
 MOSTLYCLEANFILES = 
-CLEANFILES = iris$(EXEEXT) test_pdf_1$(EXEEXT)
+CLEANFILES = iris$(EXEEXT) test_pdf_01$(EXEEXT)
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
 EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
 	autogen.sh rename-macros.m4 ada-macros.m4 pdf.adb.prelude.m4 \
@@ -480,9 +480,9 @@ libiris_la_DEPENDENCIES = $(LIBIRIS_ADB_FILES:%.adb=%.lo) $(filter-out \
 iris_SOURCES = iris.adb
 iris_LDADD = .libs/iris.$(OBJEXT) libiris.la
 iris_DEPENDENCIES = iris.lo
-test_pdf_1_SOURCES = test_pdf_1.adb
-test_pdf_1_LDADD = .libs/test_pdf_1.$(OBJEXT) libiris.la
-test_pdf_1_DEPENDENCIES = test_pdf_1.lo
+test_pdf_01_SOURCES = test_pdf_01.adb
+test_pdf_01_LDADD = .libs/test_pdf_01.$(OBJEXT) libiris.la
+test_pdf_01_DEPENDENCIES = test_pdf_01.lo
 AUTOM4TE = $(SHELL) $(srcdir)/build-aux/missing --run autom4te
 TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
 	$(srcdir)/testsuite.at
@@ -1164,7 +1164,7 @@ distclean-local::
 iris$(EXEEXT): iris.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
-test_pdf_1$(EXEEXT): test_pdf_1.lo libiris.la
+test_pdf_01$(EXEEXT): test_pdf_01.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 distclean-local::
@@ -1232,6 +1232,15 @@ installcheck-local:: atconfig testsuite
 #EXTRA_DIST += iris-findfont
 
 #---------------------------------------------------------------------
+
+#---------------------------------------------------------------------
+
+.PHONY: indent
+indent:
+	gnatformat -w 72 --charset utf-8 \
+	$(addprefix $(srcdir)/, \
+	pdf.ad[bs] \
+	test_pdf_[0-9][0-9].adb)
 
 #---------------------------------------------------------------------
 # local variables:

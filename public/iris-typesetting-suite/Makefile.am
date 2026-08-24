@@ -24,6 +24,15 @@ include tests.am
 include extra-dist.am
 
 #---------------------------------------------------------------------
+
+.PHONY: indent
+indent:
+	gnatformat -w 72 --charset utf-8 \
+	$(addprefix $(srcdir)/, \
+	pdf.ad[bs] \
+	test_pdf_[0-9][0-9].adb)
+
+#---------------------------------------------------------------------
 # local variables:
 # coding: utf-8
 # tab-width: 4

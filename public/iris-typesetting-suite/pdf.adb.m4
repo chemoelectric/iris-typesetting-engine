@@ -23,6 +23,36 @@ package body pdf is
 
    ---------------------------------------------------------------------
    --
+   -- pdf_page_properties
+   --
+
+   -- m4_pdf_require_open(page_properties)
+   -- m4_pdf_open(page_properties)
+   -- m4_pdf_close_and_finalize(page_properties)
+   -- m4_pdf_is_open(page_properties)
+
+   procedure set_page_box
+     (properties : in out pdf_page_properties;
+      box_type : in pdf_page_box_type;
+      x1, y1 : in double;
+      x2, y2 : in double)
+   is
+      err : capypdf_ec;
+   begin
+      properties.require_open;
+      err :=
+        capy_page_properties_set_pagebox
+          (properties.pageprops,
+           capypdf_page_box'enum_val
+             (pdf_page_box_type'enum_rep (box_type)),
+           x1, y1, x2, y2);
+      if err /= 0 then
+         raise pdf_error with "pdf_page_properties.set_page_box error";
+      end if;
+   end set_page_box;
+
+   ---------------------------------------------------------------------
+   --
    -- pdf_document_properties
    --
 
@@ -35,15 +65,25 @@ package body pdf is
    -- m4_pdf_set_string(document_properties, creator)
    -- m4_pdf_set_boolean(document_properties, tagged)
 
-   ---------------------------------------------------------------------
-   --
-   -- pdf_page_properties
-   --
-
-   -- m4_pdf_require_open(page_properties)
-   -- m4_pdf_open(page_properties)
-   -- m4_pdf_close_and_finalize(page_properties)
-   -- m4_pdf_is_open(page_properties)
+   procedure set_default_page_properties
+     (properties : in out pdf_document_properties;
+      page_properties : in pdf_page_properties'class)
+   is
+      err : capypdf_ec;
+   begin
+      properties.require_open;
+      if not page_properties.is_open then
+         raise pdf_error with
+           "attempt to set unopened default page properties";
+      end if;
+      err :=
+        capy_document_properties_set_default_page_properties
+          (properties.docprops, page_properties.pageprops);
+      if err /= 0 then
+         raise pdf_error with
+           "pdf_document_properties.set_default_page_properties error";
+      end if;
+   end set_default_page_properties;
 
    ---------------------------------------------------------------------
 
