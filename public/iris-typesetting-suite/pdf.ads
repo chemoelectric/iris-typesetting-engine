@@ -9,9 +9,10 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
-with ada.finalization;    use ada.finalization;
-with interfaces.c;        use interfaces.c;
-with capypdf_0_capypdf_h; use capypdf_0_capypdf_h;
+with ada.finalization;     use ada.finalization;
+with interfaces.c;         use interfaces.c;
+with interfaces.c.strings; use interfaces.c.strings;
+with capypdf_0_capypdf_h;  use capypdf_0_capypdf_h;
 
 package pdf is
 
@@ -29,6 +30,10 @@ package pdf is
       pdf_page_box_bleed => capypdf_page_box'enum_rep (capy_box_bleed),
       pdf_page_box_trim  => capypdf_page_box'enum_rep (capy_box_trim),
       pdf_page_box_art   => capypdf_page_box'enum_rep (capy_box_art));
+
+   type pdf_font_id is new controlled with private;
+
+   type pdf_font_properties is new limited_controlled with private;
 
    type pdf_page_properties is new limited_controlled with private;
    procedure set_page_box
@@ -51,7 +56,27 @@ package pdf is
      (properties      : in out pdf_document_properties;
       page_properties : in pdf_page_properties'class);
 
+   type pdf_generator is new limited_controlled with private;
+   procedure set_document
+     (generator  : in out pdf_generator;
+      name       : in string;
+      properties : in pdf_document_properties'class);
+   function load_font
+     (generator : in out pdf_generator'class; name : in string)
+      return pdf_font_id;
+
 private
+
+   type pdf_font_id is new controlled with record
+      id : capypdf_fontid;
+   end record;
+
+   type pdf_font_properties is new limited_controlled with record
+      fprop : access capypdf_fontproperties;
+   end record;
+   procedure initialize (properties : in out pdf_font_properties);
+   overriding
+   procedure finalize (properties : in out pdf_font_properties);
 
    type pdf_page_properties is new limited_controlled with record
       pageprops : access capypdf_pageproperties;
@@ -66,5 +91,13 @@ private
    procedure initialize (properties : in out pdf_document_properties);
    overriding
    procedure finalize (properties : in out pdf_document_properties);
+
+   type pdf_generator is new limited_controlled with record
+      gen      : access capypdf_generator;
+      filename : chars_ptr := null_ptr;
+   end record;
+   procedure initialize (generator : in out pdf_generator);
+   overriding
+   procedure finalize (generator : in out pdf_generator);
 
 end pdf;

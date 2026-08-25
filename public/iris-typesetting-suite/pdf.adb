@@ -23,6 +23,35 @@ package body pdf is
 
    ---------------------------------------------------------------------
    --
+   -- pdf_font_properties
+   --
+
+   --
+   procedure initialize (properties : in out pdf_font_properties) is
+      err   : capypdf_ec;
+      fprop : aliased access capypdf_fontproperties;
+   begin
+      err := capy_font_properties_new (fprop'address);
+      if err = 0 then
+         properties.fprop := fprop;
+      else
+         raise pdf_error
+           with "pdf_font_properties initialization error";
+      end if;
+   end initialize;
+
+   --
+   procedure finalize (properties : in out pdf_font_properties) is
+      err : capypdf_ec;
+   begin
+      err := capy_font_properties_destroy (properties.fprop);
+      if err /= 0 then
+         raise pdf_error with "pdf_font_properties finalization error";
+      end if;
+   end finalize;
+
+   ---------------------------------------------------------------------
+   --
    -- pdf_page_properties
    --
 
@@ -116,7 +145,6 @@ package body pdf is
         capy_document_properties_set_title
           (properties.docprops, s, int32_t (n));
       if err /= 0 then
-         free (s);
          raise pdf_error with "pdf_document_properties.set_title error";
       end if;
       free (s);
@@ -142,7 +170,6 @@ package body pdf is
         capy_document_properties_set_author
           (properties.docprops, s, int32_t (n));
       if err /= 0 then
-         free (s);
          raise pdf_error
            with "pdf_document_properties.set_author error";
       end if;
@@ -169,7 +196,6 @@ package body pdf is
         capy_document_properties_set_creator
           (properties.docprops, s, int32_t (n));
       if err /= 0 then
-         free (s);
          raise pdf_error
            with "pdf_document_properties.set_creator error";
       end if;
@@ -213,6 +239,93 @@ package body pdf is
              "pdf_document_properties.set_default_page_properties error";
       end if;
    end set_default_page_properties;
+
+   ---------------------------------------------------------------------
+   --
+   -- pdf_generator
+   --
+
+   procedure clean_up (generator : in out pdf_generator) is
+   begin
+      if generator.filename /= null_ptr then
+         free (generator.filename);
+         generator.filename := null_ptr;
+      end if;
+   end clean_up;
+
+   procedure do_finalization (generator : in out pdf_generator) is
+      err : capypdf_ec;
+   begin
+      if generator.filename /= null_ptr then
+         err := capy_generator_destroy (generator.gen);
+         if err = 0 then
+            clean_up (generator);
+         else
+            raise pdf_error with "pdf_generator finalization error";
+         end if;
+      end if;
+   end do_finalization;
+
+   procedure initialize (generator : in out pdf_generator) is
+   begin
+      generator.filename := null_ptr;
+   end initialize;
+
+   procedure finalize (generator : in out pdf_generator) is
+   begin
+      do_finalization (generator);
+   end finalize;
+
+   procedure set_document
+     (generator  : in out pdf_generator;
+      name       : in string;
+      properties : in pdf_document_properties'class)
+   is
+      err : capypdf_ec;
+      gen : aliased access capypdf_generator;
+   begin
+      do_finalization (generator);
+      generator.filename := new_string (name);
+      err :=
+        capy_generator_new
+          (generator.filename, properties.docprops, gen'address);
+      if err = 0 then
+         generator.gen := gen;
+      else
+         raise pdf_error with "pdf_generator.set_document error";
+      end if;
+   exception
+      when others =>
+         clean_up (generator);
+         raise;
+   end set_document;
+
+   function load_font
+     (generator : in out pdf_generator'class; name : in string)
+      return pdf_font_id
+   is
+      err        : capypdf_ec;
+      font_props : pdf_font_properties;
+      fontname   : chars_ptr;
+      output_id  : aliased capypdf_fontid;
+      retval     : pdf_font_id;
+   begin
+      fontname := new_string (name);
+      err :=
+        capy_generator_load_font
+          (generator.gen, fontname, font_props.fprop, output_id'access);
+      if err /= 0 then
+         raise pdf_error with ("failed to load font '" & name & "'");
+      end if;
+      retval.id := output_id;
+      return retval;
+   exception
+      when others =>
+         if fontname /= null_ptr then
+            free (fontname);
+         end if;
+         raise;
+   end load_font;
 
    ---------------------------------------------------------------------
 

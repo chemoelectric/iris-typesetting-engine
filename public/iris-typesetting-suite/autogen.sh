@@ -289,10 +289,12 @@ write_programs_am() {
 }
 
 expand_m4() {
+    set -e
     printf 'm4 %s.prelude.m4 %s.m4 > %s' "$1" "$1" "$1"
     m4 "$1".prelude.m4 "$1".m4 > "$1"
     if command -v gnatformat > /dev/null; then
-        printf '; gnatformat -w 72 --charset utf-8 %s\n' "$1"
+        printf ' \\\n        %s %s\n' \
+               '&& gnatformat -w 72 --charset utf-8' "$1"
         gnatformat -w 72 --charset utf-8 "$1"
     else
         printf '\n'

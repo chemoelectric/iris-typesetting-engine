@@ -2,16 +2,25 @@ dnl  SPDX-License-Identifier: MIT
 include(ada-macros.m4)m4_divert(-1)
 
 m4_define({m4_capypdf_type},
-  {m4_ifelse($1,{document_properties},{capypdf_documentproperties},
-             $1,{page_properties},{capypdf_pageproperties})})
+  {m4_ifelse($1,{font_id},{capypdf_fontid},
+             $1,{font_properties},{capypdf_fontproperties},
+             $1,{page_properties},{capypdf_pageproperties},
+             $1,{document_properties},{capypdf_documentproperties},
+             $1,{generator},{capypdf_generator})})
 
 m4_define({m4_capypdf_field},
-  {m4_ifelse($1,{document_properties},{docprops},
-             $1,{page_properties},{pageprops})})
+  {m4_ifelse($1,{font_id},{id},
+             $1,{font_properties},{fprop},
+             $1,{page_properties},{pageprops},
+             $1,{document_properties},{docprops},
+             $1,{generator},{gen})})
 
 m4_define({m4_capypdf_argname},
-  {m4_ifelse($1,{document_properties},{properties},
-             $1,{page_properties},{properties})})
+  {m4_ifelse($1,{font_id},{id},
+             $1,{font_properties},{properties},
+             $1,{page_properties},{properties},
+             $1,{document_properties},{properties},
+             $1,{generator},{generator})})
 
 m4_define({m4_pdf_initialize},{
 procedure initialize (m4_capypdf_argname({$1}) : in out pdf_$1) is
@@ -56,7 +65,6 @@ begin
          (m4_capypdf_argname({$1}).m4_capypdf_field({$1}),
           s, int32_t (n));
    if err /= 0 then
-      free (s);
       raise pdf_error with "pdf_$1.set_$2 error";
    end if;
    free (s);
