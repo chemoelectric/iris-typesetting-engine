@@ -62,7 +62,7 @@ procedure test_r7rs_sexpr is
    end test_numbers;
 
    procedure test_characters_and_strings is
-      c : sexpr := make_character ('a');
+      c : sexpr := make_character (character'('a'));
       s : sexpr := make_string ("hello world");
    begin
       assert_true (is_character (c), "c is character");

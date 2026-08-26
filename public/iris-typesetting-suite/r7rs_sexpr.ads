@@ -2,13 +2,13 @@
 --
 --  SPDX-License-Identifier: MIT
 
-with Ada.Finalization;
-with Ada.Strings.Unbounded;
-with Interfaces;
+with ada.finalization;
+with ada.strings.unbounded;
+with interfaces;
 
 package r7rs_sexpr is
 
-   use Ada.Strings.Unbounded;
+   use ada.strings.unbounded;
 
    type sexpr_kind is
      (kind_null,
@@ -43,13 +43,11 @@ package r7rs_sexpr is
    function make_real (val : in long_float) return sexpr;
 
    function make_rational
-     (num : in long_long_integer;
-      den : in long_long_integer) return sexpr
-   with
-     pre => den > 0;
+     (num : in long_long_integer; den : in long_long_integer)
+      return sexpr
+   with pre => den > 0;
 
-   function make_character
-     (ch : in wide_wide_character) return sexpr;
+   function make_character (ch : in wide_wide_character) return sexpr;
 
    function make_character (ch : in character) return sexpr;
 
@@ -61,9 +59,7 @@ package r7rs_sexpr is
 
    function make_symbol (sym : in string) return sexpr;
 
-   function cons
-     (car_val : in sexpr;
-      cdr_val : in sexpr) return sexpr;
+   function cons (car_val : in sexpr; cdr_val : in sexpr) return sexpr;
 
    function make_list (items : in sexpr_array) return sexpr;
 
@@ -100,132 +96,91 @@ package r7rs_sexpr is
    function is_bytevector (e : in sexpr) return boolean;
 
    function get_boolean (e : in sexpr) return boolean
-   with
-     pre => is_boolean (e);
+   with pre => is_boolean (e);
 
    function get_integer (e : in sexpr) return long_long_integer
-   with
-     pre => is_integer (e);
+   with pre => is_integer (e);
 
    function get_real (e : in sexpr) return long_float
-   with
-     pre => is_real (e);
+   with pre => is_real (e);
 
    function get_numerator (e : in sexpr) return long_long_integer
-   with
-     pre => is_rational (e);
+   with pre => is_rational (e);
 
    function get_denominator (e : in sexpr) return long_long_integer
-   with
-     pre => is_rational (e);
+   with pre => is_rational (e);
 
-   function get_character
-     (e : in sexpr) return wide_wide_character
-   with
-     pre => is_character (e);
+   function get_character (e : in sexpr) return wide_wide_character
+   with pre => is_character (e);
 
    function get_string (e : in sexpr) return unbounded_string
-   with
-     pre => is_string (e);
+   with pre => is_string (e);
 
    function get_string_str (e : in sexpr) return string
-   with
-     pre => is_string (e);
+   with pre => is_string (e);
 
    function get_symbol (e : in sexpr) return unbounded_string
-   with
-     pre => is_symbol (e);
+   with pre => is_symbol (e);
 
    function get_symbol_str (e : in sexpr) return string
-   with
-     pre => is_symbol (e);
+   with pre => is_symbol (e);
 
    function car (e : in sexpr) return sexpr
-   with
-     pre => is_pair (e);
+   with pre => is_pair (e);
 
    function cdr (e : in sexpr) return sexpr
-   with
-     pre => is_pair (e);
+   with pre => is_pair (e);
 
    function caar (e : in sexpr) return sexpr
-   with
-     pre => is_pair (e) and then is_pair (car (e));
+   with pre => is_pair (e) and then is_pair (car (e));
 
    function cadr (e : in sexpr) return sexpr
-   with
-     pre => is_pair (e) and then is_pair (cdr (e));
+   with pre => is_pair (e) and then is_pair (cdr (e));
 
    function cdar (e : in sexpr) return sexpr
-   with
-     pre => is_pair (e) and then is_pair (car (e));
+   with pre => is_pair (e) and then is_pair (car (e));
 
    function cddr (e : in sexpr) return sexpr
-   with
-     pre => is_pair (e) and then is_pair (cdr (e));
+   with pre => is_pair (e) and then is_pair (cdr (e));
 
    function length (e : in sexpr) return natural
-   with
-     pre => is_list (e);
+   with pre => is_list (e);
 
-   function list_ref
-     (e   : in sexpr;
-      idx : in positive) return sexpr
-   with
-     pre => is_list (e);
+   function list_ref (e : in sexpr; idx : in positive) return sexpr
+   with pre => is_list (e);
 
    function vector_length (e : in sexpr) return natural
-   with
-     pre => is_vector (e);
+   with pre => is_vector (e);
 
-   function vector_ref
-     (e   : in sexpr;
-      idx : in positive) return sexpr
-   with
-     pre => is_vector (e);
+   function vector_ref (e : in sexpr; idx : in positive) return sexpr
+   with pre => is_vector (e);
 
    function bytevector_length (e : in sexpr) return natural
-   with
-     pre => is_bytevector (e);
+   with pre => is_bytevector (e);
 
    function bytevector_ref
-     (e   : in sexpr;
-      idx : in positive) return interfaces.unsigned_8
-   with
-     pre => is_bytevector (e);
+     (e : in sexpr; idx : in positive) return interfaces.unsigned_8
+   with pre => is_bytevector (e);
 
    function equal (a : in sexpr; b : in sexpr) return boolean;
 
    function eqv (a : in sexpr; b : in sexpr) return boolean;
 
-   function assoc
-     (key_sym : in string;
-      alist   : in sexpr) return sexpr
-   with
-     pre => is_list (alist) or is_null (alist);
+   function assoc (key_sym : in string; alist : in sexpr) return sexpr
+   with pre => is_list (alist) or is_null (alist);
 
    function assoc
-     (key_sym : in unbounded_string;
-      alist   : in sexpr) return sexpr
-   with
-     pre => is_list (alist) or is_null (alist);
+     (key_sym : in unbounded_string; alist : in sexpr) return sexpr
+   with pre => is_list (alist) or is_null (alist);
 
-   function assoc
-     (key   : in sexpr;
-      alist : in sexpr) return sexpr
-   with
-     pre => is_list (alist) or is_null (alist);
+   function assoc (key : in sexpr; alist : in sexpr) return sexpr
+   with pre => is_list (alist) or is_null (alist);
 
-   function assq
-     (key_sym : in string;
-      alist   : in sexpr) return sexpr
-   with
-     pre => is_list (alist) or is_null (alist);
+   function assq (key_sym : in string; alist : in sexpr) return sexpr
+   with pre => is_list (alist) or is_null (alist);
 
    function acons
-     (key   : in sexpr;
-      val   : in sexpr;
-      alist : in sexpr) return sexpr;
+     (key : in sexpr; val : in sexpr; alist : in sexpr) return sexpr;
 
    function read_from_string (src : in string) return sexpr;
 
@@ -233,8 +188,7 @@ package r7rs_sexpr is
 
    function read_from_file (file_path : in string) return sexpr;
 
-   function read_all_from_string
-     (src : in string) return sexpr_array;
+   function read_all_from_string (src : in string) return sexpr_array;
 
    function read_all_from_file
      (file_path : in string) return sexpr_array;
@@ -247,13 +201,9 @@ package r7rs_sexpr is
 
    function display_to_string (e : in sexpr) return string;
 
-   procedure write_to_file
-     (e         : in sexpr;
-      file_path : in string);
+   procedure write_to_file (e : in sexpr; file_path : in string);
 
-   procedure display_to_file
-     (e         : in sexpr;
-      file_path : in string);
+   procedure display_to_file (e : in sexpr; file_path : in string);
 
 private
 
@@ -265,26 +215,36 @@ private
       case kind is
          when kind_null =>
             null;
+
          when kind_boolean =>
             bool_val : boolean;
+
          when kind_integer =>
             int_val : long_long_integer;
+
          when kind_real =>
             real_val : long_float;
+
          when kind_rational =>
             num_val : long_long_integer;
             den_val : long_long_integer;
+
          when kind_character =>
             char_val : wide_wide_character;
+
          when kind_string =>
             str_val : ada.strings.unbounded.unbounded_string;
+
          when kind_symbol =>
             sym_val : ada.strings.unbounded.unbounded_string;
+
          when kind_pair =>
             car_val : sexpr;
             cdr_val : sexpr;
+
          when kind_vector =>
             vec_val : sexpr_vector_access;
+
          when kind_bytevector =>
             bytes_val : byte_vector_access;
       end case;
@@ -296,7 +256,9 @@ private
       ptr : node_access := null;
    end record;
 
-   overriding procedure adjust (obj : in out sexpr);
-   overriding procedure finalize (obj : in out sexpr);
+   overriding
+   procedure adjust (obj : in out sexpr);
+   overriding
+   procedure finalize (obj : in out sexpr);
 
 end r7rs_sexpr;

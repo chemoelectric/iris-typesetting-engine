@@ -58,3 +58,18 @@ test_find_tex_fonts_DEPENDENCIES += test_find_tex_fonts.lo
 DEP_FILES += .deps/test_find_tex_fonts.adbdep
 CLEANFILES += test_find_tex_fonts$(EXEEXT)
 
+test_r7rs_sexpr$(EXEEXT): test_r7rs_sexpr.lo libiris.la
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+check_PROGRAMS += test_r7rs_sexpr
+test_r7rs_sexpr_SOURCES =
+test_r7rs_sexpr_SOURCES += test_r7rs_sexpr.adb
+test_r7rs_sexpr_LDADD =
+test_r7rs_sexpr_LDADD += .libs/test_r7rs_sexpr.$(OBJEXT)
+test_r7rs_sexpr_LDADD += libiris.la
+test_r7rs_sexpr_DEPENDENCIES =
+test_r7rs_sexpr_DEPENDENCIES += test_r7rs_sexpr.lo
+
+DEP_FILES += .deps/test_r7rs_sexpr.adbdep
+CLEANFILES += test_r7rs_sexpr$(EXEEXT)
+

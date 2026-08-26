@@ -10,7 +10,7 @@ with font_finders;
 procedure test_find_tex_fonts is
 
    use ada.text_io;
-   use ada.strings.unbounded;   
+   use ada.strings.unbounded;
    use font_finders;
    use font_finders.unbounded_string_vectors;
 

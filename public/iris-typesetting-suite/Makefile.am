@@ -31,6 +31,7 @@ indent:
 	$(addprefix $(srcdir)/, \
 	pdf.ad[bs] \
 	font_finders.ad[bs] \
+	r7rs_sexpr.ad[bs] \
 	test_pdf_[0-9][0-9].adb \
 	test_find*fonts.adb)
 

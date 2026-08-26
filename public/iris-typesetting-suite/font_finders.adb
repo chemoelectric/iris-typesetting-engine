@@ -47,8 +47,7 @@ package body font_finders is
       return find_fonts (main_system_fonts_command);
    end find_main_system_fonts;
 
-   function find_tex_fonts
-      return unbounded_string_vectors.vector is
+   function find_tex_fonts return unbounded_string_vectors.vector is
    begin
       return find_fonts (tex_fonts_command);
    end find_tex_fonts;

@@ -26,21 +26,19 @@ package font_finders is
 
    default_tex_fonts_command : constant unbounded_string :=
      to_unbounded_string
-       ("find $(kpsewhich --var-value=TEXMFDIST && " &
-        "kpsewhich --var-value=TEXMFLOCAL) -type f -print | " &
-        " sed '/\.[otOT][tT][fF]$/p;d'");
+       ("find $(kpsewhich --var-value=TEXMFDIST && "
+        & "kpsewhich --var-value=TEXMFLOCAL) -type f -print | "
+        & " sed '/\.[otOT][tT][fF]$/p;d'");
 
    main_system_fonts_command : unbounded_string :=
      default_main_system_fonts_command;
 
-   tex_fonts_command : unbounded_string :=
-     default_tex_fonts_command;
+   tex_fonts_command : unbounded_string := default_tex_fonts_command;
 
    function find_main_system_fonts
       return unbounded_string_vectors.vector;
 
-   function find_tex_fonts
-     return unbounded_string_vectors.vector;
+   function find_tex_fonts return unbounded_string_vectors.vector;
 
    function find_fonts
      (command : in unbounded_string)
