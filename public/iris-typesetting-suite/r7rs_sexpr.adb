@@ -843,6 +843,18 @@ package body r7rs_sexpr is
       end loop;
    end skip_whitespace_and_comments;
 
+   function is_hex_digit (c : in character) return boolean is
+      res : boolean := false;
+   begin
+      if c in '0' .. '9'
+        or else c in 'a' .. 'f'
+        or else c in 'A' .. 'F'
+      then
+         res := true;
+      end if;
+      return res;
+   end is_hex_digit;
+
    function parse_hex_digit (c : in character) return natural is
       res : natural := 0;
    begin
@@ -1067,7 +1079,6 @@ package body r7rs_sexpr is
    is
       res : sexpr;
    begin
-      adv_char (ctx); -- skip '#'
       adv_char (ctx); -- skip '\'
       if is_eof (ctx) then
          raise parse_error with "unexpected eof after #\";
@@ -1075,6 +1086,7 @@ package body r7rs_sexpr is
 
       if peek_char (ctx) = 'x'
         and then not is_delimiter (peek_next_char (ctx))
+        and then is_hex_digit (peek_next_char (ctx))
       then
          adv_char (ctx); -- skip 'x'
          declare
@@ -1161,7 +1173,6 @@ package body r7rs_sexpr is
       cur       : sexpr;
       res       : sexpr;
    begin
-      adv_char (ctx); -- skip '#'
       adv_char (ctx); -- skip '('
       temp_list := parse_list_items (ctx, lbl);
       vec_count := length (temp_list);
@@ -1190,9 +1201,11 @@ package body r7rs_sexpr is
       cur       : sexpr;
       res       : sexpr;
    begin
-      adv_char (ctx); -- skip '#'
       adv_char (ctx); -- skip 'u'
       adv_char (ctx); -- skip '8'
+      if is_eof (ctx) or else peek_char (ctx) /= '(' then
+         raise parse_error with "expected '(' after #u8";
+      end if;
       adv_char (ctx); -- skip '('
       temp_list := parse_list_items (ctx, lbl);
       bv_count := length (temp_list);

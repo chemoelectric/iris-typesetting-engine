@@ -142,9 +142,12 @@ procedure test_r7rs_sexpr is
       e4 : sexpr := read_from_string ("#\space");
       e5 : sexpr := read_from_string ("#\newline");
       e6 : sexpr := read_from_string ("""hello\nworld""");
-      e7 : sexpr := read_from_string ("#(1 2 3)");
-      e8 : sexpr := read_from_string ("#u8(1 2 3)");
-      e9 : sexpr := read_from_string ("'foo");
+      e7  : sexpr := read_from_string ("#(1 2 3)");
+      e8  : sexpr := read_from_string ("#u8(1 2 3)");
+      e9  : sexpr := read_from_string ("'foo");
+      e10 : sexpr := read_from_string ("#\a");
+      e11 : sexpr := read_from_string ("#\x62;");
+      e12 : sexpr := read_from_string ("#\(");
    begin
       assert_true (is_list (e1), "read list");
       assert_true (length (e1) = 4, "read list length 4");
@@ -161,6 +164,15 @@ procedure test_r7rs_sexpr is
       assert_true (is_character (e5) and then
                    get_character (e5) = wide_wide_character'val (10),
                    "read #\newline");
+      assert_true (is_character (e10) and then
+                   get_character (e10) = 'a',
+                   "read #\a");
+      assert_true (is_character (e11) and then
+                   get_character (e11) = 'b',
+                   "read #\x62;");
+      assert_true (is_character (e12) and then
+                   get_character (e12) = '(',
+                   "read #\(");
 
       assert_true (is_string (e6), "read string with escapes");
       assert_true (is_vector (e7), "read vector");
