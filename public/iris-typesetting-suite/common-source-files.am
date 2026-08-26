@@ -1,6 +1,9 @@
 LIBIRIS_ADS_FILES += pdf.ads
 LIBIRIS_ADB_FILES += pdf.adb
 
+LIBIRIS_ADS_FILES += font_finders.ads
+LIBIRIS_ADB_FILES += font_finders.adb
+
 
 #LIBIRIS_ADB_FILES += capypdf.adb
 #LIBIRIS_ADS_FILES += capypdf.ads

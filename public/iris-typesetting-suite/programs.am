@@ -28,3 +28,18 @@ test_pdf_01_DEPENDENCIES += test_pdf_01.lo
 DEP_FILES += .deps/test_pdf_01.adbdep
 CLEANFILES += test_pdf_01$(EXEEXT)
 
+test_find_main_system_fonts$(EXEEXT): test_find_main_system_fonts.lo libiris.la
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+check_PROGRAMS += test_find_main_system_fonts
+test_find_main_system_fonts_SOURCES =
+test_find_main_system_fonts_SOURCES += test_find_main_system_fonts.adb
+test_find_main_system_fonts_LDADD =
+test_find_main_system_fonts_LDADD += .libs/test_find_main_system_fonts.$(OBJEXT)
+test_find_main_system_fonts_LDADD += libiris.la
+test_find_main_system_fonts_DEPENDENCIES =
+test_find_main_system_fonts_DEPENDENCIES += test_find_main_system_fonts.lo
+
+DEP_FILES += .deps/test_find_main_system_fonts.adbdep
+CLEANFILES += test_find_main_system_fonts$(EXEEXT)
+

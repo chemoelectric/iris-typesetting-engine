@@ -10,6 +10,12 @@ AT_KEYWORDS([pdf capypdf])
 AT_CHECK(["${abs_builddir}"/test_pdf_01],[0],[ignore],[ignore])
 AT_CLEANUP
 
+AT_SETUP([font_finders])
+AT_KEYWORDS([font_finders fonts])
+AT_CHECK(["${abs_builddir}"/test_find_main_system_fonts],[0],
+         [ignore],[ignore])
+AT_CLEANUP
+
 # AT_SETUP([capypdf])
 # AT_KEYWORDS([capypdf])
 # AT_CHECK(["${abs_builddir}"/test_capypdf | ${SED} '/^summary/s/^.*\([[0-9]]\+\) *failed.*$/\1/p;d'],[0],[0
