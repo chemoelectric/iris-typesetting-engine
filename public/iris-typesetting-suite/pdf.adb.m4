@@ -89,60 +89,41 @@ package body pdf is
    -- pdf_generator
    --
 
-   procedure clean_up (generator : in out pdf_generator) is
-   begin
-      if generator.filename /= null_ptr then
-         free (generator.filename);
-         generator.filename := null_ptr;
-      end if;
-   end clean_up;
-
-   procedure do_finalization (generator : in out pdf_generator) is
+   procedure finalize (generator : in out pdf_generator) is
       err : capypdf_ec;
    begin
-      if generator.filename /= null_ptr then
-         err := capy_generator_destroy (generator.gen);
-         if err = 0 then
-            clean_up (generator);
-         else
-            raise pdf_error with "pdf_generator finalization error";
-         end if;
+      err := capy_generator_destroy (generator.gen);
+      if err /= 0 then
+         raise pdf_error with "pdf_generator finalization error";
       end if;
-   end do_finalization;
-
-   procedure initialize (generator : in out pdf_generator) is
-   begin
-      generator.filename := null_ptr;
-   end initialize;
-
-   procedure finalize (generator : in out pdf_generator) is
-   begin
-      do_finalization (generator);
    end finalize;
 
-   procedure set_document
-     (generator : in out pdf_generator;
-      name : in string;
+   function create
+     (name : in string;
       properties : in pdf_document_properties'class)
+     return pdf_generator
    is
       err : capypdf_ec;
       gen : aliased access capypdf_generator;
+      filename : chars_ptr := null_ptr;
    begin
-      do_finalization (generator);
-      generator.filename := new_string (name);
+      filename := new_string (name);
       err :=
-        capy_generator_new
-          (generator.filename, properties.docprops, gen'address);
-      if err = 0 then
-         generator.gen := gen;
-      else
+        capy_generator_new (filename, properties.docprops, gen'address);
+      if err /= 0 then
          raise pdf_error with "pdf_generator.set_document error";
       end if;
+      free (filename);
+      return result : pdf_generator do
+         result.gen := gen;
+      end return;
    exception
       when others =>
-         clean_up (generator);
+         if (filename /= null_ptr) then
+            free (filename);
+         end if;
          raise;
-   end set_document;
+   end create;
 
    function load_font
      (generator : in out pdf_generator'class; name : in string)
@@ -152,7 +133,6 @@ package body pdf is
       font_props : pdf_font_properties;
       fontname : chars_ptr;
       output_id : aliased capypdf_fontid;
-      retval : pdf_font_id;
    begin
       fontname := new_string (name);
       err :=
@@ -161,8 +141,10 @@ package body pdf is
       if err /= 0 then
          raise pdf_error with ("failed to load font '" & name & "'");
       end if;
-      retval.id := output_id;
-      return retval;
+      free (fontname);
+      return result : pdf_font_id do
+         result.id := output_id;
+      end return;
    exception
       when others =>
          if fontname /= null_ptr then

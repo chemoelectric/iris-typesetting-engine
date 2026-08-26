@@ -543,17 +543,17 @@ package stdlib_h is
         Convention => C, 
         External_Name => "llabs";
 
-   function div (uu_numer : int; uu_denom : int) return div_t  -- /usr/local/include/stdlib.h:992
+   function div (uu_numer : int; uu_denom : int) return div_t  -- /usr/local/include/stdlib.h:998
    with Import => True, 
         Convention => C, 
         External_Name => "div";
 
-   function ldiv (uu_numer : long; uu_denom : long) return ldiv_t  -- /usr/local/include/stdlib.h:994
+   function ldiv (uu_numer : long; uu_denom : long) return ldiv_t  -- /usr/local/include/stdlib.h:1000
    with Import => True, 
         Convention => C, 
         External_Name => "ldiv";
 
-   function lldiv (uu_numer : Long_Long_Integer; uu_denom : Long_Long_Integer) return lldiv_t  -- /usr/local/include/stdlib.h:998
+   function lldiv (uu_numer : Long_Long_Integer; uu_denom : Long_Long_Integer) return lldiv_t  -- /usr/local/include/stdlib.h:1004
    with Import => True, 
         Convention => C, 
         External_Name => "lldiv";
@@ -562,7 +562,7 @@ package stdlib_h is
      (uu_value : double;
       uu_ndigit : int;
       uu_decpt : access int;
-      uu_sign : access int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/stdlib.h:1012
+      uu_sign : access int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/stdlib.h:1018
    with Import => True, 
         Convention => C, 
         External_Name => "ecvt";
@@ -571,7 +571,7 @@ package stdlib_h is
      (uu_value : double;
       uu_ndigit : int;
       uu_decpt : access int;
-      uu_sign : access int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/stdlib.h:1018
+      uu_sign : access int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/stdlib.h:1024
    with Import => True, 
         Convention => C, 
         External_Name => "fcvt";
@@ -579,7 +579,7 @@ package stdlib_h is
    function gcvt
      (uu_value : double;
       uu_ndigit : int;
-      uu_buf : Interfaces.C.Strings.chars_ptr) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/stdlib.h:1024
+      uu_buf : Interfaces.C.Strings.chars_ptr) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/stdlib.h:1030
    with Import => True, 
         Convention => C, 
         External_Name => "gcvt";
@@ -588,7 +588,7 @@ package stdlib_h is
      (uu_value : long_double;
       uu_ndigit : int;
       uu_decpt : access int;
-      uu_sign : access int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/stdlib.h:1030
+      uu_sign : access int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/stdlib.h:1036
    with Import => True, 
         Convention => C, 
         External_Name => "qecvt";
@@ -597,7 +597,7 @@ package stdlib_h is
      (uu_value : long_double;
       uu_ndigit : int;
       uu_decpt : access int;
-      uu_sign : access int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/stdlib.h:1033
+      uu_sign : access int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/stdlib.h:1039
    with Import => True, 
         Convention => C, 
         External_Name => "qfcvt";
@@ -605,7 +605,7 @@ package stdlib_h is
    function qgcvt
      (uu_value : long_double;
       uu_ndigit : int;
-      uu_buf : Interfaces.C.Strings.chars_ptr) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/stdlib.h:1036
+      uu_buf : Interfaces.C.Strings.chars_ptr) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/stdlib.h:1042
    with Import => True, 
         Convention => C, 
         External_Name => "qgcvt";
@@ -616,7 +616,7 @@ package stdlib_h is
       uu_decpt : access int;
       uu_sign : access int;
       uu_buf : Interfaces.C.Strings.chars_ptr;
-      uu_len : stddef_h.size_t) return int  -- /usr/local/include/stdlib.h:1042
+      uu_len : stddef_h.size_t) return int  -- /usr/local/include/stdlib.h:1048
    with Import => True, 
         Convention => C, 
         External_Name => "ecvt_r";
@@ -627,7 +627,7 @@ package stdlib_h is
       uu_decpt : access int;
       uu_sign : access int;
       uu_buf : Interfaces.C.Strings.chars_ptr;
-      uu_len : stddef_h.size_t) return int  -- /usr/local/include/stdlib.h:1045
+      uu_len : stddef_h.size_t) return int  -- /usr/local/include/stdlib.h:1051
    with Import => True, 
         Convention => C, 
         External_Name => "fcvt_r";
@@ -638,7 +638,7 @@ package stdlib_h is
       uu_decpt : access int;
       uu_sign : access int;
       uu_buf : Interfaces.C.Strings.chars_ptr;
-      uu_len : stddef_h.size_t) return int  -- /usr/local/include/stdlib.h:1049
+      uu_len : stddef_h.size_t) return int  -- /usr/local/include/stdlib.h:1055
    with Import => True, 
         Convention => C, 
         External_Name => "qecvt_r";
@@ -649,12 +649,12 @@ package stdlib_h is
       uu_decpt : access int;
       uu_sign : access int;
       uu_buf : Interfaces.C.Strings.chars_ptr;
-      uu_len : stddef_h.size_t) return int  -- /usr/local/include/stdlib.h:1053
+      uu_len : stddef_h.size_t) return int  -- /usr/local/include/stdlib.h:1059
    with Import => True, 
         Convention => C, 
         External_Name => "qfcvt_r";
 
-   function mblen (uu_s : Interfaces.C.Strings.chars_ptr; uu_n : stddef_h.size_t) return int  -- /usr/local/include/stdlib.h:1062
+   function mblen (uu_s : Interfaces.C.Strings.chars_ptr; uu_n : stddef_h.size_t) return int  -- /usr/local/include/stdlib.h:1068
    with Import => True, 
         Convention => C, 
         External_Name => "mblen";
@@ -662,12 +662,12 @@ package stdlib_h is
    function mbtowc
      (uu_pwc : access stddef_h.wchar_t;
       uu_s : Interfaces.C.Strings.chars_ptr;
-      uu_n : stddef_h.size_t) return int  -- /usr/local/include/stdlib.h:1065
+      uu_n : stddef_h.size_t) return int  -- /usr/local/include/stdlib.h:1071
    with Import => True, 
         Convention => C, 
         External_Name => "mbtowc";
 
-   function wctomb (uu_s : Interfaces.C.Strings.chars_ptr; uu_wchar : stddef_h.wchar_t) return int  -- /usr/local/include/stdlib.h:1069
+   function wctomb (uu_s : Interfaces.C.Strings.chars_ptr; uu_wchar : stddef_h.wchar_t) return int  -- /usr/local/include/stdlib.h:1075
    with Import => True, 
         Convention => C, 
         External_Name => "wctomb";
@@ -675,7 +675,7 @@ package stdlib_h is
    function mbstowcs
      (uu_pwcs : access stddef_h.wchar_t;
       uu_s : Interfaces.C.Strings.chars_ptr;
-      uu_n : stddef_h.size_t) return stddef_h.size_t  -- /usr/local/include/stdlib.h:1073
+      uu_n : stddef_h.size_t) return stddef_h.size_t  -- /usr/local/include/stdlib.h:1079
    with Import => True, 
         Convention => C, 
         External_Name => "mbstowcs";
@@ -683,12 +683,12 @@ package stdlib_h is
    function wcstombs
      (uu_s : Interfaces.C.Strings.chars_ptr;
       uu_pwcs : access stddef_h.wchar_t;
-      uu_n : stddef_h.size_t) return stddef_h.size_t  -- /usr/local/include/stdlib.h:1077
+      uu_n : stddef_h.size_t) return stddef_h.size_t  -- /usr/local/include/stdlib.h:1083
    with Import => True, 
         Convention => C, 
         External_Name => "wcstombs";
 
-   function rpmatch (uu_response : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/stdlib.h:1088
+   function rpmatch (uu_response : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/stdlib.h:1094
    with Import => True, 
         Convention => C, 
         External_Name => "rpmatch";
@@ -696,12 +696,12 @@ package stdlib_h is
    function getsubopt
      (uu_optionp : System.Address;
       uu_tokens : System.Address;
-      uu_valuep : System.Address) return int  -- /usr/local/include/stdlib.h:1099
+      uu_valuep : System.Address) return int  -- /usr/local/include/stdlib.h:1105
    with Import => True, 
         Convention => C, 
         External_Name => "getsubopt";
 
-   function getloadavg (uu_loadavg : access double; uu_nelem : int) return int  -- /usr/local/include/stdlib.h:1145
+   function getloadavg (uu_loadavg : access double; uu_nelem : int) return int  -- /usr/local/include/stdlib.h:1151
    with Import => True, 
         Convention => C, 
         External_Name => "getloadavg";

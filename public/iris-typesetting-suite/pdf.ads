@@ -31,7 +31,7 @@ package pdf is
       pdf_page_box_trim  => capypdf_page_box'enum_rep (capy_box_trim),
       pdf_page_box_art   => capypdf_page_box'enum_rep (capy_box_art));
 
-   type pdf_font_id is new controlled with private;
+   type pdf_font_id is new limited_controlled with private;
 
    type pdf_font_properties is new limited_controlled with private;
 
@@ -57,17 +57,16 @@ package pdf is
       page_properties : in pdf_page_properties'class);
 
    type pdf_generator is new limited_controlled with private;
-   procedure set_document
-     (generator  : in out pdf_generator;
-      name       : in string;
-      properties : in pdf_document_properties'class);
+   function create
+     (name : in string; properties : in pdf_document_properties'class)
+      return pdf_generator;
    function load_font
      (generator : in out pdf_generator'class; name : in string)
       return pdf_font_id;
 
 private
 
-   type pdf_font_id is new controlled with record
+   type pdf_font_id is new limited_controlled with record
       id : capypdf_fontid;
    end record;
 
@@ -93,10 +92,8 @@ private
    procedure finalize (properties : in out pdf_document_properties);
 
    type pdf_generator is new limited_controlled with record
-      gen      : access capypdf_generator;
-      filename : chars_ptr := null_ptr;
+      gen : access capypdf_generator;
    end record;
-   procedure initialize (generator : in out pdf_generator);
    overriding
    procedure finalize (generator : in out pdf_generator);
 

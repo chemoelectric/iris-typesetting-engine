@@ -466,7 +466,7 @@ ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(ADALD) \
 	$(AM_CFLAGS) $(CFLAGS) \
 	$(AM_ADAFLAGS) $(ADAFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $(@)
+	$(AM_LDFLAGS) $(LDFLAGS) -lgnarl -o $(@)
 
 nodist_libiris_la_SOURCES = 
 libiris_la_SOURCES = $(LIBIRIS_ADB_FILES) $(LIBIRIS_ADS_FILES) \
