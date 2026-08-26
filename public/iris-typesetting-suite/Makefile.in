@@ -125,7 +125,8 @@ build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = iris$(EXEEXT)
 check_PROGRAMS = test_pdf_01$(EXEEXT) \
-	test_find_main_system_fonts$(EXEEXT)
+	test_find_main_system_fonts$(EXEEXT) \
+	test_find_tex_fonts$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -192,6 +193,8 @@ iris_OBJECTS = $(am_iris_OBJECTS)
 am_test_find_main_system_fonts_OBJECTS =
 test_find_main_system_fonts_OBJECTS =  \
 	$(am_test_find_main_system_fonts_OBJECTS)
+am_test_find_tex_fonts_OBJECTS =
+test_find_tex_fonts_OBJECTS = $(am_test_find_tex_fonts_OBJECTS)
 am_test_pdf_01_OBJECTS =
 test_pdf_01_OBJECTS = $(am_test_pdf_01_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -227,9 +230,10 @@ am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libiris_la_SOURCES) $(nodist_libiris_la_SOURCES) \
 	$(iris_SOURCES) $(test_find_main_system_fonts_SOURCES) \
-	$(test_pdf_01_SOURCES)
+	$(test_find_tex_fonts_SOURCES) $(test_pdf_01_SOURCES)
 DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
-	$(test_find_main_system_fonts_SOURCES) $(test_pdf_01_SOURCES)
+	$(test_find_main_system_fonts_SOURCES) \
+	$(test_find_tex_fonts_SOURCES) $(test_pdf_01_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -435,10 +439,12 @@ ACLOCAL_AMFLAGS = -I m4 --install
 DEP_FILES = $(LIBIRIS_ADB_FILES:%.adb=.deps/%.adbdep) \
 	$(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep) .deps/iris.adbdep \
 	.deps/test_pdf_01.adbdep \
-	.deps/test_find_main_system_fonts.adbdep
+	.deps/test_find_main_system_fonts.adbdep \
+	.deps/test_find_tex_fonts.adbdep
 MOSTLYCLEANFILES = 
 CLEANFILES = iris$(EXEEXT) test_pdf_01$(EXEEXT) \
-	test_find_main_system_fonts$(EXEEXT)
+	test_find_main_system_fonts$(EXEEXT) \
+	test_find_tex_fonts$(EXEEXT)
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
 EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
 	autogen.sh rename-macros.m4 ada-macros.m4 pdf.adb.prelude.m4 \
@@ -495,6 +501,10 @@ test_find_main_system_fonts_LDADD =  \
 	.libs/test_find_main_system_fonts.$(OBJEXT) libiris.la
 test_find_main_system_fonts_DEPENDENCIES =  \
 	test_find_main_system_fonts.lo
+test_find_tex_fonts_SOURCES = test_find_tex_fonts.adb
+test_find_tex_fonts_LDADD = .libs/test_find_tex_fonts.$(OBJEXT) \
+	libiris.la
+test_find_tex_fonts_DEPENDENCIES = test_find_tex_fonts.lo
 AUTOM4TE = $(SHELL) $(srcdir)/build-aux/missing --run autom4te
 TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
 	$(srcdir)/testsuite.at
@@ -1180,6 +1190,9 @@ test_pdf_01$(EXEEXT): test_pdf_01.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 test_find_main_system_fonts$(EXEEXT): test_find_main_system_fonts.lo libiris.la
+	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+
+test_find_tex_fonts$(EXEEXT): test_find_tex_fonts.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
 
 distclean-local::
