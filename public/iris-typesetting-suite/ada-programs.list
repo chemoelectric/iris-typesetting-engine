@@ -2,6 +2,7 @@ bin iris
 check test_pdf_01
 check test_find_main_system_fonts
 check test_find_tex_fonts
+check test_r7rs_sexpr
 
 # check test_capypdf
 # check test_capypdf_2
