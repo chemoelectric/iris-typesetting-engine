@@ -6,6 +6,7 @@ m4_define({m4_capypdf_type},
              $1,{font_properties},{capypdf_fontproperties},
              $1,{page_properties},{capypdf_pageproperties},
              $1,{document_properties},{capypdf_documentproperties},
+             $1,{draw_context},{capypdf_drawcontext},
              $1,{generator},{capypdf_generator})})
 
 m4_define({m4_capypdf_field},
@@ -13,6 +14,7 @@ m4_define({m4_capypdf_field},
              $1,{font_properties},{fprop},
              $1,{page_properties},{pageprops},
              $1,{document_properties},{docprops},
+             $1,{draw_context},{ctx},
              $1,{generator},{gen})})
 
 m4_define({m4_capypdf_argname},
@@ -20,7 +22,12 @@ m4_define({m4_capypdf_argname},
              $1,{font_properties},{properties},
              $1,{page_properties},{properties},
              $1,{document_properties},{properties},
+             $1,{draw_context},{context},
              $1,{generator},{generator})})
+
+m4_define({m4_capypdf_abbrev},
+  {m4_ifelse($1,{draw_context},{dc},
+             {$1})})
 
 m4_define({m4_pdf_initialize},{
 procedure initialize (m4_capypdf_argname({$1}) : in out pdf_$1) is
@@ -32,7 +39,8 @@ begin
       m4_capypdf_argname({$1}).m4_capypdf_field({$1}) :=
          m4_capypdf_field({$1});
    else
-      raise pdf_error with "pdf_$1 initialization error";
+      raise pdf_error with
+        "pdf_$1 initialization error (" & err'image & ")";
    end if;
 end initialize;
 })
@@ -42,10 +50,11 @@ procedure finalize (m4_capypdf_argname({$1}) : in out pdf_$1) is
    err : capypdf_ec;
 begin
    err :=
-      capy_$1_destroy
+      {capy_}m4_capypdf_abbrev({$1}){_destroy}
          (m4_capypdf_argname({$1}).m4_capypdf_field({$1}));
    if err /= 0 then
-      raise pdf_error with "pdf_$1 finalization error";
+      raise pdf_error with
+        "pdf_$1 finalization error (" & err'image & ")";
    end if;
 end finalize;
 })
@@ -65,7 +74,7 @@ begin
          (m4_capypdf_argname({$1}).m4_capypdf_field({$1}),
           s, int32_t (n));
    if err /= 0 then
-      raise pdf_error with "pdf_$1.set_$2 error";
+      raise pdf_error with "pdf_$1.set_$2 error (" & err'image & ")";
    end if;
    free (s);
 exception
@@ -89,9 +98,23 @@ begin
        (m4_capypdf_argname({$1}).m4_capypdf_field({$1}),
         (if is_$2 then 1 else 0));
    if err /= 0 then
-      raise pdf_error with "pdf_$1.set_$2 error";
+      raise pdf_error with "pdf_$1.set_$2 error (" & err'image & ")";
    end if;
 end set_$2;
+})
+
+m4_define({m4_pdf_plain_procedure},{
+procedure $2
+  (m4_capypdf_argname({$1}) : in out pdf_$1)
+is
+   err : capypdf_ec;
+begin
+   err :=
+     capy_$1_$2 (m4_capypdf_argname({$1}).m4_capypdf_field({$1}));
+   if err /= 0 then
+      raise pdf_error with "pdf_$1.$2 error (" & err'image & ")";
+   end if;
+end $2;
 })
 
 m4_divert{}m4_dnl

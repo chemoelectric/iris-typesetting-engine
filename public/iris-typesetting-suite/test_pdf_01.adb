@@ -13,7 +13,6 @@ begin
    declare
       doc_props  : pdf_document_properties;
       page_props : pdf_page_properties;
-      font_id    : pdf_font_id;
    begin
       doc_props.set_title (title => "title");
       doc_props.set_author (author => "author");
@@ -24,11 +23,15 @@ begin
       declare
          generator : pdf_generator :=
            create ("test_pdf_01-001.pdf", doc_props);
-         font_id : pdf_font_id :=
+         draw_ctx  : pdf_draw_context := generator.page_draw_context;
+         font_id   : pdf_font_id :=
            generator.load_font
              ("/home/trashman/src/chemoelectric/iris-typesetting-engine/public/iris-typesetting-suite/___build___/FanwoodText-Italic.ttf");
       begin
-         null;
+         draw_ctx.render_text
+           ("Hello, CapyPDF!", font_id, 24.0, 90.0, 600.0);
+         generator.add_page (draw_ctx);
+         generator.write;
       end;
    end;
 end test_pdf_01;

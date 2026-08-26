@@ -291,10 +291,10 @@ package stdlib_h is
         Convention => C, 
         External_Name => "lcong48";
 
-   type anon_array1318 is array (0 .. 2) of aliased unsigned_short;
+   type anon_array1324 is array (0 .. 2) of aliased unsigned_short;
    type drand48_data is record
-      uu_x : aliased anon_array1318;  -- /usr/local/include/stdlib.h:612
-      uu_old_x : aliased anon_array1318;  -- /usr/local/include/stdlib.h:613
+      uu_x : aliased anon_array1324;  -- /usr/local/include/stdlib.h:612
+      uu_old_x : aliased anon_array1324;  -- /usr/local/include/stdlib.h:613
       uu_c : aliased unsigned_short;  -- /usr/local/include/stdlib.h:614
       uu_init : aliased unsigned_short;  -- /usr/local/include/stdlib.h:615
       uu_a : aliased Extensions.unsigned_long_long;  -- /usr/local/include/stdlib.h:616

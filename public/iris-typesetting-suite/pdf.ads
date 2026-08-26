@@ -56,6 +56,14 @@ package pdf is
      (properties      : in out pdf_document_properties;
       page_properties : in pdf_page_properties'class);
 
+   type pdf_draw_context is new limited_controlled with private;
+   procedure render_text
+     (context    : in out pdf_draw_context;
+      text       : in string;
+      font_id    : in pdf_font_id'class;
+      point_size : in double;
+      x, y       : in double);
+
    type pdf_generator is new limited_controlled with private;
    function create
      (name : in string; properties : in pdf_document_properties'class)
@@ -63,6 +71,12 @@ package pdf is
    function load_font
      (generator : in out pdf_generator'class; name : in string)
       return pdf_font_id;
+   function page_draw_context
+     (generator : in out pdf_generator'class) return pdf_draw_context;
+   procedure add_page
+     (generator : in out pdf_generator;
+      context   : in pdf_draw_context'class);
+   procedure write (generator : in out pdf_generator);
 
 private
 
@@ -90,6 +104,12 @@ private
    procedure initialize (properties : in out pdf_document_properties);
    overriding
    procedure finalize (properties : in out pdf_document_properties);
+
+   type pdf_draw_context is new limited_controlled with record
+      ctx : access capypdf_drawcontext;
+   end record;
+   overriding
+   procedure finalize (context : in out pdf_draw_context);
 
    type pdf_generator is new limited_controlled with record
       gen : access capypdf_generator;

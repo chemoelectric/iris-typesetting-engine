@@ -256,7 +256,7 @@ package fontconfig_fontconfig_h is
 
    subtype FcRange is u_FcRange;  -- /usr/local/include/fontconfig/fontconfig.h:270
 
-   type anon_union1292 (discr : unsigned := 0) is record
+   type anon_union1298 (discr : unsigned := 0) is record
       case discr is
          when 0 =>
             s : access FcChar8;  -- /usr/local/include/fontconfig/fontconfig.h:275
@@ -282,7 +282,7 @@ package fontconfig_fontconfig_h is
         Unchecked_Union => True;
    type u_FcValue is record
       c_type : aliased FcType;  -- /usr/local/include/fontconfig/fontconfig.h:273
-      u : aliased anon_union1292;  -- /usr/local/include/fontconfig/fontconfig.h:284
+      u : aliased anon_union1298;  -- /usr/local/include/fontconfig/fontconfig.h:284
    end record
    with Convention => C_Pass_By_Copy;  -- /usr/local/include/fontconfig/fontconfig.h:272
 

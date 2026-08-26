@@ -15,9 +15,9 @@ package stdarg_h is
    --    __builtin_va_arg(v,l)
    --  arg-macro: procedure va_copy (d, s)
    --    __builtin_va_copy(d,s)
-   subtype uu_gnuc_va_list is System.Address;  -- /usr/local/lib/gcc/x86_64-unknown-linux-gnu/16.1.0/include/stdarg.h:40
+   subtype uu_gnuc_va_list is System.Address;  -- /usr/local/lib/gcc/x86_64-unknown-linux-gnu/16.2.0/include/stdarg.h:40
 
-   subtype va_list is uu_gnuc_va_list;  -- /usr/local/lib/gcc/x86_64-unknown-linux-gnu/16.1.0/include/stdarg.h:104
+   subtype va_list is uu_gnuc_va_list;  -- /usr/local/lib/gcc/x86_64-unknown-linux-gnu/16.2.0/include/stdarg.h:104
 
 end stdarg_h;
 
