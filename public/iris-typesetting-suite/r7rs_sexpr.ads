@@ -2,13 +2,57 @@
 --
 --  SPDX-License-Identifier: MIT
 
+pragma wide_character_encoding (utf8);
+pragma ada_2022;
+
+with ada.wide_wide_characters;
+with ada.wide_wide_characters.handling;
+with ada.strings.wide_wide_unbounded;
 with ada.finalization;
-with ada.strings.unbounded;
 with interfaces;
 
 package r7rs_sexpr is
 
-   use ada.strings.unbounded;
+   package sexpr_characters renames ada.wide_wide_characters;
+   package sexpr_characters_handling renames ada.wide_wide_characters.handling;
+   subtype sexpr_character is wide_wide_character;
+
+   function is_ascii (item : sexpr_character) return boolean
+   with global => null;
+   function is_binary_digit (item : in sexpr_character) return boolean
+   with global => null;
+   function is_octal_digit (item : in sexpr_character) return boolean
+   with global => null;
+   function is_ascii_digit (item : in sexpr_character) return boolean
+   with global => null;
+   function is_hex_digit (item : in sexpr_character) return boolean
+   with global => null;
+
+   package sexpr_strings renames ada.strings.wide_wide_unbounded;
+   subtype sexpr_fixstr is wide_wide_string;
+   subtype sexpr_string is
+     sexpr_strings.unbounded_wide_wide_string;
+
+   null_sexpr_fixstr : constant sexpr_fixstr := sexpr_fixstr'("");
+   null_sexpr_string : constant sexpr_string :=
+     sexpr_strings.null_unbounded_wide_wide_string;
+
+   function to_sexpr_fixstr (source : in string) return sexpr_fixstr;
+   function to_sexpr_string (source : in string) return sexpr_string;
+
+   function to_sexpr_fixstr
+     (source : in sexpr_string) return sexpr_fixstr
+   renames sexpr_strings.to_wide_wide_string;
+
+   function to_sexpr_string
+     (source : in sexpr_fixstr) return sexpr_string
+   renames
+     sexpr_strings.to_unbounded_wide_wide_string;
+
+   function to_lower (item : sexpr_string) return sexpr_string
+   with global => null;
+   function to_upper (item : sexpr_string) return sexpr_string
+   with global => null;
 
    type sexpr_kind is
      (kind_null,
@@ -47,17 +91,13 @@ package r7rs_sexpr is
       return sexpr
    with pre => den > 0;
 
-   function make_character (ch : in wide_wide_character) return sexpr;
+   function make_character (ch : in sexpr_character) return sexpr;
 
-   function make_character (ch : in character) return sexpr;
+   function make_string (str : in sexpr_string) return sexpr;
+   function make_string (str : in wide_wide_string) return sexpr;
 
-   function make_string (str : in unbounded_string) return sexpr;
-
-   function make_string (str : in string) return sexpr;
-
-   function make_symbol (sym : in unbounded_string) return sexpr;
-
-   function make_symbol (sym : in string) return sexpr;
+   function make_symbol (sym : in sexpr_string) return sexpr;
+   function make_symbol (sym : in wide_wide_string) return sexpr;
 
    function cons (car_val : in sexpr; cdr_val : in sexpr) return sexpr;
 
@@ -110,19 +150,13 @@ package r7rs_sexpr is
    function get_denominator (e : in sexpr) return long_long_integer
    with pre => is_rational (e);
 
-   function get_character (e : in sexpr) return wide_wide_character
+   function get_character (e : in sexpr) return sexpr_character
    with pre => is_character (e);
 
-   function get_string (e : in sexpr) return unbounded_string
+   function get_string (e : in sexpr) return sexpr_string
    with pre => is_string (e);
 
-   function get_string_str (e : in sexpr) return string
-   with pre => is_string (e);
-
-   function get_symbol (e : in sexpr) return unbounded_string
-   with pre => is_symbol (e);
-
-   function get_symbol_str (e : in sexpr) return string
+   function get_symbol (e : in sexpr) return sexpr_string
    with pre => is_symbol (e);
 
    function car (e : in sexpr) return sexpr
@@ -166,40 +200,32 @@ package r7rs_sexpr is
 
    function eqv (a : in sexpr; b : in sexpr) return boolean;
 
-   function assoc (key_sym : in string; alist : in sexpr) return sexpr
-   with pre => is_list (alist) or is_null (alist);
-
-   function assoc
-     (key_sym : in unbounded_string; alist : in sexpr) return sexpr
-   with pre => is_list (alist) or is_null (alist);
-
    function assoc (key : in sexpr; alist : in sexpr) return sexpr
    with pre => is_list (alist) or is_null (alist);
 
-   function assq (key_sym : in string; alist : in sexpr) return sexpr
+   function assq
+     (key_sym : in sexpr_string; alist : in sexpr) return sexpr
    with pre => is_list (alist) or is_null (alist);
 
    function acons
      (key : in sexpr; val : in sexpr; alist : in sexpr) return sexpr;
 
-   function read_from_string (src : in string) return sexpr;
-
-   function read_from_string (src : in unbounded_string) return sexpr;
+   function read_from_string (src : in sexpr_string) return sexpr;
+   function read_from_string (src : in wide_wide_string) return sexpr;
 
    function read_from_file (file_path : in string) return sexpr;
 
-   function read_all_from_string (src : in string) return sexpr_array;
+   function read_all_from_string
+     (src : in sexpr_string) return sexpr_array;
 
    function read_all_from_file
      (file_path : in string) return sexpr_array;
 
-   function write_to_string (e : in sexpr) return unbounded_string;
+   function write_to_string (e : in sexpr) return sexpr_string;
 
-   function write_to_string (e : in sexpr) return string;
+   function write_simple_to_string (e : in sexpr) return sexpr_string;
 
-   function write_simple_to_string (e : in sexpr) return string;
-
-   function display_to_string (e : in sexpr) return string;
+   function display_to_string (e : in sexpr) return sexpr_string;
 
    procedure write_to_file (e : in sexpr; file_path : in string);
 
@@ -230,13 +256,13 @@ private
             den_val : long_long_integer;
 
          when kind_character =>
-            char_val : wide_wide_character;
+            char_val : sexpr_character;
 
          when kind_string =>
-            str_val : ada.strings.unbounded.unbounded_string;
+            str_val : sexpr_string;
 
          when kind_symbol =>
-            sym_val : ada.strings.unbounded.unbounded_string;
+            sym_val : sexpr_string;
 
          when kind_pair =>
             car_val : sexpr;

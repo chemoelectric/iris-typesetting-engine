@@ -2,18 +2,121 @@
 --
 --  SPDX-License-Identifier: MIT
 
+pragma wide_character_encoding (utf8);
+pragma ada_2022;
+
 with interfaces;
-with ada.characters.handling;
+with ada.characters.conversions;
 with ada.io_exceptions;
+with ada.strings;
 with ada.strings.fixed;
-with ada.text_io;
+with ada.wide_wide_text_io;
 with ada.unchecked_deallocation;
 
 package body r7rs_sexpr is
 
    use interfaces;
-   use ada.characters.handling;
-   use ada.strings.fixed;
+   use ada.wide_wide_text_io;
+   use sexpr_characters_handling;
+   use sexpr_strings;
+
+   package conv renames ada.characters.conversions;
+
+   function trim_left (source : string) return string is
+   begin
+      return
+        ada.strings.fixed.trim
+          (source => source, side => ada.strings.left);
+   end trim_left;
+
+   sexpr_nul       : constant sexpr_character :=
+     sexpr_character'val (0);
+   sexpr_bell      : constant sexpr_character :=
+     sexpr_character'val (7);
+   sexpr_backspace : constant sexpr_character :=
+     sexpr_character'val (8);
+   sexpr_tab       : constant sexpr_character :=
+     sexpr_character'val (9);
+   sexpr_newline   : constant sexpr_character :=
+     sexpr_character'val (10);
+   sexpr_verttab   : constant sexpr_character :=
+     sexpr_character'val (11);
+   sexpr_formfeed  : constant sexpr_character :=
+     sexpr_character'val (12);
+   sexpr_return    : constant sexpr_character :=
+     sexpr_character'val (13);
+
+   plus_inf  : constant sexpr_string :=
+     to_sexpr_string (sexpr_fixstr'("+inf.0"));
+   minus_inf : constant sexpr_string :=
+     to_sexpr_string (sexpr_fixstr'("-inf.0"));
+   plus_nan  : constant sexpr_string :=
+     to_sexpr_string (sexpr_fixstr'("+nan.0"));
+   minus_nan : constant sexpr_string :=
+     to_sexpr_string (sexpr_fixstr'("-nan.0"));
+
+   function is_ascii (item : sexpr_character) return boolean is
+   begin
+      return (sexpr_character'pos (item) <= 127);
+   end is_ascii;
+
+   function is_binary_digit (item : in sexpr_character) return boolean
+   is
+   begin
+      return
+        (item = sexpr_character'('0') or item = sexpr_character'('1'));
+   end is_binary_digit;
+
+   function is_octal_digit (item : in sexpr_character) return boolean is
+   begin
+      return (item in sexpr_character'('0') .. sexpr_character'('7'));
+   end is_octal_digit;
+
+   function is_ascii_digit (item : in sexpr_character) return boolean is
+   begin
+      return (item in sexpr_character'('0') .. sexpr_character'('9'));
+   end is_ascii_digit;
+
+   function is_hex_digit (item : in sexpr_character) return boolean is
+   begin
+      return
+        (is_ascii_digit (item)
+         or item in sexpr_character'('a') .. sexpr_character'('f')
+         or item in sexpr_character'('A') .. sexpr_character'('F'));
+   end is_hex_digit;
+
+   function to_sexpr_fixstr (source : in string) return sexpr_fixstr is
+   begin
+      return conv.to_wide_wide_string (source);
+   end to_sexpr_fixstr;
+
+   function to_sexpr_string (source : in string) return sexpr_string is
+   begin
+      return to_sexpr_string (conv.to_wide_wide_string (source));
+   end to_sexpr_string;
+
+   function to_lower (item : sexpr_string) return sexpr_string is
+   begin
+      return to_sexpr_string (to_lower (to_sexpr_fixstr (item)));
+   end to_lower;
+
+   function to_upper (item : sexpr_string) return sexpr_string is
+   begin
+      return to_sexpr_string (to_upper (to_sexpr_fixstr (item)));
+   end to_upper;
+
+   function to_float (item : sexpr_string) return long_float is
+      --
+      -- FIXME / IMPORTANT NOTE:
+      --
+      -- This implementation follows Ada conventions for the floating
+      -- point notation. There might be subtle errors that we will
+      -- have to fix.
+      --
+   begin
+      return
+        long_float'value (conv.to_string (to_sexpr_fixstr (item)));
+   end to_float;
 
    procedure free_node is new
      ada.unchecked_deallocation (node_record, node_access);
@@ -95,7 +198,7 @@ package body r7rs_sexpr is
       return res;
    end make_rational;
 
-   function make_character (ch : in wide_wide_character) return sexpr is
+   function make_character (ch : in sexpr_character) return sexpr is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_character);
@@ -103,15 +206,7 @@ package body r7rs_sexpr is
       return res;
    end make_character;
 
-   function make_character (ch : in character) return sexpr is
-      res : sexpr;
-   begin
-      res :=
-        make_character (wide_wide_character'val (character'pos (ch)));
-      return res;
-   end make_character;
-
-   function make_string (str : in unbounded_string) return sexpr is
+   function make_string (str : in sexpr_string) return sexpr is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_string);
@@ -119,14 +214,12 @@ package body r7rs_sexpr is
       return res;
    end make_string;
 
-   function make_string (str : in string) return sexpr is
-      res : sexpr;
+   function make_string (str : in sexpr_fixstr) return sexpr is
    begin
-      res := make_string (to_unbounded_string (str));
-      return res;
+      return make_string (to_sexpr_string (str));
    end make_string;
 
-   function make_symbol (sym : in unbounded_string) return sexpr is
+   function make_symbol (sym : in sexpr_string) return sexpr is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_symbol);
@@ -134,11 +227,9 @@ package body r7rs_sexpr is
       return res;
    end make_symbol;
 
-   function make_symbol (sym : in string) return sexpr is
-      res : sexpr;
+   function make_symbol (sym : in sexpr_fixstr) return sexpr is
    begin
-      res := make_symbol (to_unbounded_string (sym));
-      return res;
+      return make_symbol (to_sexpr_string (sym));
    end make_symbol;
 
    function cons (car_val : in sexpr; cdr_val : in sexpr) return sexpr
@@ -353,8 +444,8 @@ package body r7rs_sexpr is
       return res;
    end get_denominator;
 
-   function get_character (e : in sexpr) return wide_wide_character is
-      res : wide_wide_character := ' ';
+   function get_character (e : in sexpr) return sexpr_character is
+      res : sexpr_character := ' ';
    begin
       if e.ptr /= null and then e.ptr.kind = kind_character then
          res := e.ptr.char_val;
@@ -364,8 +455,8 @@ package body r7rs_sexpr is
       return res;
    end get_character;
 
-   function get_string (e : in sexpr) return unbounded_string is
-      res : unbounded_string := null_unbounded_string;
+   function get_string (e : in sexpr) return sexpr_string is
+      res : sexpr_string := null_sexpr_string;
    begin
       if e.ptr /= null and then e.ptr.kind = kind_string then
          res := e.ptr.str_val;
@@ -375,14 +466,8 @@ package body r7rs_sexpr is
       return res;
    end get_string;
 
-   function get_string_str (e : in sexpr) return string is
-      res : string := to_string (get_string (e));
-   begin
-      return res;
-   end get_string_str;
-
-   function get_symbol (e : in sexpr) return unbounded_string is
-      res : unbounded_string := null_unbounded_string;
+   function get_symbol (e : in sexpr) return sexpr_string is
+      res : sexpr_string := null_sexpr_string;
    begin
       if e.ptr /= null and then e.ptr.kind = kind_symbol then
          res := e.ptr.sym_val;
@@ -391,12 +476,6 @@ package body r7rs_sexpr is
       end if;
       return res;
    end get_symbol;
-
-   function get_symbol_str (e : in sexpr) return string is
-      res : string := to_string (get_symbol (e));
-   begin
-      return res;
-   end get_symbol_str;
 
    function car (e : in sexpr) return sexpr is
       res : sexpr;
@@ -648,27 +727,10 @@ package body r7rs_sexpr is
       return res;
    end assoc;
 
-   function assoc (key_sym : in string; alist : in sexpr) return sexpr
-   is
-      k   : sexpr := make_symbol (key_sym);
-      res : sexpr := assoc (k, alist);
+   function assq
+     (key_sym : in sexpr_string; alist : in sexpr) return sexpr is
    begin
-      return res;
-   end assoc;
-
-   function assoc
-     (key_sym : in unbounded_string; alist : in sexpr) return sexpr
-   is
-      k   : sexpr := make_symbol (key_sym);
-      res : sexpr := assoc (k, alist);
-   begin
-      return res;
-   end assoc;
-
-   function assq (key_sym : in string; alist : in sexpr) return sexpr is
-      res : sexpr := assoc (key_sym, alist);
-   begin
-      return res;
+      return assoc (make_symbol (key_sym), alist);
    end assq;
 
    function acons
@@ -685,7 +747,7 @@ package body r7rs_sexpr is
    ---------------------------------------------------------------------
 
    type parse_context is record
-      src       : unbounded_string;
+      src       : sexpr_string;
       pos       : positive := 1;
       len       : natural := 0;
       fold_case : boolean := false;
@@ -709,8 +771,8 @@ package body r7rs_sexpr is
       return res;
    end is_eof;
 
-   function peek_char (ctx : in parse_context) return character is
-      res : character := ascii.nul;
+   function peek_char (ctx : in parse_context) return sexpr_character is
+      res : sexpr_character := sexpr_nul;
    begin
       if ctx.pos <= ctx.len then
          res := element (ctx.src, ctx.pos);
@@ -718,8 +780,10 @@ package body r7rs_sexpr is
       return res;
    end peek_char;
 
-   function peek_next_char (ctx : in parse_context) return character is
-      res : character := ascii.nul;
+   function peek_next_char
+     (ctx : in parse_context) return sexpr_character
+   is
+      res : sexpr_character := sexpr_nul;
    begin
       if ctx.pos + 1 <= ctx.len then
          res := element (ctx.src, ctx.pos + 1);
@@ -734,25 +798,25 @@ package body r7rs_sexpr is
       end if;
    end adv_char;
 
-   function is_delimiter (c : in character) return boolean is
+   function is_delimiter (c : in sexpr_character) return boolean is
       res : boolean := false;
    begin
       case c is
          when ' '
-            | ascii.ht
-            | ascii.lf
-            | ascii.cr
-            | ascii.ff
-            | '('
-            | ')'
-            | '"'
-            | ';'
-            | '|'
-            | '['
-            | ']'    =>
+            | sexpr_tab
+            | sexpr_newline
+            | sexpr_return
+            | sexpr_formfeed
+            | sexpr_character'('(')
+            | sexpr_character'(')')
+            | sexpr_character'('"')
+            | sexpr_character'(';')
+            | sexpr_character'('|')
+            | sexpr_character'('[')
+            | sexpr_character'(']') =>
             res := true;
 
-         when others =>
+         when others                =>
             res := false;
       end case;
       return res;
@@ -763,11 +827,11 @@ package body r7rs_sexpr is
       return sexpr;
 
    procedure skip_line_comment (ctx : in out parse_context) is
-      ch : character := peek_char (ctx);
+      ch : sexpr_character := peek_char (ctx);
    begin
       while not is_eof (ctx)
-        and then ch /= ascii.lf
-        and then ch /= ascii.cr
+        and then ch /= sexpr_newline
+        and then ch /= sexpr_return
       loop
          adv_char (ctx);
          ch := peek_char (ctx);
@@ -780,12 +844,14 @@ package body r7rs_sexpr is
       adv_char (ctx); -- skip '#'
       adv_char (ctx); -- skip '|'
       while not is_eof (ctx) and then depth > 0 loop
-         if peek_char (ctx) = '#' and then peek_next_char (ctx) = '|'
+         if peek_char (ctx) = sexpr_character'('#')
+           and then peek_next_char (ctx) = sexpr_character'('|')
          then
             depth := depth + 1;
             adv_char (ctx);
             adv_char (ctx);
-         elsif peek_char (ctx) = '|' and then peek_next_char (ctx) = '#'
+         elsif peek_char (ctx) = sexpr_character'('|')
+           and then peek_next_char (ctx) = sexpr_character'('#')
          then
             depth := depth - 1;
             adv_char (ctx);
@@ -804,23 +870,27 @@ package body r7rs_sexpr is
       while not is_eof (ctx) and changed loop
          changed := false;
          declare
-            c : character := peek_char (ctx);
+            c : sexpr_character := peek_char (ctx);
          begin
-            if c = ' '
-              or else c = ascii.ht
-              or else c = ascii.lf
-              or else c = ascii.cr
-              or else c = ascii.ff
+            if c = sexpr_character'(' ')
+              or else c = sexpr_tab
+              or else c = sexpr_newline
+              or else c = sexpr_return
+              or else c = sexpr_formfeed
             then
                adv_char (ctx);
                changed := true;
-            elsif c = ';' then
+            elsif c = sexpr_character'(';') then
                skip_line_comment (ctx);
                changed := true;
-            elsif c = '#' and then peek_next_char (ctx) = '|' then
+            elsif c = sexpr_character'('#')
+              and then peek_next_char (ctx) = sexpr_character'('|')
+            then
                skip_nested_comment (ctx);
                changed := true;
-            elsif c = '#' and then peek_next_char (ctx) = ';' then
+            elsif c = sexpr_character'('#')
+              and then peek_next_char (ctx) = sexpr_character'(';')
+            then
                adv_char (ctx);
                adv_char (ctx);
                declare
@@ -829,7 +899,9 @@ package body r7rs_sexpr is
                   discarded := parse_datum (ctx, lbl);
                end;
                changed := true;
-            elsif c = '#' and then peek_next_char (ctx) = '!' then
+            elsif c = sexpr_character'('#')
+              and then peek_next_char (ctx) = sexpr_character'('!')
+            then
                adv_char (ctx);
                adv_char (ctx);
                while not is_eof (ctx)
@@ -843,29 +915,19 @@ package body r7rs_sexpr is
       end loop;
    end skip_whitespace_and_comments;
 
-   function is_hex_digit (c : in character) return boolean is
-      res : boolean := false;
-   begin
-      if c in '0' .. '9'
-        or else c in 'a' .. 'f'
-        or else c in 'A' .. 'F'
-      then
-         res := true;
-      end if;
-      return res;
-   end is_hex_digit;
-
-   function parse_hex_digit (c : in character) return natural is
+   function parse_hex_digit (c : in sexpr_character) return natural is
       res : natural := 0;
    begin
-      if c in '0' .. '9' then
-         res := character'pos (c) - character'pos ('0');
-      elsif c in 'a' .. 'f' then
-         res := character'pos (c) - character'pos ('a') + 10;
-      elsif c in 'A' .. 'F' then
-         res := character'pos (c) - character'pos ('A') + 10;
+      if not is_hex_digit (c) then
+         raise parse_error with "invalid hex digit: " & c'img;
+      elsif is_ascii_digit (c) then
+         res := sexpr_character'pos (c) - sexpr_character'pos ('0');
+      elsif is_lower (c) then
+         res :=
+           sexpr_character'pos (c) - sexpr_character'pos ('a') + 10;
       else
-         raise parse_error with "invalid hex digit: " & c;
+         res :=
+           sexpr_character'pos (c) - sexpr_character'pos ('A') + 10;
       end if;
       return res;
    end parse_hex_digit;
@@ -873,12 +935,12 @@ package body r7rs_sexpr is
    function parse_string_literal
      (ctx : in out parse_context) return sexpr
    is
-      buf : unbounded_string := null_unbounded_string;
+      buf : sexpr_string := null_sexpr_string;
    begin
       adv_char (ctx); -- skip opening '"'
       while not is_eof (ctx) and then peek_char (ctx) /= '"' loop
          declare
-            c : character := peek_char (ctx);
+            c : sexpr_character := peek_char (ctx);
          begin
             if c = '\' then
                adv_char (ctx);
@@ -886,42 +948,42 @@ package body r7rs_sexpr is
                   raise parse_error with "unterminated string escape";
                end if;
                declare
-                  esc : character := peek_char (ctx);
+                  esc : sexpr_character := peek_char (ctx);
                begin
                   case esc is
-                     when 'a'                                  =>
-                        append (buf, ascii.bel);
+                     when 'a'          =>
+                        buf := @ & sexpr_bell;
                         adv_char (ctx);
 
-                     when 'b'                                  =>
-                        append (buf, ascii.bs);
+                     when 'b'          =>
+                        buf := @ & sexpr_backspace;
                         adv_char (ctx);
 
-                     when 't'                                  =>
-                        append (buf, ascii.ht);
+                     when 't'          =>
+                        buf := @ & sexpr_tab;
                         adv_char (ctx);
 
-                     when 'n'                                  =>
-                        append (buf, ascii.lf);
+                     when 'n'          =>
+                        buf := @ & sexpr_newline;
                         adv_char (ctx);
 
-                     when 'r'                                  =>
-                        append (buf, ascii.cr);
+                     when 'r'          =>
+                        buf := @ & sexpr_return;
                         adv_char (ctx);
 
-                     when '"'                                  =>
-                        append (buf, '"');
+                     when '"'          =>
+                        buf := @ & sexpr_character'('"');
                         adv_char (ctx);
 
-                     when '\'                                  =>
-                        append (buf, '\');
+                     when '\'          =>
+                        buf := @ & sexpr_character'('\');
                         adv_char (ctx);
 
-                     when '|'                                  =>
-                        append (buf, '|');
+                     when '|'          =>
+                        buf := @ & sexpr_character'('|');
                         adv_char (ctx);
 
-                     when 'x'                                  =>
+                     when 'x'          =>
                         adv_char (ctx);
                         declare
                            hex_val : natural := 0;
@@ -942,24 +1004,30 @@ package body r7rs_sexpr is
                               adv_char (ctx);
                            end if;
                            if hex_val <= 255 then
-                              append (buf, character'val (hex_val));
+                              buf := @ & sexpr_character'val (hex_val);
                            else
-                              append (buf, '?');
+                              append (source => buf, new_item => '?');
                            end if;
                         end;
 
-                     when ' ' | ascii.ht | ascii.lf | ascii.cr =>
+                     when sexpr_character'(' ')
+                        | sexpr_tab
+                        | sexpr_newline
+                        | sexpr_return =>
                         while not is_eof (ctx)
-                          and then (peek_char (ctx) = ' '
-                                    or else peek_char (ctx) = ascii.ht
-                                    or else peek_char (ctx) = ascii.lf
-                                    or else peek_char (ctx) = ascii.cr)
+                          and then (peek_char (ctx)
+                                    = sexpr_character'(' ')
+                                    or else peek_char (ctx) = sexpr_tab
+                                    or else peek_char (ctx)
+                                            = sexpr_newline
+                                    or else peek_char (ctx)
+                                            = sexpr_return)
                         loop
                            adv_char (ctx);
                         end loop;
 
-                     when others                               =>
-                        append (buf, esc);
+                     when others       =>
+                        buf := @ & esc;
                         adv_char (ctx);
                   end case;
                end;
@@ -979,12 +1047,12 @@ package body r7rs_sexpr is
    function parse_vertical_symbol
      (ctx : in out parse_context) return sexpr
    is
-      buf : unbounded_string := null_unbounded_string;
+      buf : sexpr_string := null_sexpr_string;
    begin
       adv_char (ctx); -- skip opening '|'
       while not is_eof (ctx) and then peek_char (ctx) /= '|' loop
          declare
-            c : character := peek_char (ctx);
+            c : sexpr_character := peek_char (ctx);
          begin
             if c = '\' then
                adv_char (ctx);
@@ -992,7 +1060,7 @@ package body r7rs_sexpr is
                   raise parse_error with "unterminated symbol escape";
                end if;
                declare
-                  esc : character := peek_char (ctx);
+                  esc : sexpr_character := peek_char (ctx);
                begin
                   if esc = '|' or else esc = '\' then
                      append (buf, esc);
@@ -1018,9 +1086,12 @@ package body r7rs_sexpr is
                            adv_char (ctx);
                         end if;
                         if hex_val <= 255 then
-                           append (buf, character'val (hex_val));
+                           append
+                             (source   => buf,
+                              new_item =>
+                                sexpr_character'val (hex_val));
                         else
-                           append (buf, '?');
+                           append (source => buf, new_item => '?');
                         end if;
                      end;
                   else
@@ -1042,34 +1113,33 @@ package body r7rs_sexpr is
    end parse_vertical_symbol;
 
    function parse_named_char
-     (name : in string) return wide_wide_character
+     (name : in sexpr_string) return sexpr_character
    is
-      res : wide_wide_character := ' ';
-      low : string := to_lower (name);
+      res : sexpr_character := ' ';
+      low : sexpr_string := to_lower (name);
    begin
       if low = "space" then
          res := ' ';
       elsif low = "newline" then
-         res := wide_wide_character'val (10);
+         res := sexpr_newline;
       elsif low = "tab" then
-         res := wide_wide_character'val (9);
+         res := sexpr_character'val (9);
       elsif low = "return" then
-         res := wide_wide_character'val (13);
+         res := sexpr_character'val (13);
       elsif low = "alarm" then
-         res := wide_wide_character'val (7);
+         res := sexpr_character'val (7);
       elsif low = "backspace" then
-         res := wide_wide_character'val (8);
+         res := sexpr_character'val (8);
       elsif low = "escape" then
-         res := wide_wide_character'val (27);
+         res := sexpr_character'val (27);
       elsif low = "null" then
-         res := wide_wide_character'val (0);
+         res := sexpr_nul;
       elsif low = "delete" then
-         res := wide_wide_character'val (127);
-      elsif name'length = 1 then
-         res :=
-           wide_wide_character'val (character'pos (name (name'first)));
+         res := sexpr_character'val (127);
+      elsif length (name) = 1 then
+         res := element (name, 1);
       else
-         raise parse_error with "unknown character name: " & name;
+         raise parse_error with "unknown character name: " & name'img;
       end if;
       return res;
    end parse_named_char;
@@ -1103,18 +1173,18 @@ package body r7rs_sexpr is
             if not is_eof (ctx) and then peek_char (ctx) = ';' then
                adv_char (ctx);
             end if;
-            res := make_character (wide_wide_character'val (hex_val));
+            res := make_character (sexpr_character'val (hex_val));
          end;
       elsif is_delimiter (peek_char (ctx)) then
          declare
-            ch : character := peek_char (ctx);
+            ch : sexpr_character := peek_char (ctx);
          begin
             adv_char (ctx);
             res := make_character (ch);
          end;
       else
          declare
-            tok : unbounded_string := null_unbounded_string;
+            tok : sexpr_string := null_sexpr_string;
          begin
             while not is_eof (ctx)
               and then not is_delimiter (peek_char (ctx))
@@ -1122,7 +1192,7 @@ package body r7rs_sexpr is
                append (tok, peek_char (ctx));
                adv_char (ctx);
             end loop;
-            res := make_character (parse_named_char (to_string (tok)));
+            res := make_character (parse_named_char (tok));
          end;
       end if;
       return res;
@@ -1234,32 +1304,36 @@ package body r7rs_sexpr is
    end parse_bytevector_literal;
 
    function is_valid_integer
-     (tok : in string; rad : in positive) return boolean
+     (tok : in sexpr_string; rad : in positive) return boolean
    is
       res : boolean := true;
-      st  : positive := tok'first;
+      st  : positive := 1;
    begin
-      if tok'length = 0 then
+      if length (tok) = 0 then
          res := false;
       else
-         if tok (st) = '+' or tok (st) = '-' then
+         if element (tok, st) = '+' or element (tok, st) = '-' then
             st := st + 1;
          end if;
-         if st > tok'last then
+         if st > length (tok) then
             res := false;
          else
-            for i in st .. tok'last loop
-               if rad = 10 and then not (tok (i) in '0' .. '9') then
-                  res := false;
-               elsif rad = 16
-                 and then not (tok (i) in '0' .. '9'
-                               or else tok (i) in 'a' .. 'f'
-                               or else tok (i) in 'A' .. 'F')
+            for i in st .. length (tok) loop
+               if rad = 10
+                 and then not (is_ascii_digit (element (tok, i)))
                then
                   res := false;
-               elsif rad = 8 and then not (tok (i) in '0' .. '7') then
+               elsif rad = 16
+                 and then not (is_hex_digit (element (tok, i)))
+               then
                   res := false;
-               elsif rad = 2 and then not (tok (i) in '0' .. '1') then
+               elsif rad = 8
+                 and then not is_octal_digit (element (tok, i))
+               then
+                  res := false;
+               elsif rad = 2
+                 and then not is_binary_digit (element (tok, i))
+               then
                   res := false;
                end if;
             end loop;
@@ -1269,57 +1343,84 @@ package body r7rs_sexpr is
    end is_valid_integer;
 
    function parse_int_val
-     (tok : in string; rad : in positive) return long_long_integer
+     (tok : in sexpr_string; rad : in positive) return long_long_integer
    is
       neg : boolean := false;
       val : long_long_integer := 0;
-      st  : positive := tok'first;
+      st  : positive := 1;
    begin
-      if tok (st) = '-' then
+      if element (tok, st) = sexpr_character'('-') then
          neg := true;
-         st := st + 1;
-      elsif tok (st) = '+' then
-         st := st + 1;
+         st := @ + 1;
+      elsif element (tok, st) = sexpr_character'('+') then
+         st := @ + 1;
       end if;
 
-      for i in st .. tok'last loop
+      for i in st .. length (tok) loop
          declare
-            d : natural := parse_hex_digit (tok (i));
+            d : natural := parse_hex_digit (element (tok, i));
          begin
             val :=
-              val * long_long_integer (rad) + long_long_integer (d);
+              (@ * long_long_integer (rad)) + long_long_integer (d);
          end;
       end loop;
 
       if neg then
-         val := -val;
+         val := -@;
       end if;
       return val;
    end parse_int_val;
 
    function parse_number_or_symbol
-     (raw_tok : in string; radix : in positive := 10) return sexpr
+     (raw_tok : in sexpr_string; radix : in positive := 10) return sexpr
    is
-      tok : string := raw_tok;
+      tok : sexpr_string := raw_tok;
       res : sexpr;
+
+      slash : constant sexpr_fixstr := sexpr_fixstr'("/");
+
+      function is_inf_or_nan (tok : in sexpr_string) return boolean is
+      begin
+         return (tok in plus_inf | minus_inf | plus_nan | minus_nan);
+      end is_inf_or_nan;
+
+      procedure split_fraction
+        (tok     : in sexpr_string;
+         radix   : in positive;
+         -- FIXME: I CAN DO BETTER FOR DEFINING A RADIX TYPE.
+         num_str : out sexpr_string;
+         den_str : out sexpr_string)
+      is
+         slash_pos : natural;
+         s, t      : sexpr_string;
+      begin
+         num_str := null_sexpr_string;
+         den_str := null_sexpr_string;
+         slash_pos := index (tok, slash);
+         if 0 < slash_pos then
+            s := unbounded_slice (tok, 1, slash_pos - 1);
+            if is_valid_integer (s, radix) then
+               t := unbounded_slice (tok, slash_pos + 1, length (tok));
+               if is_valid_integer (t, radix) then
+                  num_str := s;
+                  den_str := t;
+               end if;
+            end if;
+         end if;
+      end split_fraction;
+
    begin
-      --if tok = "+inf.0" then
-      --   res := make_real (long_float'last);
-      --elsif tok = "-inf.0" then
-      --   res := make_real (long_float'first);
-      --elsif tok = "+nan.0" or else tok = "-nan.0" then
-      --   res := make_real (0.0 / 0.0);
-      if is_valid_integer (tok, radix) then
+      if is_inf_or_nan (tok) then
+         raise parse_error with tok'img & " is not yet implemented";
+      elsif is_valid_integer (tok, radix) then
          res := make_integer (parse_int_val (tok, radix));
-      elsif index (tok, "/") > 0 then
+      elsif 0 < index (tok, slash) then
          declare
-            slash_pos : natural := index (tok, "/");
-            num_str   : string := tok (tok'first .. slash_pos - 1);
-            den_str   : string := tok (slash_pos + 1 .. tok'last);
+            num_str : sexpr_string;
+            den_str : sexpr_string;
          begin
-            if is_valid_integer (num_str, radix)
-              and then is_valid_integer (den_str, radix)
-            then
+            split_fraction (tok, radix, num_str, den_str);
+            if length (num_str) /= 0 then
                declare
                   n : long_long_integer :=
                     parse_int_val (num_str, radix);
@@ -1329,6 +1430,7 @@ package body r7rs_sexpr is
                   if d > 0 then
                      res := make_rational (n, d);
                   else
+                     -- Division by zero.  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  I can do a better fraction split.
                      res := make_symbol (tok);
                   end if;
                end;
@@ -1338,11 +1440,7 @@ package body r7rs_sexpr is
          end;
       else
          begin
-            declare
-               rf : long_float := long_float'value (tok);
-            begin
-               res := make_real (rf);
-            end;
+            res := make_real (to_float (tok));
          exception
             when others =>
                res := make_symbol (tok);
@@ -1363,7 +1461,7 @@ package body r7rs_sexpr is
       end if;
 
       declare
-         c : character := peek_char (ctx);
+         c : sexpr_character := peek_char (ctx);
       begin
          if c = 't' or else c = 'T' then
             adv_char (ctx);
@@ -1400,7 +1498,7 @@ package body r7rs_sexpr is
          elsif c = 'b' or else c = 'B' then
             adv_char (ctx);
             declare
-               tok : unbounded_string := null_unbounded_string;
+               tok : sexpr_string := null_sexpr_string;
             begin
                while not is_eof (ctx)
                  and then not is_delimiter (peek_char (ctx))
@@ -1408,12 +1506,12 @@ package body r7rs_sexpr is
                   append (tok, peek_char (ctx));
                   adv_char (ctx);
                end loop;
-               res := parse_number_or_symbol (to_string (tok), 2);
+               res := parse_number_or_symbol (tok, 2);
             end;
          elsif c = 'o' or else c = 'O' then
             adv_char (ctx);
             declare
-               tok : unbounded_string := null_unbounded_string;
+               tok : sexpr_string := null_sexpr_string;
             begin
                while not is_eof (ctx)
                  and then not is_delimiter (peek_char (ctx))
@@ -1421,12 +1519,12 @@ package body r7rs_sexpr is
                   append (tok, peek_char (ctx));
                   adv_char (ctx);
                end loop;
-               res := parse_number_or_symbol (to_string (tok), 8);
+               res := parse_number_or_symbol (tok, 8);
             end;
          elsif c = 'x' or else c = 'X' then
             adv_char (ctx);
             declare
-               tok : unbounded_string := null_unbounded_string;
+               tok : sexpr_string := null_sexpr_string;
             begin
                while not is_eof (ctx)
                  and then not is_delimiter (peek_char (ctx))
@@ -1434,7 +1532,7 @@ package body r7rs_sexpr is
                   append (tok, peek_char (ctx));
                   adv_char (ctx);
                end loop;
-               res := parse_number_or_symbol (to_string (tok), 16);
+               res := parse_number_or_symbol (tok, 16);
             end;
          elsif c = 'd'
            or else c = 'D'
@@ -1445,7 +1543,7 @@ package body r7rs_sexpr is
          then
             adv_char (ctx);
             declare
-               tok : unbounded_string := null_unbounded_string;
+               tok : sexpr_string := null_sexpr_string;
             begin
                while not is_eof (ctx)
                  and then not is_delimiter (peek_char (ctx))
@@ -1453,20 +1551,20 @@ package body r7rs_sexpr is
                   append (tok, peek_char (ctx));
                   adv_char (ctx);
                end loop;
-               res := parse_number_or_symbol (to_string (tok), 10);
+               res := parse_number_or_symbol (tok, 10);
             end;
-         elsif c in '0' .. '9' then
+         elsif is_ascii_digit (c) then
             declare
                lbl_num : natural := 0;
             begin
                while not is_eof (ctx)
-                 and then peek_char (ctx) in '0' .. '9'
+                 and then is_ascii_digit (peek_char (ctx))
                loop
                   lbl_num :=
                     lbl_num
                     * 10
-                    + (character'pos (peek_char (ctx))
-                       - character'pos ('0'));
+                    + (sexpr_character'pos (peek_char (ctx))
+                       - sexpr_character'pos ('0'));
                   adv_char (ctx);
                end loop;
                if not is_eof (ctx) and then peek_char (ctx) = '=' then
@@ -1493,7 +1591,7 @@ package body r7rs_sexpr is
                         raise parse_error
                           with
                             "unknown datum label #"
-                            & natural'image (lbl_num)
+                            & trim_left (lbl_num'img)
                             & "#";
                      end if;
                   end;
@@ -1502,7 +1600,7 @@ package body r7rs_sexpr is
                end if;
             end;
          else
-            raise parse_error with "unrecognized hash token #" & c;
+            raise parse_error with "unrecognized hash token #" & c'img;
          end if;
       end;
       return res;
@@ -1520,18 +1618,18 @@ package body r7rs_sexpr is
       end if;
 
       declare
-         c : character := peek_char (ctx);
+         c : sexpr_character := peek_char (ctx);
       begin
-         if c = '(' then
+         if c = sexpr_character'('(') then
             adv_char (ctx);
             res := parse_list_items (ctx, lbl);
-         elsif c = '"' then
+         elsif c = sexpr_character'('"') then
             res := parse_string_literal (ctx);
-         elsif c = '|' then
+         elsif c = sexpr_character'('|') then
             res := parse_vertical_symbol (ctx);
-         elsif c = '#' then
+         elsif c = sexpr_character'('#') then
             res := parse_hash_prefix (ctx, lbl);
-         elsif c = ''' then
+         elsif c = sexpr_character'(''') then
             adv_char (ctx);
             declare
                sub : sexpr := parse_datum (ctx, lbl);
@@ -1539,7 +1637,7 @@ package body r7rs_sexpr is
                res :=
                  cons (make_symbol ("quote"), cons (sub, make_null));
             end;
-         elsif c = '`' then
+         elsif c = sexpr_character'('`') then
             adv_char (ctx);
             declare
                sub : sexpr := parse_datum (ctx, lbl);
@@ -1548,9 +1646,11 @@ package body r7rs_sexpr is
                  cons
                    (make_symbol ("quasiquote"), cons (sub, make_null));
             end;
-         elsif c = ',' then
+         elsif c = sexpr_character'(',') then
             adv_char (ctx);
-            if not is_eof (ctx) and then peek_char (ctx) = '@' then
+            if not is_eof (ctx)
+              and then peek_char (ctx) = sexpr_character'('@')
+            then
                adv_char (ctx);
                declare
                   sub : sexpr := parse_datum (ctx, lbl);
@@ -1571,7 +1671,7 @@ package body r7rs_sexpr is
             end if;
          else
             declare
-               tok : unbounded_string := null_unbounded_string;
+               tok : sexpr_string := null_sexpr_string;
             begin
                while not is_eof (ctx)
                  and then not is_delimiter (peek_char (ctx))
@@ -1579,38 +1679,39 @@ package body r7rs_sexpr is
                   append (tok, peek_char (ctx));
                   adv_char (ctx);
                end loop;
-               res := parse_number_or_symbol (to_string (tok));
+               res := parse_number_or_symbol (tok);
             end;
          end if;
       end;
       return res;
    end parse_datum;
 
-   function read_from_string (src : in string) return sexpr is
+   function read_from_string (src : in sexpr_string) return sexpr is
       ctx : parse_context;
       lbl : label_context;
       res : sexpr;
    begin
-      ctx.src := to_unbounded_string (src);
+      ctx.src := src;
       ctx.pos := 1;
       ctx.len := length (ctx.src);
       res := parse_datum (ctx, lbl);
       return res;
    end read_from_string;
 
-   function read_from_string (src : in unbounded_string) return sexpr is
-      res : sexpr := read_from_string (to_string (src));
+   function read_from_string (src : in sexpr_fixstr) return sexpr is
    begin
-      return res;
+      return read_from_string (to_sexpr_string (src));
    end read_from_string;
 
-   function read_all_from_string (src : in string) return sexpr_array is
+   function read_all_from_string
+     (src : in sexpr_string) return sexpr_array
+   is
       ctx       : parse_context;
       lbl       : label_context;
       temp_list : sexpr := make_null;
       cnt       : natural := 0;
    begin
-      ctx.src := to_unbounded_string (src);
+      ctx.src := src;
       ctx.pos := 1;
       ctx.len := length (ctx.src);
 
@@ -1637,32 +1738,34 @@ package body r7rs_sexpr is
       end;
    end read_all_from_string;
 
-   function read_file_content (file_path : in string) return string is
-      file : ada.text_io.file_type;
-      buf  : unbounded_string := null_unbounded_string;
+   function read_file_content
+     (file_path : in string) return sexpr_string
+   is
+      file : file_type;
+      buf  : sexpr_string := null_sexpr_string;
    begin
       begin
-         ada.text_io.open (file, ada.text_io.in_file, file_path);
+         open (file, in_file, file_path);
       exception
          when others =>
             raise io_error
               with "cannot open file for reading: " & file_path;
       end;
 
-      while not ada.text_io.end_of_file (file) loop
+      while not end_of_file (file) loop
          declare
-            line : string := ada.text_io.get_line (file);
+            line : sexpr_string := to_sexpr_string (get_line (file));
          begin
             append (buf, line);
-            append (buf, ascii.lf);
+            append (buf, sexpr_newline);
          end;
       end loop;
-      ada.text_io.close (file);
-      return to_string (buf);
+      close (file);
+      return buf;
    end read_file_content;
 
    function read_from_file (file_path : in string) return sexpr is
-      content : string := read_file_content (file_path);
+      content : sexpr_string := read_file_content (file_path);
       res     : sexpr := read_from_string (content);
    begin
       return res;
@@ -1671,7 +1774,7 @@ package body r7rs_sexpr is
    function read_all_from_file
      (file_path : in string) return sexpr_array
    is
-      content : string := read_file_content (file_path);
+      content : sexpr_string := read_file_content (file_path);
    begin
       return read_all_from_string (content);
    end read_all_from_file;
@@ -1681,14 +1784,12 @@ package body r7rs_sexpr is
    ---------------------------------------------------------------------
 
    procedure serialize_datum
-     (e       : in sexpr;
-      display : in boolean;
-      buf     : in out unbounded_string);
+     (e : in sexpr; display : in boolean; buf : in out sexpr_string);
 
    procedure serialize_string
-     (str     : in unbounded_string;
+     (str     : in sexpr_string;
       display : in boolean;
-      buf     : in out unbounded_string) is
+      buf     : in out sexpr_string) is
    begin
       if display then
          append (buf, str);
@@ -1696,43 +1797,43 @@ package body r7rs_sexpr is
          append (buf, '"');
          for i in 1 .. length (str) loop
             declare
-               c : character := element (str, i);
+               c : sexpr_character := element (str, i);
             begin
                case c is
-                  when '"'      =>
+                  when sexpr_character'('"') =>
                      append (buf, "\""");
 
-                  when '\'      =>
+                  when sexpr_character'('\') =>
                      append (buf, "\\");
 
-                  when ascii.lf =>
+                  when sexpr_newline         =>
                      append (buf, "\n");
 
-                  when ascii.ht =>
+                  when sexpr_tab             =>
                      append (buf, "\t");
 
-                  when ascii.cr =>
+                  when sexpr_return          =>
                      append (buf, "\r");
 
-                  when others   =>
+                  when others                =>
                      append (buf, c);
                end case;
             end;
          end loop;
-         append (buf, '"');
+         buf := @ & sexpr_character'('"');
       end if;
    end serialize_string;
 
    procedure serialize_character
-     (ch      : in wide_wide_character;
+     (ch      : in sexpr_character;
       display : in boolean;
-      buf     : in out unbounded_string)
+      buf     : in out sexpr_string)
    is
-      code : natural := wide_wide_character'pos (ch);
+      code : natural := sexpr_character'pos (ch);
    begin
       if display then
          if code <= 255 then
-            append (buf, character'val (code));
+            append (buf, sexpr_character'val (code));
          else
             append (buf, '?');
          end if;
@@ -1767,22 +1868,24 @@ package body r7rs_sexpr is
                append (buf, "delete");
 
             when 33 .. 126 =>
-               append (buf, character'val (code));
+               append (buf, sexpr_character'val (code));
 
             when others    =>
                append (buf, "x");
                declare
-                  hex_str : string := natural'image (code);
+                  hex_str : sexpr_string := to_sexpr_string (code'img);
                begin
-                  append (buf, hex_str (2 .. hex_str'last));
-                  append (buf, ";");
+                  buf :=
+                    @
+                    & unbounded_slice (hex_str, 2, length (hex_str))
+                    & sexpr_fixstr'(";");
                end;
          end case;
       end if;
    end serialize_character;
 
    procedure serialize_list
-     (e : in sexpr; display : in boolean; buf : in out unbounded_string)
+     (e : in sexpr; display : in boolean; buf : in out sexpr_string)
    is
       cur   : sexpr := e;
       first : boolean := true;
@@ -1805,7 +1908,7 @@ package body r7rs_sexpr is
    end serialize_list;
 
    procedure serialize_vector
-     (e : in sexpr; display : in boolean; buf : in out unbounded_string)
+     (e : in sexpr; display : in boolean; buf : in out sexpr_string)
    is
       len : natural := vector_length (e);
    begin
@@ -1820,7 +1923,7 @@ package body r7rs_sexpr is
    end serialize_vector;
 
    procedure serialize_bytevector
-     (e : in sexpr; buf : in out unbounded_string)
+     (e : in sexpr; buf : in out sexpr_string)
    is
       len : natural := bytevector_length (e);
    begin
@@ -1831,17 +1934,16 @@ package body r7rs_sexpr is
          end if;
          declare
             b_val : interfaces.unsigned_8 := bytevector_ref (e, idx);
-            s_val : string := interfaces.unsigned_8'image (b_val);
+            s_val : sexpr_string := to_sexpr_string (b_val'img);
          begin
-            append (buf, s_val (2 .. s_val'last));
+            buf := @ & unbounded_slice (s_val, 2, length (s_val));
          end;
       end loop;
-      append (buf, ')');
+      buf := @ & sexpr_character'(')');
    end serialize_bytevector;
 
    procedure serialize_datum
-     (e : in sexpr; display : in boolean; buf : in out unbounded_string)
-   is
+     (e : in sexpr; display : in boolean; buf : in out sexpr_string) is
    begin
       if is_null (e) then
          append (buf, "()");
@@ -1858,46 +1960,19 @@ package body r7rs_sexpr is
                end if;
 
             when kind_integer    =>
-               declare
-                  s : string := long_long_integer'image (e.ptr.int_val);
-               begin
-                  if s (1) = ' ' then
-                     append (buf, s (2 .. s'last));
-                  else
-                     append (buf, s);
-                  end if;
-               end;
+               buf :=
+                 @ & to_sexpr_string (trim_left (e.ptr.int_val'img));
 
             when kind_real       =>
-               declare
-                  s : string := long_float'image (e.ptr.real_val);
-               begin
-                  if s (1) = ' ' then
-                     append (buf, s (2 .. s'last));
-                  else
-                     append (buf, s);
-                  end if;
-               end;
+               buf :=
+                 @ & to_sexpr_string (trim_left (e.ptr.real_val'img));
 
             when kind_rational   =>
-               declare
-                  ns : string :=
-                    long_long_integer'image (e.ptr.num_val);
-                  ds : string :=
-                    long_long_integer'image (e.ptr.den_val);
-               begin
-                  if ns (1) = ' ' then
-                     append (buf, ns (2 .. ns'last));
-                  else
-                     append (buf, ns);
-                  end if;
-                  append (buf, "/");
-                  if ds (1) = ' ' then
-                     append (buf, ds (2 .. ds'last));
-                  else
-                     append (buf, ds);
-                  end if;
-               end;
+               buf :=
+                 @
+                 & to_sexpr_string (trim_left (e.ptr.num_val'img))
+                 & sexpr_fixstr'("/")
+                 & to_sexpr_string (trim_left (e.ptr.den_val'img));
 
             when kind_character  =>
                serialize_character (e.ptr.char_val, display, buf);
@@ -1920,58 +1995,52 @@ package body r7rs_sexpr is
       end if;
    end serialize_datum;
 
-   function write_to_string (e : in sexpr) return unbounded_string is
-      buf : unbounded_string := null_unbounded_string;
+   function write_to_string (e : in sexpr) return sexpr_string is
+      buf : sexpr_string := null_sexpr_string;
    begin
       serialize_datum (e, false, buf);
       return buf;
    end write_to_string;
 
-   function write_to_string (e : in sexpr) return string is
-      res : string := to_string (write_to_string (e));
-   begin
-      return res;
-   end write_to_string;
-
-   function write_simple_to_string (e : in sexpr) return string is
-      res : string := write_to_string (e);
+   function write_simple_to_string (e : in sexpr) return sexpr_string is
+      res : sexpr_string := write_to_string (e);
    begin
       return res;
    end write_simple_to_string;
 
-   function display_to_string (e : in sexpr) return string is
-      buf : unbounded_string := null_unbounded_string;
+   function display_to_string (e : in sexpr) return sexpr_string is
+      buf : sexpr_string := null_sexpr_string;
    begin
       serialize_datum (e, true, buf);
-      return to_string (buf);
+      return buf;
    end display_to_string;
 
    procedure write_to_file (e : in sexpr; file_path : in string) is
-      file : ada.text_io.file_type;
+      file : file_type;
    begin
       begin
-         ada.text_io.create (file, ada.text_io.out_file, file_path);
+         create (file, out_file, file_path, form => "WCEM=8");
       exception
          when others =>
             raise io_error
               with "cannot create file for writing: " & file_path;
       end;
-      ada.text_io.put_line (file, write_to_string (e));
-      ada.text_io.close (file);
+      put_line (file, to_sexpr_fixstr (write_to_string (e)));
+      close (file);
    end write_to_file;
 
    procedure display_to_file (e : in sexpr; file_path : in string) is
-      file : ada.text_io.file_type;
+      file : file_type;
    begin
       begin
-         ada.text_io.create (file, ada.text_io.out_file, file_path);
+         create (file, out_file, file_path, form => "WCEM=8");
       exception
          when others =>
             raise io_error
               with "cannot create file for writing: " & file_path;
       end;
-      ada.text_io.put_line (file, display_to_string (e));
-      ada.text_io.close (file);
+      put_line (file, to_sexpr_fixstr (display_to_string (e)));
+      close (file);
    end display_to_file;
 
 end r7rs_sexpr;
