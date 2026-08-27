@@ -1,3 +1,0 @@
-pragma wide_character_encoding (utf8);
-pragma ada_2022;
-

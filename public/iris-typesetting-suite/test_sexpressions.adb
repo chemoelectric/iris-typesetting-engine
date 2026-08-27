@@ -2,6 +2,9 @@
 --
 --  SPDX-License-Identifier: MIT
 
+pragma wide_character_encoding (utf8);
+pragma ada_2022;
+
 with Ada.Text_IO;
 with Interfaces;
 with sexpressions;
@@ -147,6 +150,7 @@ procedure test_sexpressions is
       e10 : sexpr := read_from_string ("#\a");
       e11 : sexpr := read_from_string ("#\x62;");
       e12 : sexpr := read_from_string ("#\(");
+      e13 : sexpr := read_from_string ("#\x25A1;");
    begin
       assert_true (is_list (e1), "read list");
       assert_true (length (e1) = 4, "read list length 4");
@@ -175,6 +179,9 @@ procedure test_sexpressions is
       assert_true
         (is_character (e12) and then get_character (e12) = '(',
          "read #\(");
+      assert_true
+        (is_character (e13) and then get_character (e13) = sexpr_character'('□'),
+         "read #\x25A1;");
 
       assert_true (is_string (e6), "read string with escapes");
       assert_true (is_vector (e7), "read vector");
@@ -253,3 +260,7 @@ begin
       raise program_error with "Unit tests failed";
    end if;
 end test_sexpressions;
+
+-- local variables:
+-- coding: utf-8
+-- end:

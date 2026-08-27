@@ -973,7 +973,7 @@ package body sexpressions is
       return hex_val;
    end parse_hex_escape;
 
-   procedure parse_escape
+   procedure parse_string_escape
      (ctx : in out parse_context; buf : in out sexpr_string)
    is
       esc : sexpr_character;
@@ -1027,7 +1027,7 @@ package body sexpressions is
                adv_char (ctx);
          end case;
       end if;
-   end parse_escape;
+   end parse_string_escape;
 
    function parse_string_literal
      (ctx : in out parse_context) return sexpr
@@ -1040,7 +1040,7 @@ package body sexpressions is
          c := peek_char (ctx);
          if c = '\' then
             adv_char (ctx);
-            parse_escape (ctx, buf);
+            parse_string_escape (ctx, buf);
          else
             buf := @ & c;
             adv_char (ctx);
@@ -1057,62 +1057,48 @@ package body sexpressions is
      (ctx : in out parse_context) return sexpr
    is
       buf : sexpr_string := null_sexpr_string;
+      c   : sexpr_character;
+      esc : sexpr_character;
    begin
       adv_char (ctx); -- skip opening '|'
       while not is_eof (ctx) and then peek_char (ctx) /= '|' loop
-         declare
-            c : sexpr_character := peek_char (ctx);
-         begin
-            if c = '\' then
+         c := peek_char (ctx);
+         if c = '\' then
+            adv_char (ctx);
+            if is_eof (ctx) then
+               raise parse_error with "unterminated symbol escape";
+            end if;
+            esc := peek_char (ctx);
+            if esc = '|' or else esc = '\' then
+               append (buf, esc);
                adv_char (ctx);
-               if is_eof (ctx) then
-                  raise parse_error with "unterminated symbol escape";
-               end if;
+            elsif esc = 'x' then
+               adv_char (ctx);
                declare
-                  esc : sexpr_character := peek_char (ctx);
+                  hex_val : natural := 0;
                begin
-                  if esc = '|' or else esc = '\' then
-                     append (buf, esc);
+                  while not is_eof (ctx)
+                        and then peek_char (ctx) /= ';'
+                        and then not is_delimiter (peek_char (ctx))
+                  loop
+                     hex_val :=
+                       (hex_val * 16) + parse_hex_digit (peek_char (ctx));
                      adv_char (ctx);
-                  elsif esc = 'x' then
-                     adv_char (ctx);
-                     declare
-                        hex_val : natural := 0;
-                     begin
-                        while not is_eof (ctx)
-                          and then peek_char (ctx) /= ';'
-                          and then not is_delimiter (peek_char (ctx))
-                        loop
-                           hex_val :=
-                             hex_val
-                             * 16
-                             + parse_hex_digit (peek_char (ctx));
-                           adv_char (ctx);
-                        end loop;
-                        if not is_eof (ctx)
-                          and then peek_char (ctx) = ';'
-                        then
-                           adv_char (ctx);
-                        end if;
-                        if hex_val <= 255 then
-                           append
-                             (source   => buf,
-                              new_item =>
-                                sexpr_character'val (hex_val));
-                        else
-                           append (source => buf, new_item => '?');
-                        end if;
-                     end;
-                  else
-                     append (buf, esc);
+                  end loop;
+                  if not is_eof (ctx) and then peek_char (ctx) = ';'
+                  then
                      adv_char (ctx);
                   end if;
+                  buf := @ & sexpr_character'val (hex_val);
                end;
             else
-               append (buf, c);
+               buf := @ & esc;
                adv_char (ctx);
             end if;
-         end;
+         else
+            append (buf, c);
+            adv_char (ctx);
+         end if;
       end loop;
       if is_eof (ctx) then
          raise parse_error with "unterminated vertical bar symbol";

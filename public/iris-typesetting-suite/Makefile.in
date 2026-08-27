@@ -455,7 +455,7 @@ EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
 	autogen.sh rename-macros.m4 ada-macros.m4 pdf.adb.prelude.m4 \
 	pdf.adb.m4 ada-programs.list
 lib_LTLIBRARIES = libiris.la
-AM_ADAFLAGS = -gnat2022 -I$(call get-adainclude) -I$(builddir) \
+AM_ADAFLAGS = -gnatW8 -gnat2022 -I$(call get-adainclude) -I$(builddir) \
 	-I$(srcdir)
 LIBIRIS_ADB_FILES = pdf.adb font_finders.adb sexpressions.adb
 LIBIRIS_ADS_FILES = pdf.ads font_finders.ads sexpressions.ads \

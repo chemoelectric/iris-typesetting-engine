@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
 
+AM_ADAFLAGS += -gnatW8
 AM_ADAFLAGS += -gnat2022
 AM_ADAFLAGS += -I$(call get-adainclude)
 AM_ADAFLAGS += -I$(builddir)
