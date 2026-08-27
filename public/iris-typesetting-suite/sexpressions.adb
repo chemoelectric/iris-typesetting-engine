@@ -726,8 +726,8 @@ package body sexpressions is
       return res;
    end assoc;
 
-   function assq
-     (key : in sexpr_fixstr; alist : in sexpr) return sexpr is
+   function assq (key : in sexpr_fixstr; alist : in sexpr) return sexpr
+   is
    begin
       return assoc (make_symbol (key), alist);
    end assq;
@@ -1588,10 +1588,10 @@ package body sexpressions is
                      end loop;
                      if not found then
                         raise parse_error
-                          with
-                            "unknown datum label #"
-                            & trim_left (lbl_num'img)
-                            & "#";
+                        with
+                          "unknown datum label #"
+                          & trim_left (lbl_num'img)
+                          & "#";
                      end if;
                   end;
                else

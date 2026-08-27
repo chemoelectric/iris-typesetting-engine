@@ -153,8 +153,7 @@ package sexpressions is
    function eqv (a : in sexpr; b : in sexpr) return boolean;
    function assoc (key : in sexpr; alist : in sexpr) return sexpr
    with pre => is_list (alist) or is_null (alist);
-   function assq
-     (key : in sexpr_fixstr; alist : in sexpr) return sexpr
+   function assq (key : in sexpr_fixstr; alist : in sexpr) return sexpr
    with pre => is_list (alist) or is_null (alist);
    function acons
      (key : in sexpr; val : in sexpr; alist : in sexpr) return sexpr;
