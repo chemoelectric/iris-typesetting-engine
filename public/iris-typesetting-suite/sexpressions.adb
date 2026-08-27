@@ -1,4 +1,4 @@
---  r7rs_sexpr.adb --- R7RS Scheme S-Expression I/O Implementation
+--  sexpressions.adb --- R7RS Scheme S-Expression I/O Implementation
 --
 --  SPDX-License-Identifier: MIT
 
@@ -13,7 +13,7 @@ with ada.strings.fixed;
 with ada.wide_wide_text_io;
 with ada.unchecked_deallocation;
 
-package body r7rs_sexpr is
+package body sexpressions is
 
    use interfaces;
    use ada.wide_wide_text_io;
@@ -114,8 +114,7 @@ package body r7rs_sexpr is
       -- have to fix.
       --
    begin
-      return
-        long_float'value (conv.to_string (to_sexpr_fixstr (item)));
+      return long_float'value (conv.to_string (to_sexpr_fixstr (item)));
    end to_float;
 
    procedure free_node is new
@@ -728,9 +727,9 @@ package body r7rs_sexpr is
    end assoc;
 
    function assq
-     (key_sym : in sexpr_string; alist : in sexpr) return sexpr is
+     (key : in sexpr_fixstr; alist : in sexpr) return sexpr is
    begin
-      return assoc (make_symbol (key_sym), alist);
+      return assoc (make_symbol (key), alist);
    end assq;
 
    function acons
@@ -2043,4 +2042,4 @@ package body r7rs_sexpr is
       close (file);
    end display_to_file;
 
-end r7rs_sexpr;
+end sexpressions;
