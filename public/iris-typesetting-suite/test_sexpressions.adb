@@ -180,7 +180,8 @@ procedure test_sexpressions is
         (is_character (e12) and then get_character (e12) = '(',
          "read #\(");
       assert_true
-        (is_character (e13) and then get_character (e13) = sexpr_character'('□'),
+        (is_character (e13)
+         and then get_character (e13) = sexpr_character'('□'),
          "read #\x25A1;");
 
       assert_true (is_string (e6), "read string with escapes");

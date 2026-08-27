@@ -19,7 +19,6 @@ include mk-includes.am
 include rules.am
 include libiris.am
 include programs.am
-include r7rs.am
 include tests.am
 include extra-dist.am
 

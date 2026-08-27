@@ -1078,11 +1078,12 @@ package body sexpressions is
                   hex_val : natural := 0;
                begin
                   while not is_eof (ctx)
-                        and then peek_char (ctx) /= ';'
-                        and then not is_delimiter (peek_char (ctx))
+                    and then peek_char (ctx) /= ';'
+                    and then not is_delimiter (peek_char (ctx))
                   loop
                      hex_val :=
-                       (hex_val * 16) + parse_hex_digit (peek_char (ctx));
+                       (hex_val * 16)
+                       + parse_hex_digit (peek_char (ctx));
                      adv_char (ctx);
                   end loop;
                   if not is_eof (ctx) and then peek_char (ctx) = ';'

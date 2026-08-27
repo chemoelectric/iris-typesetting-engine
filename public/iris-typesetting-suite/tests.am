@@ -33,11 +33,6 @@ testsuite: $(TESTSUITE_DEPS)
 		-I '$(srcdir)' -o $(@) $(srcdir)/$(@).at
 
 AM_DISTCHECK_CONFIGURE_FLAGS =
-#
-# A dummy installation directory for Gauche libraries.
-#
-AM_DISTCHECK_CONFIGURE_FLAGS += \
-	GAUCHE_SITELIBDIR=${prefix}/gauche_sitelibdir
 
 ALL_THE_CHECK_FLAGS = $(color-flag) $(jobs-flag) $(TESTSUITEFLAGS)
 

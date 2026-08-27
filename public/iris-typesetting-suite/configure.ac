@@ -42,20 +42,6 @@ AC_PROG_FGREP
 AC_PROG_EGREP
 AC_CHECK_PROGS([GNATBIND],[gnatbind])
 test -n "${GNATBIND}" || AC_MSG_ERROR([gnatbind is missing])
-AC_CHECK_PROGS([GAUCHE_CONFIG],[gauche-config])
-test -n "${GAUCHE_CONFIG}" || AC_MSG_ERROR([gauche-config is missing])
-
-AC_ARG_WITH([kpsewhich],
-  [AS_HELP_STRING([--with-kpsewhich=PROG],
-    [kpsewhich program to use [default: kpsewhich]])],
-  [case "${withval}" in
-     yes) : "${KPSEWHICH:=kpsewhich}" ;;
-     no)  KPSEWHICH="true" ;;
-     *)   KPSEWHICH="${withval}" ;;
-   esac],
-  [: "${KPSEWHICH:=kpsewhich}"])
-AC_ARG_VAR([KPSEWHICH],[kpsewhich command])
-AC_SUBST([KPSEWHICH])
 
 : "${ADA:=${CC}}"
 AC_ARG_VAR([ADA],[Ada compiler command [default is: same command as CC]])
@@ -71,30 +57,9 @@ PKG_CHECK_MODULES([CAPYPDF],[capypdf])
 CFLAGS="${CFLAGS}${CFLAGS+ }${CAPYPDF_CFLAGS}"
 LIBS="${LIBS}${LIBS+ }${CAPYPDF_LIBS}"
 
-PKG_CHECK_MODULES([TKRZW],[tkrzw])
-CFLAGS="${CFLAGS}${CFLAGS+ }${TKRZW_CFLAGS}"
-LIBS="${LIBS}${LIBS+ }${TKRZW_LIBS}"
-
-AC_MSG_CHECKING([C flags to link with Gauche Scheme])
-: "${GAUCHE_CFLAGS=`${GAUCHE_CONFIG} -I | tr '\r\n' '  '`}"
-AC_ARG_VAR([GAUCHE_CFLAGS],
-  [C flags to link with Gauche Scheme])
-AC_MSG_RESULT([${GAUCHE_CFLAGS}])
-CFLAGS="${CFLAGS}${CFLAGS+ }${GAUCHE_CFLAGS}"
-
-AC_MSG_CHECKING([linker flags to link with Gauche Scheme])
-: "${GAUCHE_LIBS=`(${GAUCHE_CONFIG} -L && ${GAUCHE_CONFIG} -l) | tr '\r\n' '  '`}"
-AC_ARG_VAR([GAUCHE_LIBS],
-  [linker flags to link with Gauche Scheme])
-AC_MSG_RESULT([${GAUCHE_LIBS}])
-LIBS="${LIBS}${LIBS+ }${GAUCHE_LIBS}"
-
-AC_ARG_VAR([GAUCHE_SITELIBDIR],
-  [where to install Gauche Scheme libraries])
-AC_MSG_CHECKING([where to install Gauche Scheme libraries])
-: "${GAUCHE_SITELIBDIR=`${GAUCHE_CONFIG} --sitelibdir`}"
-AC_MSG_RESULT([${GAUCHE_SITELIBDIR}])
-AC_SUBST([gauche_sitelibdir],[${GAUCHE_SITELIBDIR}])
+#PKG_CHECK_MODULES([TKRZW],[tkrzw])
+#CFLAGS="${CFLAGS}${CFLAGS+ }${TKRZW_CFLAGS}"
+#LIBS="${LIBS}${LIBS+ }${TKRZW_LIBS}"
 
 # You can use ‘@GNU@’ to make GNU Make constructs unbothersome to
 # Automake. (Often you can use ‘$(eval ...)’ instead, but @GNU@ is
@@ -104,16 +69,6 @@ AC_SUBST([GNU],[])
 CHEM_REQUIRE_GNU_MAKE_IN_PATH
 CHEM_CONFIG_MAKEFILES
 AC_CONFIG_FILES([atconfig])
-AC_CONFIG_FILES([ls_r.adb])
-
-AC_CONFIG_COMMANDS([r7rs],[
-  AS_MKDIR_P(["${r7rs_dst}"])
-  (cd "${r7rs_src}" && tar cf - .) | (cd "${r7rs_dst}" && tar xf -)
-  chmod -R +w "${r7rs_dst}"
-],[
-  r7rs_src="${srcdir}/r7rs"
-  r7rs_dst="r7rs"
-])
 
 AC_OUTPUT
 

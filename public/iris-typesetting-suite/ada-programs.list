@@ -3,9 +3,3 @@ check test_pdf_01
 check test_find_main_system_fonts
 check test_find_tex_fonts
 check test_sexpressions
-
-# check test_capypdf
-# check test_capypdf_2
-# check test_gauche_binding
-# check test_find_things
-# check test_demo_q

@@ -42,10 +42,6 @@
 # SPDX-License-Identifier: MIT
 #---------------------------------------------------------------------
 
-#---------------------------------------------------------------------
-# SPDX-License-Identifier: MIT
-#---------------------------------------------------------------------
-
 
 VPATH = @srcdir@
 am__is_gnu_make = { \
@@ -147,7 +143,7 @@ DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES = atconfig ls_r.adb
+CONFIG_CLEAN_FILES = atconfig
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libdir)"
 PROGRAMS = $(bin_PROGRAMS)
@@ -264,9 +260,9 @@ AM_RECURSIVE_TARGETS = cscope
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/ada-interfaces.am \
 	$(srcdir)/atconfig.in $(srcdir)/common-source-files.am \
 	$(srcdir)/definitions.am $(srcdir)/extra-dist.am \
-	$(srcdir)/inits.am $(srcdir)/libiris.am $(srcdir)/ls_r.adb.in \
+	$(srcdir)/inits.am $(srcdir)/libiris.am \
 	$(srcdir)/mk-includes.am $(srcdir)/programs.am \
-	$(srcdir)/r7rs.am $(srcdir)/rules.am $(srcdir)/tests.am \
+	$(srcdir)/rules.am $(srcdir)/tests.am \
 	$(top_srcdir)/build-aux/compile \
 	$(top_srcdir)/build-aux/config.guess \
 	$(top_srcdir)/build-aux/config.sub \
@@ -328,10 +324,6 @@ ETAGS = @ETAGS@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 FILECMD = @FILECMD@
-GAUCHE_CFLAGS = @GAUCHE_CFLAGS@
-GAUCHE_CONFIG = @GAUCHE_CONFIG@
-GAUCHE_LIBS = @GAUCHE_LIBS@
-GAUCHE_SITELIBDIR = @GAUCHE_SITELIBDIR@
 GNATBIND = @GNATBIND@
 GNU = @GNU@
 GNU_MAKE = @GNU_MAKE@
@@ -341,7 +333,6 @@ INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
-KPSEWHICH = @KPSEWHICH@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
@@ -377,8 +368,6 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
-TKRZW_CFLAGS = @TKRZW_CFLAGS@
-TKRZW_LIBS = @TKRZW_LIBS@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -407,7 +396,6 @@ docdir = @docdir@
 dvidir = @dvidir@
 enable_color = @enable_color@
 exec_prefix = @exec_prefix@
-gauche_sitelibdir = @gauche_sitelibdir@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -516,18 +504,14 @@ test_sexpressions_DEPENDENCIES = test_sexpressions.lo
 AUTOM4TE = $(SHELL) $(srcdir)/build-aux/missing --run autom4te
 TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
 	$(srcdir)/testsuite.at
-#
-# A dummy installation directory for Gauche libraries.
-#
-AM_DISTCHECK_CONFIGURE_FLAGS =  \
-	GAUCHE_SITELIBDIR=${prefix}/gauche_sitelibdir
+AM_DISTCHECK_CONFIGURE_FLAGS = 
 ALL_THE_CHECK_FLAGS = $(color-flag) $(jobs-flag) $(TESTSUITEFLAGS)
 all: all-am
 
 .SUFFIXES:
 am--refresh: GNUmakefile
 	@:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/inits.am $(srcdir)/common-source-files.am $(srcdir)/ada-interfaces.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/libiris.am $(srcdir)/programs.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/extra-dist.am $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/inits.am $(srcdir)/common-source-files.am $(srcdir)/ada-interfaces.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/libiris.am $(srcdir)/programs.am $(srcdir)/tests.am $(srcdir)/extra-dist.am $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -549,7 +533,7 @@ GNUmakefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__maybe_remake_depfiles)'; \
 	    cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__maybe_remake_depfiles);; \
 	esac;
-$(srcdir)/inits.am $(srcdir)/common-source-files.am $(srcdir)/ada-interfaces.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/libiris.am $(srcdir)/programs.am $(srcdir)/r7rs.am $(srcdir)/tests.am $(srcdir)/extra-dist.am $(am__empty):
+$(srcdir)/inits.am $(srcdir)/common-source-files.am $(srcdir)/ada-interfaces.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/libiris.am $(srcdir)/programs.am $(srcdir)/tests.am $(srcdir)/extra-dist.am $(am__empty):
 
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
@@ -560,8 +544,6 @@ $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
 atconfig: $(top_builddir)/config.status $(srcdir)/atconfig.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-ls_r.adb: $(top_builddir)/config.status $(srcdir)/ls_r.adb.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
@@ -968,7 +950,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-data-local
+install-data-am:
 
 install-dvi: install-dvi-am
 
@@ -1015,8 +997,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES \
-	uninstall-local
+uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES
 
 .MAKE: check-am install-am install-strip
 
@@ -1030,16 +1011,15 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES \
 	distclean-local distclean-tags distcleancheck distdir \
 	distuninstallcheck dvi dvi-am html html-am info info-am \
 	install install-am install-binPROGRAMS install-data \
-	install-data-am install-data-local install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-libLTLIBRARIES \
-	install-man install-pdf install-pdf-am install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installcheck-local installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-libLTLIBRARIES uninstall-local
+	install-data-am install-dvi install-dvi-am install-exec \
+	install-exec-am install-html install-html-am install-info \
+	install-info-am install-libLTLIBRARIES install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installcheck-local installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
+	uninstall-binPROGRAMS uninstall-libLTLIBRARIES
 
 .PRECIOUS: GNUmakefile
 
@@ -1205,26 +1185,6 @@ test_find_tex_fonts$(EXEEXT): test_find_tex_fonts.lo libiris.la
 
 test_sexpressions$(EXEEXT): test_sexpressions.lo libiris.la
 	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
-
-distclean-local::
-	-rm -R -f ${builddir}/r7rs
-
-install-data-local::
-	(cd $(builddir)/r7rs && \
-		find . -type d \
-			-exec ${MKDIR_P} $(DESTDIR)${gauche_sitelibdir}/{} ';')
-	(cd $(builddir)/r7rs && \
-		find . -name '*.sld' \
-			-exec cp {} $(DESTDIR)${gauche_sitelibdir}/{} ';')
-
-uninstall-local::
-	-rm -rf $(DESTDIR)${gauche_sitelibdir}
-
-#---------------------------------------------------------------------
-# local variables:
-# coding: utf-8
-# tab-width: 4d
-# end:
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac $(srcdir)/Makefile.am
 	$(AWK) \
 	  'BEGIN{printf "# Signature of the current package.\n"; \
