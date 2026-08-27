@@ -91,14 +91,6 @@ package body sexpressions is
       return (item in sexpr_character'('0') .. sexpr_character'('9'));
    end is_ascii_digit;
 
-   function is_hex_digit (item : in sexpr_character) return boolean is
-   begin
-      return
-        (is_ascii_digit (item)
-         or item in sexpr_character'('a') .. sexpr_character'('f')
-         or item in sexpr_character'('A') .. sexpr_character'('F'));
-   end is_hex_digit;
-
    function to_sexpr_fixstr (source : in string) return sexpr_fixstr is
    begin
       return conv.to_wide_wide_string (source);
@@ -167,6 +159,11 @@ package body sexpressions is
          obj.ptr := null;
       end if;
    end finalize;
+
+   procedure ignore (item : sexpr) is
+   begin
+      null;
+   end ignore;
 
    function make_null return sexpr is
       res : sexpr;
@@ -811,6 +808,34 @@ package body sexpressions is
       end if;
    end adv_char;
 
+   function treated_as_whitespace
+     (item : in sexpr_character) return boolean is
+   begin
+      return
+        is_space (item)
+        or item = sexpr_tab
+        or item = sexpr_newline
+        or item = sexpr_return
+        or item = sexpr_formfeed;
+   end treated_as_whitespace;
+
+   function match_two
+     (item   : in sexpr_character;
+      ctx    : in out parse_context;
+      first  : in sexpr_character;
+      second : in sexpr_character) return boolean is
+   begin
+      return (item = first and then peek_next_char (ctx) = second);
+   end match_two;
+
+   function peek_two
+     (ctx    : in out parse_context;
+      first  : in sexpr_character;
+      second : in sexpr_character) return boolean is
+   begin
+      return match_two (peek_char (ctx), ctx, first, second);
+   end peek_two;
+
    function is_delimiter (c : in sexpr_character) return boolean is
       res : boolean := false;
    begin
@@ -857,15 +882,11 @@ package body sexpressions is
       adv_char (ctx); -- skip '#'
       adv_char (ctx); -- skip '|'
       while not is_eof (ctx) and then depth > 0 loop
-         if peek_char (ctx) = sexpr_character'('#')
-           and then peek_next_char (ctx) = sexpr_character'('|')
-         then
+         if peek_two (ctx, '#', '|') then
             depth := depth + 1;
             adv_char (ctx);
             adv_char (ctx);
-         elsif peek_char (ctx) = sexpr_character'('|')
-           and then peek_next_char (ctx) = sexpr_character'('#')
-         then
+         elsif peek_two (ctx, '|', '#') then
             depth := depth - 1;
             adv_char (ctx);
             adv_char (ctx);
@@ -879,59 +900,42 @@ package body sexpressions is
      (ctx : in out parse_context; lbl : in out label_context)
    is
       changed : boolean := true;
+      c       : sexpr_character;
    begin
       while not is_eof (ctx) and changed loop
          changed := false;
-         declare
-            c : sexpr_character := peek_char (ctx);
-         begin
-            if c = sexpr_character'(' ')
-              or else c = sexpr_tab
-              or else c = sexpr_newline
-              or else c = sexpr_return
-              or else c = sexpr_formfeed
-            then
+         c := peek_char (ctx);
+         if treated_as_whitespace (c) then
+            adv_char (ctx);
+            changed := true;
+         elsif c = sexpr_character'(';') then
+            skip_line_comment (ctx);
+            changed := true;
+         elsif match_two (c, ctx, '#', '|') then
+            skip_nested_comment (ctx);
+            changed := true;
+         elsif match_two (c, ctx, '#', ';') then
+            adv_char (ctx);
+            adv_char (ctx);
+            ignore (parse_datum (ctx, lbl));
+            changed := true;
+         elsif match_two (c, ctx, '#', '!') then
+            adv_char (ctx);
+            adv_char (ctx);
+            while not is_eof (ctx)
+              and then not is_delimiter (peek_char (ctx))
+            loop
                adv_char (ctx);
-               changed := true;
-            elsif c = sexpr_character'(';') then
-               skip_line_comment (ctx);
-               changed := true;
-            elsif c = sexpr_character'('#')
-              and then peek_next_char (ctx) = sexpr_character'('|')
-            then
-               skip_nested_comment (ctx);
-               changed := true;
-            elsif c = sexpr_character'('#')
-              and then peek_next_char (ctx) = sexpr_character'(';')
-            then
-               adv_char (ctx);
-               adv_char (ctx);
-               declare
-                  discarded : sexpr;
-               begin
-                  discarded := parse_datum (ctx, lbl);
-               end;
-               changed := true;
-            elsif c = sexpr_character'('#')
-              and then peek_next_char (ctx) = sexpr_character'('!')
-            then
-               adv_char (ctx);
-               adv_char (ctx);
-               while not is_eof (ctx)
-                 and then not is_delimiter (peek_char (ctx))
-               loop
-                  adv_char (ctx);
-               end loop;
-               changed := true;
-            end if;
-         end;
+            end loop;
+            changed := true;
+         end if;
       end loop;
    end skip_whitespace_and_comments;
 
    function parse_hex_digit (c : in sexpr_character) return natural is
       res : natural := 0;
    begin
-      if not is_hex_digit (c) then
+      if not is_hexadecimal_digit (c) then
          raise parse_error with "invalid hex digit: " & c'img;
       elsif is_ascii_digit (c) then
          res := sexpr_character'pos (c) - sexpr_character'pos ('0');
@@ -1169,7 +1173,7 @@ package body sexpressions is
 
       if peek_char (ctx) = 'x'
         and then not is_delimiter (peek_next_char (ctx))
-        and then is_hex_digit (peek_next_char (ctx))
+        and then is_hexadecimal_digit (peek_next_char (ctx))
       then
          adv_char (ctx); -- skip 'x'
          declare
@@ -1337,7 +1341,7 @@ package body sexpressions is
                then
                   res := false;
                elsif rad = 16
-                 and then not (is_hex_digit (element (tok, i)))
+                 and then not (is_hexadecimal_digit (element (tok, i)))
                then
                   res := false;
                elsif rad = 8

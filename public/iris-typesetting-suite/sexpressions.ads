@@ -26,8 +26,9 @@ package sexpressions is
    with global => null;
    function is_ascii_digit (item : in sexpr_character) return boolean
    with global => null;
-   function is_hex_digit (item : in sexpr_character) return boolean
-   with global => null;
+   function is_hexadecimal_digit
+     (item : in sexpr_character) return boolean
+   renames sexpr_characters_handling.is_hexadecimal_digit;
 
    package sexpr_strings renames ada.strings.wide_wide_unbounded;
    subtype sexpr_fixstr is wide_wide_string;
@@ -76,6 +77,8 @@ package sexpressions is
    parse_error : exception;
    type_error  : exception;
    io_error    : exception;
+
+   procedure ignore (item : sexpr);
 
    function make_null return sexpr;
    function make_boolean (val : in boolean) return sexpr;
