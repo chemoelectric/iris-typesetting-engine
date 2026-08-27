@@ -1456,16 +1456,15 @@ package body sexpressions is
       return sexpr
    is
       res : sexpr;
+      c   : sexpr_character;
    begin
       adv_char (ctx); -- skip '#'
       if is_eof (ctx) then
          raise parse_error with "unexpected eof after '#'";
       end if;
-
-      declare
-         c : sexpr_character := peek_char (ctx);
-      begin
-         if c in 't' | 'T' then
+      c := peek_char (ctx);
+      case c is
+         when 't' | 'T'                         =>
             adv_char (ctx);
             if not is_eof (ctx) and then (peek_char (ctx) in 'r' | 'R')
             then
@@ -1476,7 +1475,8 @@ package body sexpressions is
                end loop;
             end if;
             res := make_boolean (true);
-         elsif c in 'f' | 'F' then
+
+         when 'f' | 'F'                         =>
             adv_char (ctx);
             if not is_eof (ctx)
               and then (peek_char (ctx) = 'a'
@@ -1489,13 +1489,14 @@ package body sexpressions is
                end loop;
             end if;
             res := make_boolean (false);
-         elsif c = '\' then
+
+         when '\'                               =>
             res := parse_character_literal (ctx);
-         elsif c = '(' then
+
+         when '('                               =>
             res := parse_vector_literal (ctx, lbl);
-         elsif match_two (c, ctx, 'u', '8') then
-            res := parse_bytevector_literal (ctx, lbl);
-         elsif c in 'b' | 'B' then
+
+         when 'b' | 'B'                         =>
             adv_char (ctx);
             declare
                tok : sexpr_string := null_sexpr_string;
@@ -1508,7 +1509,8 @@ package body sexpressions is
                end loop;
                res := parse_number_or_symbol (tok, 2);
             end;
-         elsif c in 'o' | 'O' then
+
+         when 'o' | 'O'                         =>
             adv_char (ctx);
             declare
                tok : sexpr_string := null_sexpr_string;
@@ -1521,7 +1523,8 @@ package body sexpressions is
                end loop;
                res := parse_number_or_symbol (tok, 8);
             end;
-         elsif c in 'x' | 'X' then
+
+         when 'x' | 'X'                         =>
             adv_char (ctx);
             declare
                tok : sexpr_string := null_sexpr_string;
@@ -1534,7 +1537,8 @@ package body sexpressions is
                end loop;
                res := parse_number_or_symbol (tok, 16);
             end;
-         elsif c in 'd' | 'D' | 'e' | 'E' | 'i' | 'I' then
+
+         when 'd' | 'D' | 'e' | 'E' | 'i' | 'I' =>
             adv_char (ctx);
             declare
                tok : sexpr_string := null_sexpr_string;
@@ -1547,56 +1551,63 @@ package body sexpressions is
                end loop;
                res := parse_number_or_symbol (tok, 10);
             end;
-         elsif is_ascii_digit (c) then
-            declare
-               lbl_num : natural := 0;
-            begin
-               while not is_eof (ctx)
-                 and then is_ascii_digit (peek_char (ctx))
-               loop
-                  lbl_num :=
-                    lbl_num
-                    * 10
-                    + (sexpr_character'pos (peek_char (ctx))
-                       - sexpr_character'pos ('0'));
-                  adv_char (ctx);
-               end loop;
-               if not is_eof (ctx) and then peek_char (ctx) = '=' then
-                  adv_char (ctx);
-                  res := parse_datum (ctx, lbl);
-                  if lbl.count < lbl.entries'last then
-                     lbl.count := lbl.count + 1;
-                     lbl.entries (lbl.count).id := lbl_num;
-                     lbl.entries (lbl.count).val := res;
-                  end if;
-               elsif not is_eof (ctx) and then peek_char (ctx) = '#'
-               then
-                  adv_char (ctx);
-                  declare
-                     found : boolean := false;
-                  begin
-                     for idx in 1 .. lbl.count loop
-                        if lbl.entries (idx).id = lbl_num then
-                           res := lbl.entries (idx).val;
-                           found := true;
-                        end if;
-                     end loop;
-                     if not found then
-                        raise parse_error
-                          with
-                            "unknown datum label #"
-                            & trim_left (lbl_num'img)
-                            & "#";
+
+         when others                            =>
+            if match_two (c, ctx, 'u', '8') then
+               res := parse_bytevector_literal (ctx, lbl);
+            elsif is_ascii_digit (c) then
+               declare
+                  lbl_num : natural := 0;
+               begin
+                  while not is_eof (ctx)
+                    and then is_ascii_digit (peek_char (ctx))
+                  loop
+                     lbl_num :=
+                       lbl_num
+                       * 10
+                       + (sexpr_character'pos (peek_char (ctx))
+                          - sexpr_character'pos ('0'));
+                     adv_char (ctx);
+                  end loop;
+                  if not is_eof (ctx) and then peek_char (ctx) = '='
+                  then
+                     adv_char (ctx);
+                     res := parse_datum (ctx, lbl);
+                     if lbl.count < lbl.entries'last then
+                        lbl.count := lbl.count + 1;
+                        lbl.entries (lbl.count).id := lbl_num;
+                        lbl.entries (lbl.count).val := res;
                      end if;
-                  end;
-               else
-                  raise parse_error with "malformed datum label syntax";
-               end if;
-            end;
-         else
-            raise parse_error with "unrecognized hash token #" & c'img;
-         end if;
-      end;
+                  elsif not is_eof (ctx) and then peek_char (ctx) = '#'
+                  then
+                     adv_char (ctx);
+                     declare
+                        found : boolean := false;
+                     begin
+                        for idx in 1 .. lbl.count loop
+                           if lbl.entries (idx).id = lbl_num then
+                              res := lbl.entries (idx).val;
+                              found := true;
+                           end if;
+                        end loop;
+                        if not found then
+                           raise parse_error
+                             with
+                               "unknown datum label #"
+                               & trim_left (lbl_num'img)
+                               & "#";
+                        end if;
+                     end;
+                  else
+                     raise parse_error
+                       with "malformed datum label syntax";
+                  end if;
+               end;
+            else
+               raise parse_error
+                 with "unrecognized hash token #" & c'img;
+            end if;
+      end case;
       return res;
    end parse_hash_prefix;
 
