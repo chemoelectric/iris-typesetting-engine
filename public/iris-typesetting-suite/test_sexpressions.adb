@@ -202,11 +202,11 @@ procedure test_sexpressions is
       assert_true (get_integer (list_ref (e1, 2)) = 2, "e1(2)=2");
       assert_true (get_integer (list_ref (e1, 3)) = 3, "e1(3)=3");
 
-      --
-      -- FIXME: FOR NOW LEAVE OUT TESTS OF CIRCULAR LISTS.
-      --
-      --assert_true (is_pair (e2), "read labeled datum");
-      --assert_true (get_symbol (car (e2)) = "a", "labeled datum car");
+   --
+   -- FIXME: FOR NOW LEAVE OUT TESTS OF CIRCULAR LISTS.
+   --
+   --assert_true (is_pair (e2), "read labeled datum");
+   --assert_true (get_symbol (car (e2)) = "a", "labeled datum car");
    end test_comments_and_labels;
 
    procedure test_alists is

@@ -22,6 +22,13 @@ package body sexpressions is
 
    package conv renames ada.characters.conversions;
 
+   function is_radix (item : integer) return boolean
+   with post => is_radix'result = (item in 2 | 8 | 10 | 16)
+   is
+   begin
+      return (item in 2 | 8 | 10 | 16);
+   end is_radix;
+
    function trim_left (source : string) return string is
    begin
       return
@@ -55,7 +62,14 @@ package body sexpressions is
    minus_nan : constant sexpr_string :=
      to_sexpr_string (sexpr_fixstr'("-nan.0"));
 
-   function is_ascii (item : sexpr_character) return boolean is
+   slash : constant sexpr_fixstr := sexpr_fixstr'("/");
+
+   function contains_slash (source : in sexpr_string) return boolean is
+   begin
+      return (0 < index (source, slash));
+   end contains_slash;
+
+   function is_ascii (item : in sexpr_character) return boolean is
    begin
       return (sexpr_character'pos (item) <= 127);
    end is_ascii;
@@ -1370,73 +1384,73 @@ package body sexpressions is
       return val;
    end parse_int_val;
 
+   procedure split_fraction
+     (tok     : in sexpr_string;
+      radix   : in integer;
+      num_str : out sexpr_string;
+      den_str : out sexpr_string)
+   with pre => is_radix (radix)
+   is
+      slash_pos : natural;
+      s, t      : sexpr_string;
+   begin
+      num_str := null_sexpr_string;
+      den_str := null_sexpr_string;
+      slash_pos := index (tok, slash);
+      if 0 < slash_pos then
+         s := unbounded_slice (tok, 1, slash_pos - 1);
+         if is_valid_integer (s, radix) then
+            t := unbounded_slice (tok, slash_pos + 1, length (tok));
+            if is_valid_integer (t, radix) then
+               num_str := s;
+               den_str := t;
+            end if;
+         end if;
+      end if;
+   end split_fraction;
+
+   function parse_what_contains_slash
+     (tok : in sexpr_string; radix : in integer) return sexpr
+   with pre => is_radix (radix)
+   is
+      num_str : sexpr_string;
+      den_str : sexpr_string;
+      n, d    : long_long_integer;
+      res     : sexpr;
+   begin
+      split_fraction (tok, radix, num_str, den_str);
+      if length (num_str) /= 0 then
+         n := parse_int_val (num_str, radix);
+         d := parse_int_val (den_str, radix);
+         if d > 0 then
+            res := make_rational (n, d);
+         else
+            res := make_symbol (tok);
+         end if;
+      else
+         res := make_symbol (tok);
+      end if;
+      return res;
+   end parse_what_contains_slash;
+
+   function is_inf_or_nan (tok : in sexpr_string) return boolean is
+   begin
+      return (tok in plus_inf | minus_inf | plus_nan | minus_nan);
+   end is_inf_or_nan;
+
    function parse_number_or_symbol
-     (raw_tok : in sexpr_string; radix : in positive := 10) return sexpr
+     (raw_tok : in sexpr_string; radix : in integer := 10) return sexpr
+   with pre => is_radix (radix)
    is
       tok : sexpr_string := raw_tok;
       res : sexpr;
-
-      slash : constant sexpr_fixstr := sexpr_fixstr'("/");
-
-      function is_inf_or_nan (tok : in sexpr_string) return boolean is
-      begin
-         return (tok in plus_inf | minus_inf | plus_nan | minus_nan);
-      end is_inf_or_nan;
-
-      procedure split_fraction
-        (tok     : in sexpr_string;
-         radix   : in positive;
-         -- FIXME: I CAN DO BETTER FOR DEFINING A RADIX TYPE.
-         num_str : out sexpr_string;
-         den_str : out sexpr_string)
-      is
-         slash_pos : natural;
-         s, t      : sexpr_string;
-      begin
-         num_str := null_sexpr_string;
-         den_str := null_sexpr_string;
-         slash_pos := index (tok, slash);
-         if 0 < slash_pos then
-            s := unbounded_slice (tok, 1, slash_pos - 1);
-            if is_valid_integer (s, radix) then
-               t := unbounded_slice (tok, slash_pos + 1, length (tok));
-               if is_valid_integer (t, radix) then
-                  num_str := s;
-                  den_str := t;
-               end if;
-            end if;
-         end if;
-      end split_fraction;
-
    begin
       if is_inf_or_nan (tok) then
          raise parse_error with tok'img & " is not yet implemented";
       elsif is_valid_integer (tok, radix) then
          res := make_integer (parse_int_val (tok, radix));
-      elsif 0 < index (tok, slash) then
-         declare
-            num_str : sexpr_string;
-            den_str : sexpr_string;
-         begin
-            split_fraction (tok, radix, num_str, den_str);
-            if length (num_str) /= 0 then
-               declare
-                  n : long_long_integer :=
-                    parse_int_val (num_str, radix);
-                  d : long_long_integer :=
-                    parse_int_val (den_str, radix);
-               begin
-                  if d > 0 then
-                     res := make_rational (n, d);
-                  else
-                     -- Division by zero.  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  I can do a better fraction split.
-                     res := make_symbol (tok);
-                  end if;
-               end;
-            else
-               res := make_symbol (tok);
-            end if;
-         end;
+      elsif contains_slash (tok) then
+         res := parse_what_contains_slash (tok, radix);
       else
          begin
             res := make_real (to_float (tok));
@@ -1588,10 +1602,10 @@ package body sexpressions is
                      end loop;
                      if not found then
                         raise parse_error
-                        with
-                          "unknown datum label #"
-                          & trim_left (lbl_num'img)
-                          & "#";
+                          with
+                            "unknown datum label #"
+                            & trim_left (lbl_num'img)
+                            & "#";
                      end if;
                   end;
                else
