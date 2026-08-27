@@ -331,13 +331,8 @@ package body sexpressions is
       res : boolean := false;
    begin
       if e.ptr /= null then
-         case e.ptr.kind is
-            when kind_integer | kind_real | kind_rational =>
-               res := true;
-
-            when others                                   =>
-               res := false;
-         end case;
+         res :=
+           (e.ptr.kind in kind_integer | kind_real | kind_rational);
       end if;
       return res;
    end is_number;
@@ -667,7 +662,7 @@ package body sexpressions is
       kb  : sexpr_kind := kind (b);
       res : boolean := false;
    begin
-      if is_null (a) and then is_null (b) then
+      if is_null (a) and is_null (b) then
          res := true;
       elsif ka /= kb then
          res := false;
@@ -688,7 +683,7 @@ package body sexpressions is
             when kind_rational   =>
                res :=
                  (a.ptr.num_val = b.ptr.num_val
-                  and then a.ptr.den_val = b.ptr.den_val);
+                  and a.ptr.den_val = b.ptr.den_val);
 
             when kind_character  =>
                res := (a.ptr.char_val = b.ptr.char_val);
@@ -713,25 +708,22 @@ package body sexpressions is
    end equal;
 
    function eqv (a : in sexpr; b : in sexpr) return boolean is
-      res : boolean := equal (a, b);
    begin
-      return res;
+      return equal (a, b);
    end eqv;
 
    function assoc (key : in sexpr; alist : in sexpr) return sexpr is
       cur   : sexpr := alist;
       res   : sexpr := make_null;
       found : boolean := false;
+      elem  : sexpr;
    begin
       while is_pair (cur) and not found loop
-         declare
-            elem : sexpr := car (cur);
-         begin
-            if is_pair (elem) and then equal (car (elem), key) then
-               res := elem;
-               found := true;
-            end if;
-         end;
+         elem := car (cur);
+         if is_pair (elem) and then equal (car (elem), key) then
+            res := elem;
+            found := true;
+         end if;
          cur := cdr (cur);
       end loop;
       return res;
@@ -837,11 +829,11 @@ package body sexpressions is
    end peek_two;
 
    function is_delimiter (c : in sexpr_character) return boolean is
-      res : boolean := false;
    begin
-      case c is
-         when ' '
-            | sexpr_tab
+      return
+        is_space (c)
+        or c
+           in sexpr_tab
             | sexpr_newline
             | sexpr_return
             | sexpr_formfeed
@@ -851,13 +843,7 @@ package body sexpressions is
             | sexpr_character'(';')
             | sexpr_character'('|')
             | sexpr_character'('[')
-            | sexpr_character'(']') =>
-            res := true;
-
-         when others                =>
-            res := false;
-      end case;
-      return res;
+            | sexpr_character'(']');
    end is_delimiter;
 
    function parse_datum
@@ -950,115 +936,113 @@ package body sexpressions is
    end parse_hex_digit;
 
    function escape_starts_continuation
-     (item : sexpr_character)
-     return boolean
-   is
+     (item : sexpr_character) return boolean is
    begin
-      return (is_space (item)
-              or (item in sexpr_tab | sexpr_newline | sexpr_return));
+      return
+        (is_space (item)
+         or (item in sexpr_tab | sexpr_newline | sexpr_return));
    end escape_starts_continuation;
 
-   procedure parse_continuation
-     (ctx : in out parse_context)
-   is
+   procedure parse_continuation (ctx : in out parse_context) is
       --
       -- FIXME: THIS IMPLEMENTATION DOES NOT VERIFY THE CONTINUATION
       -- SYNTAX IS CORRECT.
       --
    begin
       while not is_eof (ctx)
-            and then escape_starts_continuation (peek_char (ctx))
+        and then escape_starts_continuation (peek_char (ctx))
       loop
          adv_char (ctx);
       end loop;
    end parse_continuation;
+
+   function parse_hex_escape (ctx : in out parse_context) return natural
+   is
+      hex_val : natural := 0;
+   begin
+      while not is_eof (ctx)
+        and then peek_char (ctx) /= ';'
+        and then not is_delimiter (peek_char (ctx))
+      loop
+         hex_val := (hex_val * 16) + parse_hex_digit (peek_char (ctx));
+         adv_char (ctx);
+      end loop;
+      if not is_eof (ctx) and then peek_char (ctx) = ';' then
+         adv_char (ctx);
+      end if;
+      return hex_val;
+   end parse_hex_escape;
+
+   procedure parse_escape
+     (ctx : in out parse_context; buf : in out sexpr_string)
+   is
+      esc : sexpr_character;
+   begin
+      if is_eof (ctx) then
+         raise parse_error with "unterminated string escape";
+      end if;
+      esc := peek_char (ctx);
+      if escape_starts_continuation (esc) then
+         parse_continuation (ctx);
+      else
+         case esc is
+            when 'a'    =>
+               buf := @ & sexpr_bell;
+               adv_char (ctx);
+
+            when 'b'    =>
+               buf := @ & sexpr_backspace;
+               adv_char (ctx);
+
+            when 't'    =>
+               buf := @ & sexpr_tab;
+               adv_char (ctx);
+
+            when 'n'    =>
+               buf := @ & sexpr_newline;
+               adv_char (ctx);
+
+            when 'r'    =>
+               buf := @ & sexpr_return;
+               adv_char (ctx);
+
+            when '"'    =>
+               buf := @ & sexpr_character'('"');
+               adv_char (ctx);
+
+            when '\'    =>
+               buf := @ & sexpr_character'('\');
+               adv_char (ctx);
+
+            when '|'    =>
+               buf := @ & sexpr_character'('|');
+               adv_char (ctx);
+
+            when 'x'    =>
+               adv_char (ctx);
+               buf := @ & sexpr_character'val (parse_hex_escape (ctx));
+
+            when others =>
+               buf := @ & esc;
+               adv_char (ctx);
+         end case;
+      end if;
+   end parse_escape;
 
    function parse_string_literal
      (ctx : in out parse_context) return sexpr
    is
       buf : sexpr_string := null_sexpr_string;
       c   : sexpr_character;
-      esc : sexpr_character;
    begin
       adv_char (ctx); -- skip opening '"'
       while not is_eof (ctx) and then peek_char (ctx) /= '"' loop
          c := peek_char (ctx);
          if c = '\' then
             adv_char (ctx);
-            if is_eof (ctx) then
-               raise parse_error with "unterminated string escape";
-            end if;
-            esc := peek_char (ctx);
-            if escape_starts_continuation (esc) then
-               parse_continuation (ctx);
-            else
-               case esc is
-                  when 'a'    =>
-                     buf := @ & sexpr_bell;
-                     adv_char (ctx);
-
-                  when 'b'    =>
-                     buf := @ & sexpr_backspace;
-                     adv_char (ctx);
-
-                  when 't'    =>
-                     buf := @ & sexpr_tab;
-                     adv_char (ctx);
-
-                  when 'n'    =>
-                     buf := @ & sexpr_newline;
-                     adv_char (ctx);
-
-                  when 'r'    =>
-                     buf := @ & sexpr_return;
-                     adv_char (ctx);
-
-                  when '"'    =>
-                     buf := @ & sexpr_character'('"');
-                     adv_char (ctx);
-
-                  when '\'    =>
-                     buf := @ & sexpr_character'('\');
-                     adv_char (ctx);
-
-                  when '|'    =>
-                     buf := @ & sexpr_character'('|');
-                     adv_char (ctx);
-
-                  when 'x'    =>
-                     adv_char (ctx);
-                     declare
-                        hex_val : natural := 0;
-                     begin
-                        while not is_eof (ctx)
-                              and then peek_char (ctx) /= ';'
-                              and then not is_delimiter (peek_char (ctx))
-                        loop
-                           hex_val :=
-                             hex_val
-                               * 16
-                             + parse_hex_digit (peek_char (ctx));
-                           adv_char (ctx);
-                        end loop;
-                        if not is_eof (ctx)
-                           and then peek_char (ctx) = ';'
-                        then
-                           adv_char (ctx);
-                        end if;
-                        if hex_val <= 255 then
-                           buf := @ & sexpr_character'val (hex_val);
-                        else
-                           append (source => buf, new_item => '?');
-                        end if;
-                     end;
-
-                  when others =>
-                     buf := @ & esc;
-                     adv_char (ctx);
-               end case;
-            end if;
+            parse_escape (ctx, buf);
          else
-            append (buf, c);
+            buf := @ & c;
             adv_char (ctx);
          end if;
       end loop;

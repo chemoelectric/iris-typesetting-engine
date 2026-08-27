@@ -2,6 +2,10 @@
 --
 --  SPDX-License-Identifier: MIT
 
+--
+-- FIXME: RENAME ARGUMENTS TO BE LIKE THOSE OF STANDARD ADA LIBRARIES.
+--
+
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
