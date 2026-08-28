@@ -62,7 +62,8 @@ package body sexpressions is
    -- To be the most GNUish, allow any sequence of digits.
    type label_table_array is array (1 .. 128) of label_entry;
 
-   type label_context is record -- FIXME: THIS SHOULD BE IN THE PARSE CONTEXT
+   type label_context is record
+      -- FIXME: THIS SHOULD BE IN THE PARSE CONTEXT
       count   : natural := 0;
       entries : label_table_array;
    end record;
@@ -402,13 +403,14 @@ package body sexpressions is
       return to_sexpr_string (to_upper (to_sexpr_fixstr (item)));
    end to_upper;
 
-   function hash (key : in sexpr_string) return ada.containers.hash_type is
+   function hash (key : in sexpr_string) return ada.containers.hash_type
+   is
    begin
       return ada.strings.wide_wide_hash (to_wide_wide_string (key));
    end hash;
 
-   function unrecognized_hash_token_message (token : in sexpr_string)
-     return string is
+   function unrecognized_hash_token_message
+     (token : in sexpr_string) return string is
    begin
       return ("unrecognized hash token '#'" & to_string (token));
    end unrecognized_hash_token_message;
@@ -1101,9 +1103,7 @@ package body sexpressions is
             | rbracket;
    end is_delimiter;
 
-   function parse_datum
-     (ctx : in out parse_context)
-      return sexpr;
+   function parse_datum (ctx : in out parse_context) return sexpr;
 
    procedure skip_line_comment (ctx : in out parse_context) is
       ch : sexpr_character := peek_char (ctx);
@@ -1137,8 +1137,7 @@ package body sexpressions is
       end loop;
    end skip_nested_comment;
 
-   procedure skip_whitespace_and_comments
-     (ctx : in out parse_context)
+   procedure skip_whitespace_and_comments (ctx : in out parse_context)
    is
       changed : boolean := true;
       c       : sexpr_character;
@@ -1152,19 +1151,22 @@ package body sexpressions is
          elsif c = sexpr_character'(';') then
             skip_line_comment (ctx);
             changed := true;
-         elsif match_two (c, ctx, '#', '|') then -- FIXME: THIS OUGHT TO BE HANDLED AS A HASH TOKEN
+         elsif match_two (c, ctx, '#', '|') then
+            -- FIXME: THIS OUGHT TO BE HANDLED AS A HASH TOKEN
             skip_nested_comment (ctx);
             changed := true;
-         elsif match_two (c, ctx, '#', ';') then -- FIXME: THIS OUGHT TO BE HANDLED AS A HASH TOKEN
+         elsif match_two (c, ctx, '#', ';') then
+            -- FIXME: THIS OUGHT TO BE HANDLED AS A HASH TOKEN
             adv_char (ctx);
             adv_char (ctx);
             ignore (parse_datum (ctx));
             changed := true;
-         elsif match_two (c, ctx, '#', '!') then -- FIXME: THIS IS ACTUALLY FOR DIRECTIVES and also is a hash token
+         elsif match_two (c, ctx, '#', '!') then
+            -- FIXME: THIS IS ACTUALLY FOR DIRECTIVES and also is a hash token
             adv_char (ctx);
             adv_char (ctx);
             while not is_eof (ctx)
-                  and then not is_delimiter (peek_char (ctx))
+              and then not is_delimiter (peek_char (ctx))
             loop
                adv_char (ctx);
             end loop;
@@ -1453,9 +1455,7 @@ package body sexpressions is
    --      return res;
    --   end parse_character_literal;
 
-   function parse_list_items
-     (ctx : in out parse_context)
-      return sexpr
+   function parse_list_items (ctx : in out parse_context) return sexpr
    is
       res : sexpr := make_null;
    begin
@@ -1490,8 +1490,7 @@ package body sexpressions is
    end parse_list_items;
 
    function parse_vector_literal
-     (ctx : in out parse_context)
-      return sexpr
+     (ctx : in out parse_context) return sexpr
    is
       temp_list : sexpr;
       vec_count : natural := 0;
@@ -1517,84 +1516,59 @@ package body sexpressions is
       return res;
    end parse_vector_literal;
 
-   function parse_bytevector_literal
-     (ctx : in out parse_context)
-      return sexpr
-   is
-      temp_list : sexpr;
-      bv_count  : natural := 0;
-      cur       : sexpr;
-      res       : sexpr;
-   begin
-      adv_char (ctx); -- skip 'u'
-      adv_char (ctx); -- skip '8'
-      if is_eof (ctx) or else peek_char (ctx) /= '(' then
-         raise parse_error with "expected '(' after #u8";
-      end if;
-      adv_char (ctx); -- skip '('
-      temp_list := parse_list_items (ctx);
-      bv_count := length (temp_list);
-
-      declare
-         bytes : byte_array (1 .. bv_count);
-         idx   : positive := 1;
-      begin
-         cur := temp_list;
-         while is_pair (cur) loop
-            declare
-               val : long_long_integer := get_integer (car (cur));
-            begin
-               if val < 0 or val > 255 then
-                  raise parse_error
-                    with "bytevector element out of range";
-               end if;
-               bytes (idx) := interfaces.unsigned_8 (val);
-            end;
-            idx := idx + 1;
-            cur := cdr (cur);
-         end loop;
-         res := make_bytevector (bytes);
-      end;
-      return res;
-   end parse_bytevector_literal;
-
    function is_valid_integer
-     (tok : in sexpr_string; rad : in positive) return boolean
+     (source    : in sexpr_fixstr;
+      predicate :
+        access function (item : in sexpr_character) return boolean)
+      return boolean
    is
-      res : boolean := true;
-      st  : positive := 1;
+      res : boolean;
+      n   : constant natural := source'length;
+      i_1 : constant integer := source'first;
+      i_n : constant integer := source'last;
+      st  : integer range i_1 .. i_n;
    begin
-      if length (tok) = 0 then
+      if n = 0 then
          res := false;
       else
-         if element (tok, st) = '+' or element (tok, st) = '-' then
-            st := st + 1;
-         end if;
-         if st > length (tok) then
-            res := false;
-         else
-            for i in st .. length (tok) loop
-               if rad = 10
-                 and then not (is_ascii_digit (element (tok, i)))
-               then
-                  res := false;
-               elsif rad = 16
-                 and then not (is_hexadecimal_digit (element (tok, i)))
-               then
-                  res := false;
-               elsif rad = 8
-                 and then not is_octal_digit (element (tok, i))
-               then
-                  res := false;
-               elsif rad = 2
-                 and then not is_binary_digit (element (tok, i))
-               then
-                  res := false;
-               end if;
-            end loop;
-         end if;
+         st := (if source (i_1) in '-' | '+' then i_1 + 1 else i_1);
+         res := (for all ch of source (st .. i_n) => predicate (ch));
       end if;
       return res;
+   end is_valid_integer;
+
+   function is_valid_integer
+     (source : in sexpr_fixstr; radix : in positive) return boolean
+   with pre => is_radix (radix)
+   is
+      res : boolean;
+   begin
+      case radix is
+         when 2      =>
+            res := is_valid_integer (source, is_binary_digit'access);
+
+         when 8      =>
+            res := is_valid_integer (source, is_octal_digit'access);
+
+         when 10     =>
+            res := is_valid_integer (source, is_ascii_digit'access);
+
+         when 16     =>
+            res :=
+              is_valid_integer (source, is_hexadecimal_digit'access);
+
+         when others =>
+            raise parse_error with "internal error";
+      end case;
+      return res;
+   end is_valid_integer;
+
+   function is_valid_integer
+     (source : in sexpr_string; radix : in positive) return boolean
+   with pre => is_radix (radix)
+   is
+   begin
+      return is_valid_integer (to_sexpr_fixstr (source), radix);
    end is_valid_integer;
 
    function parse_int_val
@@ -1688,7 +1662,8 @@ package body sexpressions is
       res : sexpr;
    begin
       if is_inf_or_nan (tok) then
-         raise parse_error with to_string (tok) & " is not yet implemented";
+         raise parse_error
+           with to_string (tok) & " is not yet implemented";
       elsif is_valid_integer (tok, radix) then
          res := make_integer (parse_int_val (tok, radix));
       elsif contains_slash (tok) then
@@ -1735,7 +1710,8 @@ package body sexpressions is
       if not is_eof (ctx) and then peek_char (ctx) = '#' then
          s := @ & '#';
       else
-         raise parse_error with "datum label error: """ & to_string (s) & """";
+         raise parse_error
+           with "datum label error: """ & to_string (s) & """";
       end if;
       return s;
    end collect_datum_label;
@@ -1910,7 +1886,8 @@ package body sexpressions is
                       (character_name_lookup (to_sexpr_fixstr (s)));
                else
                   raise parse_error
-                  with "unrecognized character name #\" & to_string (s);
+                    with
+                      "unrecognized character name #\" & to_string (s);
                end if;
             end if;
          end if;
@@ -1918,11 +1895,11 @@ package body sexpressions is
       return make_character (c);
    end make_character_from_hash_token;
 
-   function make_boolean_sexpr (ctx : in out parse_context;
-                                short_form : in sexpr_fixstr;
-                                long_form : in sexpr_fixstr;
-                                value : in boolean)
-     return sexpr
+   function make_boolean_sexpr
+     (ctx        : in out parse_context;
+      short_form : in sexpr_fixstr;
+      long_form  : in sexpr_fixstr;
+      value      : in boolean) return sexpr
    is
       res     : sexpr;
       s       : constant sexpr_string := collect_identifier (ctx);
@@ -1931,8 +1908,7 @@ package body sexpressions is
       if s_lower = short_form or s_lower = long_form then
          res := make_boolean (value);
       else
-         raise parse_error
-         with unrecognized_hash_token_message (s);
+         raise parse_error with unrecognized_hash_token_message (s);
       end if;
       return res;
    end make_boolean_sexpr;
@@ -1951,9 +1927,7 @@ package body sexpressions is
    -- #u8(...) expression may help work around not having means to
    -- create bytevectors with Scheme programming.)
    --
-   function collect_bytevector
-     (ctx : in out parse_context)
-      return sexpr
+   function collect_bytevector (ctx : in out parse_context) return sexpr
    is
       temp_list : sexpr;
       bv_count  : natural := 0;
@@ -1970,14 +1944,14 @@ package body sexpressions is
          declare
             bytes : byte_array (1 .. bv_count);
             idx   : positive := 1;
-            val : long_long_integer;
+            val   : long_long_integer;
          begin
             cur := temp_list;
             while is_pair (cur) loop
                val := get_integer (car (cur));
                if val < 0 or 255 < val then
                   raise parse_error
-                  with "bytevector element out of range: " & val'img;
+                    with "bytevector element out of range: " & val'img;
                end if;
                bytes (idx) := interfaces.unsigned_8 (val);
                idx := idx + 1;
@@ -1989,8 +1963,8 @@ package body sexpressions is
       return res;
    end collect_bytevector;
 
-   function make_homogeneous_vector_sexpr (ctx : in out parse_context)
-     return sexpr
+   function make_homogeneous_vector_sexpr
+     (ctx : in out parse_context) return sexpr
    is
       res     : sexpr;
       s       : constant sexpr_string := collect_identifier (ctx);
@@ -2004,9 +1978,7 @@ package body sexpressions is
       return res;
    end make_homogeneous_vector_sexpr;
 
-   function parse_hash_prefix
-     (ctx : in out parse_context)
-      return sexpr
+   function parse_hash_prefix (ctx : in out parse_context) return sexpr
    is
       res      : sexpr;
       token    : sexpr_string;
@@ -2255,10 +2227,7 @@ package body sexpressions is
    --      return res;
    --   end parse_hash_prefix;
 
-   function parse_datum
-     (ctx : in out parse_context)
-      return sexpr
-   is
+   function parse_datum (ctx : in out parse_context) return sexpr is
       res : sexpr := make_null;
    begin
       skip_whitespace_and_comments (ctx);
