@@ -1523,16 +1523,19 @@ package body sexpressions is
       return boolean
    is
       res : boolean;
-      n   : constant natural := source'length;
       i_1 : constant integer := source'first;
       i_n : constant integer := source'last;
-      st  : integer range i_1 .. i_n;
+      st  : integer range i_1 .. i_n + 1;
    begin
-      if n = 0 then
+      if i_n < i_1 then
          res := false;
       else
          st := (if source (i_1) in '-' | '+' then i_1 + 1 else i_1);
-         res := (for all ch of source (st .. i_n) => predicate (ch));
+         if i_n < st then
+            res := false;
+         else
+            res := (for all ch of source (st .. i_n) => predicate (ch));
+         end if;
       end if;
       return res;
    end is_valid_integer;
@@ -1572,32 +1575,25 @@ package body sexpressions is
    end is_valid_integer;
 
    function parse_int_val
-     (tok : in sexpr_string; rad : in positive) return long_long_integer
+     (source : in sexpr_string; radix : in positive)
+      return long_long_integer
    is
-      neg : boolean := false;
-      val : long_long_integer := 0;
-      st  : positive := 1;
+      base         : constant long_long_integer :=
+        long_long_integer (radix);
+      digit        : long_long_integer;
+      sign         : long_long_integer;
+      unsigned_val : long_long_integer;
+      st           : positive;
    begin
-      if element (tok, st) = sexpr_character'('-') then
-         neg := true;
-         st := @ + 1;
-      elsif element (tok, st) = sexpr_character'('+') then
-         st := @ + 1;
-      end if;
-
-      for i in st .. length (tok) loop
-         declare
-            d : natural := parse_hex_digit (element (tok, i));
-         begin
-            val :=
-              (@ * long_long_integer (rad)) + long_long_integer (d);
-         end;
+      sign := (if element (source, 1) = '-' then -1 else 1);
+      st := (if element (source, 1) in '-' | '+' then 2 else 1);
+      unsigned_val := 0;
+      for i in st .. length (source) loop
+         digit :=
+           long_long_integer (parse_hex_digit (element (source, i)));
+         unsigned_val := (@ * base) + digit;
       end loop;
-
-      if neg then
-         val := -@;
-      end if;
-      return val;
+      return (sign * unsigned_val);
    end parse_int_val;
 
    procedure split_fraction
