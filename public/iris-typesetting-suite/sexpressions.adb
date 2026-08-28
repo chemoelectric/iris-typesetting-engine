@@ -57,7 +57,9 @@ package body sexpressions is
       val : sexpr;
    end record;
 
-   -- FIXME: WE SHOULD SUPPORT ANY NUMBER OF LABELS. USE A MAP.
+   -- FIXME: WE SHOULD SUPPORT ANY NUMBER OF LABELS. USE A MAP. The
+   -- standard says just that a label should be a sequence of digits.
+   -- To be the most GNUish, allow any sequence of digits.
    type label_table_array is array (1 .. 128) of label_entry;
 
    type label_context is record -- FIXME: THIS SHOULD BE IN THE PARSE CONTEXT
