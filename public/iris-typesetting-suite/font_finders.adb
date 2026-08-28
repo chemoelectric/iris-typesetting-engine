@@ -14,12 +14,11 @@ with interfaces;            use interfaces;
 with interfaces.c;          use interfaces.c;
 with interfaces.c.strings;  use interfaces.c.strings;
 with interfaces.c_streams;  use interfaces.c_streams;
-with ada.strings.unbounded; use ada.strings.unbounded;
+with ada.strings.unbounded;
 
 package body font_finders is
 
    subtype int is interfaces.c.int;
-   subtype size_t is interfaces.c.size_t;
    subtype fsize_t is interfaces.c_streams.size_t;
 
    -- POSIX standard: WIFEXITED checks if the low 7 bits are 0.
@@ -54,7 +53,7 @@ package body font_finders is
 
    procedure find_fonts
      (vector : in out unbounded_string_vectors.vector;
-      stream : in out files)
+      stream : in files)
    is
       bufsize : constant integer := 8192;
       buf     : string (1 .. bufsize);
@@ -67,10 +66,10 @@ package body font_finders is
          nread :=
            natural
              (fread
-                (buffer => buf'address,
-                 size   => fsize_t (1),
-                 count  => fsize_t (bufsize),
-                 stream => stream));
+               (buffer => buf'address,
+                size   => fsize_t (1),
+                count  => fsize_t (bufsize),
+                stream => stream));
       end fill_buf;
 
    begin

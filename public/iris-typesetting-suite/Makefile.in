@@ -443,8 +443,8 @@ EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
 	autogen.sh rename-macros.m4 ada-macros.m4 pdf.adb.prelude.m4 \
 	pdf.adb.m4 ada-programs.list
 lib_LTLIBRARIES = libiris.la
-AM_ADAFLAGS = -gnatW8 -gnat2022 -I$(call get-adainclude) -I$(builddir) \
-	-I$(srcdir)
+AM_ADAFLAGS = -gnatwu -gnatW8 -gnat2022 -I$(call get-adainclude) \
+	-I$(builddir) -I$(srcdir)
 LIBIRIS_ADB_FILES = pdf.adb font_finders.adb sexpressions.adb
 LIBIRIS_ADS_FILES = pdf.ads font_finders.ads sexpressions.ads \
 	alloca_h.ads bits_atomic_wide_counter_h.ads \
@@ -1101,12 +1101,20 @@ extremelyclean:: ; -rm -f $(srcdir)/tkrzw_langc_h.ads
 
 @GNU@define make-ada-dep
 @GNU@$(MKDIR_P) .deps; \
-@GNU@printf "$(1).lo $(1).ali: \$$(wildcard " \
+@GNU@printf "$(1).lo $(1).ali: " \
 @GNU@  > .deps/$(1)$(2); \
-@GNU@$(GREP) '^D ' $(1).ali | $(AWK) '{print $$2}' | tr '\n' ' ' \
+@GNU@for f in `$(GREP) '^D ' $(1).ali | $(AWK) '{print $$2}' | tr '\n' ' '`; do \
+@GNU@  if test -f "$(builddir)/$${f}"; then \
+@GNU@    printf '%s ' "$(builddir)/$${f}"; \
+@GNU@  elif test -f "$(srcdir)/$${f}"; then \
+@GNU@    printf '%s ' "$(srcdir)/$${f}"; \
+@GNU@  fi; \
+@GNU@done \
 @GNU@  >> .deps/$(1)$(2); \
-@GNU@printf ")\n" >> .deps/$(1)$(2)
+@GNU@printf "\n" >> .deps/$(1)$(2)
 @GNU@endef
+
+#### @GNU@$(GREP) '^D ' $(1).ali | $(AWK) '{print $$2}' | tr '\n' ' '
 
 @GNU@define link-ada
 @GNU@$(call v,LINK)$(GNATBIND) $(1).ali -o b__$(1).adb && \

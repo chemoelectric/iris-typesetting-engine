@@ -12,6 +12,8 @@ pragma ada_2022;
 with ada.wide_wide_characters;
 with ada.wide_wide_characters.handling;
 with ada.strings.wide_wide_unbounded;
+with ada.strings.wide_wide_hash;
+with ada.containers;
 with ada.finalization;
 with interfaces;
 
@@ -38,6 +40,20 @@ package sexpressions is
    subtype sexpr_fixstr is wide_wide_string;
    subtype sexpr_string is sexpr_strings.unbounded_wide_wide_string;
 
+   type sexpr_character_array is
+     array (positive range <>) of sexpr_character;
+   type sexpr_string_array is array (positive range <>) of sexpr_string;
+
+   function is_member
+     (item : in sexpr_character; in_array : in sexpr_character_array)
+      return boolean
+   with post => in_array'length /= 0 or not is_member'result;
+
+   function is_member
+     (item : in sexpr_string; in_array : in sexpr_string_array)
+      return boolean
+   with post => in_array'length /= 0 or not is_member'result;
+
    null_sexpr_fixstr : constant sexpr_fixstr := sexpr_fixstr'("");
    null_sexpr_string : constant sexpr_string :=
      sexpr_strings.null_unbounded_wide_wide_string;
@@ -57,6 +73,10 @@ package sexpressions is
    with global => null;
    function to_upper (item : sexpr_string) return sexpr_string
    with global => null;
+
+   function hash (key : sexpr_fixstr) return ada.containers.hash_type
+   renames ada.strings.wide_wide_hash;
+   function hash (key : sexpr_string) return ada.containers.hash_type;
 
    type sexpr_kind is
      (kind_null,
