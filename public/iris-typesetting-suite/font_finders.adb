@@ -9,11 +9,11 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
-with system;                use system;
-with interfaces;            use interfaces;
-with interfaces.c;          use interfaces.c;
-with interfaces.c.strings;  use interfaces.c.strings;
-with interfaces.c_streams;  use interfaces.c_streams;
+with system;               use system;
+with interfaces;           use interfaces;
+with interfaces.c;         use interfaces.c;
+with interfaces.c.strings; use interfaces.c.strings;
+with interfaces.c_streams; use interfaces.c_streams;
 with ada.strings.unbounded;
 
 package body font_finders is
@@ -66,10 +66,10 @@ package body font_finders is
          nread :=
            natural
              (fread
-               (buffer => buf'address,
-                size   => fsize_t (1),
-                count  => fsize_t (bufsize),
-                stream => stream));
+                (buffer => buf'address,
+                 size   => fsize_t (1),
+                 count  => fsize_t (bufsize),
+                 stream => stream));
       end fill_buf;
 
    begin
