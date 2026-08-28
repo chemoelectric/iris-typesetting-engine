@@ -123,6 +123,20 @@ package body sexpressions is
 
    ---------------------------------------------------------------------
 
+   function is_graphic_delimiter
+     (item : in sexpr_character) return boolean is
+   begin
+      return item in '(' | ')' | '"' | ';' | '|';
+   end is_graphic_delimiter;
+
+   function is_delimiter (item : in sexpr_character) return boolean is
+   begin
+      return
+        is_space (item)
+        or is_control (item)
+        or is_graphic_delimiter (item);
+   end is_delimiter;
+
    function is_special_initial (item : sexpr_character) return boolean
    is
    begin
@@ -171,6 +185,21 @@ package body sexpressions is
         or is_digit (item)
         or is_special_subsequent (item);
    end is_identifier_subsequent;
+
+   function collect_while
+     (ctx       : in out parse_context;
+      predicate :
+        access function (item : in sexpr_character) return boolean)
+      return sexpr_string
+   is
+      s : sexpr_string := null_sexpr_string;
+   begin
+      while not is_eof (ctx) and then predicate (peek_char (ctx)) loop
+         s := @ & peek_char (ctx);
+         adv_char (ctx);
+      end loop;
+      return s;
+   end collect_while;
 
    --   --
    --   -- is_identifier:
@@ -227,21 +256,37 @@ package body sexpressions is
    function collect_identifier
      (ctx : in out parse_context) return sexpr_string
    is
-      s : sexpr_string := null_sexpr_string;
+      s : sexpr_string;
    begin
       if not is_eof (ctx) and is_identifier_initial (peek_char (ctx))
       then
-         s := @ & peek_char (ctx);
-         adv_char (ctx);
-         while not is_eof (ctx)
-           and is_identifier_subsequent (peek_char (ctx))
-         loop
-            s := @ & peek_char (ctx);
-            adv_char (ctx);
-         end loop;
+         -- Any identifier initial is also a legal subsequent, and
+         -- thus the following is correct code.
+         s :=
+           collect_while
+             (ctx, predicate => is_identifier_subsequent'access);
+      else
+         s := null_sexpr_string;
       end if;
       return s;
    end collect_identifier;
+
+   function collect_until_delimiter
+     (ctx : in out parse_context) return sexpr_string
+   is
+      function pred (item : in sexpr_character) return boolean is
+      begin
+         return not is_delimiter (peek_char (ctx));
+      end pred;
+   begin
+      return collect_while (ctx, predicate => pred'access);
+   end collect_until_delimiter;
+
+   function collect_ascii_digits
+     (ctx : in out parse_context) return sexpr_string is
+   begin
+      return collect_while (ctx, predicate => is_ascii_digit'access);
+   end collect_ascii_digits;
 
    --
    -- is_radix:
@@ -1078,31 +1123,6 @@ package body sexpressions is
       return match_two (peek_char (ctx), ctx, first, second);
    end peek_two;
 
-   function is_delimiter (c : in sexpr_character) return boolean is
-      lparen    : constant sexpr_character := '(';
-      rparen    : constant sexpr_character := ')';
-      dblquote  : constant sexpr_character := '"';
-      semicolon : constant sexpr_character := ';';
-      vertbar   : constant sexpr_character := '|';
-      lbracket  : constant sexpr_character := '[';
-      rbracket  : constant sexpr_character := ']';
-   begin
-      return
-        is_space (c)
-        or c
-           in sexpr_tab
-            | sexpr_newline
-            | sexpr_return
-            | sexpr_page
-            | lparen
-            | rparen
-            | dblquote
-            | semicolon
-            | vertbar
-            | lbracket
-            | rbracket;
-   end is_delimiter;
-
    function parse_datum (ctx : in out parse_context) return sexpr;
 
    procedure skip_line_comment (ctx : in out parse_context) is
@@ -1489,14 +1509,14 @@ package body sexpressions is
       return res;
    end parse_list_items;
 
-   function parse_vector_literal
-     (ctx : in out parse_context) return sexpr
+   function make_vector_sexpr (ctx : in out parse_context) return sexpr
    is
       temp_list : sexpr;
       vec_count : natural := 0;
       cur       : sexpr;
       res       : sexpr;
    begin
+      ------------------------------------------------ FIXME: FIND OUT WHAT HAPPENS IF THE LIST IS DOTTED.
       adv_char (ctx); -- skip '('
       temp_list := parse_list_items (ctx);
       vec_count := length (temp_list);
@@ -1514,7 +1534,7 @@ package body sexpressions is
          res := make_vector (items);
       end;
       return res;
-   end parse_vector_literal;
+   end make_vector_sexpr;
 
    function is_valid_integer
      (source    : in sexpr_fixstr;
@@ -1674,19 +1694,6 @@ package body sexpressions is
       end if;
       return res;
    end parse_number_or_symbol;
-
-   function collect_until_delimiter
-     (ctx : in out parse_context) return sexpr_string
-   is
-      s : sexpr_string := null_sexpr_string;
-   begin
-      while not is_eof (ctx) and then not is_delimiter (peek_char (ctx))
-      loop
-         s := @ & peek_char (ctx);
-         adv_char (ctx);
-      end loop;
-      return s;
-   end collect_until_delimiter;
 
    function collect_datum_label
      (ctx : in out parse_context) return sexpr_string
@@ -1850,6 +1857,7 @@ package body sexpressions is
       -- followed by a hexadecimal numeral is always a valid Scheme
       -- identifier.
       --
+      adv_char (ctx); -- consume the '\'
       if is_eof (ctx) then
          raise parse_error with "unexpected eof after #\";
       else
@@ -1974,6 +1982,13 @@ package body sexpressions is
       return res;
    end make_homogeneous_vector_sexpr;
 
+   function make_digits_sexpr (ctx : in out parse_context) return sexpr
+   is
+   begin
+      null; ----????????????????????????????????????????????????????????????????????????????????????????????????????
+      return make_null;
+   end make_digits_sexpr;
+
    function parse_hash_prefix (ctx : in out parse_context) return sexpr
    is
       res      : sexpr;
@@ -1986,24 +2001,29 @@ package body sexpressions is
          raise parse_error with "unexpected eof after '#'";
       else
          case peek_char (ctx) is
-            when '\'       =>
-               adv_char (ctx);
+            when '\'        =>
                res := make_character_from_hash_token (ctx);
 
-            when '('       =>
-               adv_char (ctx);
-               null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+            when '('        =>
+               res := make_vector_sexpr (ctx);
 
-            when 't' | 'T' =>
+            when 't' | 'T'  =>
                res := make_boolean_sexpr (ctx, "t", "true", true);
 
-            when 'f' | 'F' =>
+            when 'f' | 'F'  =>
                res := make_boolean_sexpr (ctx, "f", "false", false);
 
-            when 'u' | 'U' =>
+            when 'u' | 'U'  =>
                res := make_homogeneous_vector_sexpr (ctx);
 
-            when others    =>
+            when '0' .. '9' =>
+               res := make_digits_sexpr (ctx);
+
+            when '.'        =>
+               null;            -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+               raise parse_error with "not yet implemented";
+
+            when others     =>
                token :=
                  collect_hash_token_start
                    (ctx); -------------------------------- FIXME: DO NOT DO IT THIS WAY
@@ -2300,30 +2320,35 @@ package body sexpressions is
       return res;
    end parse_datum;
 
-   function read_from_string (src : in sexpr_string) return sexpr is
+   ---------------------------------------------------------------------
+   --
+   -- Input and deserialization.
+   --
+
+   function read_from_string (source : in sexpr_string) return sexpr is
       ctx : parse_context;
       res : sexpr;
    begin
-      ctx.src := src;
+      ctx.src := source;
       ctx.pos := 1;
       ctx.len := length (ctx.src);
       res := parse_datum (ctx);
       return res;
    end read_from_string;
 
-   function read_from_string (src : in sexpr_fixstr) return sexpr is
+   function read_from_string (source : in sexpr_fixstr) return sexpr is
    begin
-      return read_from_string (to_sexpr_string (src));
+      return read_from_string (to_sexpr_string (source));
    end read_from_string;
 
    function read_all_from_string
-     (src : in sexpr_string) return sexpr_array
+     (source : in sexpr_string) return sexpr_array
    is
       ctx       : parse_context;
       temp_list : sexpr := make_null;
       cnt       : natural := 0;
    begin
-      ctx.src := src;
+      ctx.src := source;
       ctx.pos := 1;
       ctx.len := length (ctx.src);
 
@@ -2391,9 +2416,10 @@ package body sexpressions is
       return read_all_from_string (content);
    end read_all_from_file;
 
-   -----------------------------------------------------------------
-   -- Serialization (write, write-simple, display)
    ---------------------------------------------------------------------
+   --
+   -- Output and serialization
+   --
 
    procedure serialize_datum
      (e : in sexpr; display : in boolean; buf : in out sexpr_string);
@@ -2654,6 +2680,8 @@ package body sexpressions is
       put_line (file, to_sexpr_fixstr (display_to_string (e)));
       close (file);
    end display_to_file;
+
+   ---------------------------------------------------------------------
 
 begin
    initialize_character_name_lookup;

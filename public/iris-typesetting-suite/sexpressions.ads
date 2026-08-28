@@ -188,11 +188,12 @@ package sexpressions is
    with pre => is_list (alist) or is_null (alist);
    function acons
      (key : in sexpr; val : in sexpr; alist : in sexpr) return sexpr;
-   function read_from_string (src : in sexpr_string) return sexpr;
-   function read_from_string (src : in wide_wide_string) return sexpr;
+   function read_from_string (source : in sexpr_string) return sexpr;
+   function read_from_string
+     (source : in wide_wide_string) return sexpr;
    function read_from_file (file_path : in string) return sexpr;
    function read_all_from_string
-     (src : in sexpr_string) return sexpr_array;
+     (source : in sexpr_string) return sexpr_array;
    function read_all_from_file
      (file_path : in string) return sexpr_array;
    function write_to_string (e : in sexpr) return sexpr_string;
