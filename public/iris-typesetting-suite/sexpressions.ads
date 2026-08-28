@@ -69,14 +69,17 @@ package sexpressions is
      (source : in sexpr_fixstr) return sexpr_string
    renames sexpr_strings.to_unbounded_wide_wide_string;
 
-   function to_lower (item : sexpr_string) return sexpr_string
+   function to_string (source : in sexpr_fixstr) return string;
+   function to_string (source : in sexpr_string) return string;
+
+   function to_lower (item : in sexpr_string) return sexpr_string
    with global => null;
-   function to_upper (item : sexpr_string) return sexpr_string
+   function to_upper (item : in sexpr_string) return sexpr_string
    with global => null;
 
-   function hash (key : sexpr_fixstr) return ada.containers.hash_type
+   function hash (key : in sexpr_fixstr) return ada.containers.hash_type
    renames ada.strings.wide_wide_hash;
-   function hash (key : sexpr_string) return ada.containers.hash_type;
+   function hash (key : in sexpr_string) return ada.containers.hash_type;
 
    type sexpr_kind is
      (kind_null,

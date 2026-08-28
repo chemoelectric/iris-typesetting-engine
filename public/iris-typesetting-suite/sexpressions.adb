@@ -52,23 +52,25 @@ package body sexpressions is
 
    ---------------------------------------------------------------------
 
-   type parse_context is record
-      src       : sexpr_string;
-      pos       : positive := 1;
-      len       : natural := 0;
-      fold_case : boolean := false; --------- FIXME: NOT CURRENTLY USED.
-   end record;
-
    type label_entry is record
       id  : natural;
       val : sexpr;
    end record;
 
+   -- FIXME: WE SHOULD SUPPORT ANY NUMBER OF LABELS. USE A MAP.
    type label_table_array is array (1 .. 128) of label_entry;
 
-   type label_context is record
+   type label_context is record -- FIXME: THIS SHOULD BE IN THE PARSE CONTEXT
       count   : natural := 0;
       entries : label_table_array;
+   end record;
+
+   type parse_context is record
+      src       : sexpr_string;
+      pos       : positive := 1;
+      len       : natural := 0;
+      fold_case : boolean := false; --------- FIXME: NOT CURRENTLY USED.
+      lbl       : label_context;
    end record;
 
    function is_eof (ctx : in parse_context) return boolean is
@@ -167,52 +169,76 @@ package body sexpressions is
         or is_special_subsequent (item);
    end is_identifier_subsequent;
 
+   --   --
+   --   -- is_identifier:
+   --   --
+   --   -- Is “source” a valid R⁷RS Scheme identifier?
+   --   --
+   --   function is_identifier (source : in sexpr_fixstr) return boolean is
+   --      is_ident : boolean;
+   --   begin
+   --      case source'length is
+   --         when 0      =>
+   --            is_ident := false;
    --
-   -- is_identifier:
+   --         when 1      =>
+   --            is_ident := is_identifier_initial (source (source'first));
    --
-   -- Is “source” a valid R⁷RS Scheme identifier?
+   --         when others =>
+   --            is_ident :=
+   --              is_identifier_initial (source (source'first))
+   --              and (for all c of
+   --                     source (source'first + 1 .. source'last) =>
+   --                     is_identifier_subsequent (c));
+   --      end case;
+   --      return is_ident;
+   --   end is_identifier;
    --
-   function is_identifier (source : in sexpr_fixstr) return boolean is
-      is_ident : boolean;
-   begin
-      case source'length is
-         when 0      =>
-            is_ident := false;
+   --   --
+   --   -- is_x_hexadecimal:
+   --   --
+   --   -- Is “source” of the form “x101AB;” or similar?
+   --   --
+   --   function is_x_hexadecimal (source : in sexpr_fixstr) return boolean
+   --   is
+   --      is_x_hex : boolean;
+   --   begin
+   --      if source'length <= 3 then
+   --         is_x_hex := false;
+   --      else
+   --         is_x_hex :=
+   --           source (source'first) in 'x' | 'X'
+   --           and source (source'last) = ';'
+   --           and (for all c of
+   --                  source (source'first + 1 .. source'last - 1) =>
+   --                  is_hexadecimal_digit (c));
+   --      end if;
+   --      return is_x_hex;
+   --   end is_x_hexadecimal;
 
-         when 1      =>
-            is_ident := is_identifier_initial (source (source'first));
-
-         when others =>
-            is_ident :=
-              is_identifier_initial (source (source'first))
-              and (for all c of
-                     source (source'first + 1 .. source'last) =>
-                     is_identifier_subsequent (c));
-      end case;
-      return is_ident;
-   end is_identifier;
-
    --
-   -- is_x_hexadecimal:
+   -- collect_identifier:
    --
-   -- Is “source” of the form “x101AB;” or similar?
+   -- Obtain a Scheme identifier from the context.
    --
-   function is_x_hexadecimal (source : in sexpr_fixstr) return boolean
+   function collect_identifier
+     (ctx : in out parse_context) return sexpr_string
    is
-      is_x_hex : boolean;
+      s : sexpr_string := null_sexpr_string;
    begin
-      if source'length <= 3 then
-         is_x_hex := false;
-      else
-         is_x_hex :=
-           source (source'first) in 'x' | 'X'
-           and source (source'last) = ';'
-           and (for all c of
-                  source (source'first + 1 .. source'last - 1) =>
-                  is_hexadecimal_digit (c));
+      if not is_eof (ctx) and is_identifier_initial (peek_char (ctx))
+      then
+         s := @ & peek_char (ctx);
+         adv_char (ctx);
+         while not is_eof (ctx)
+           and is_identifier_subsequent (peek_char (ctx))
+         loop
+            s := @ & peek_char (ctx);
+            adv_char (ctx);
+         end loop;
       end if;
-      return is_x_hex;
-   end is_x_hexadecimal;
+      return s;
+   end collect_identifier;
 
    --
    -- is_radix:
@@ -354,20 +380,36 @@ package body sexpressions is
       return to_sexpr_string (conv.to_wide_wide_string (source));
    end to_sexpr_string;
 
-   function to_lower (item : sexpr_string) return sexpr_string is
+   function to_string (source : in sexpr_fixstr) return string is
+   begin
+      return conv.to_string (source);
+   end to_string;
+
+   function to_string (source : in sexpr_string) return string is
+   begin
+      return conv.to_string (to_sexpr_fixstr (source));
+   end to_string;
+
+   function to_lower (item : in sexpr_string) return sexpr_string is
    begin
       return to_sexpr_string (to_lower (to_sexpr_fixstr (item)));
    end to_lower;
 
-   function to_upper (item : sexpr_string) return sexpr_string is
+   function to_upper (item : in sexpr_string) return sexpr_string is
    begin
       return to_sexpr_string (to_upper (to_sexpr_fixstr (item)));
    end to_upper;
 
-   function hash (key : sexpr_string) return ada.containers.hash_type is
+   function hash (key : in sexpr_string) return ada.containers.hash_type is
    begin
       return ada.strings.wide_wide_hash (to_wide_wide_string (key));
    end hash;
+
+   function unrecognized_hash_token_message (token : in sexpr_string)
+     return string is
+   begin
+      return ("unrecognized hash token '#'" & to_string (token));
+   end unrecognized_hash_token_message;
 
    --
    -- to_float:
@@ -1058,7 +1100,7 @@ package body sexpressions is
    end is_delimiter;
 
    function parse_datum
-     (ctx : in out parse_context; lbl : in out label_context)
+     (ctx : in out parse_context)
       return sexpr;
 
    procedure skip_line_comment (ctx : in out parse_context) is
@@ -1094,7 +1136,7 @@ package body sexpressions is
    end skip_nested_comment;
 
    procedure skip_whitespace_and_comments
-     (ctx : in out parse_context; lbl : in out label_context)
+     (ctx : in out parse_context)
    is
       changed : boolean := true;
       c       : sexpr_character;
@@ -1108,20 +1150,19 @@ package body sexpressions is
          elsif c = sexpr_character'(';') then
             skip_line_comment (ctx);
             changed := true;
-         elsif match_two (c, ctx, '#', '|') then
+         elsif match_two (c, ctx, '#', '|') then -- FIXME: THIS OUGHT TO BE HANDLED AS A HASH TOKEN
             skip_nested_comment (ctx);
             changed := true;
-         elsif match_two (c, ctx, '#', ';') then
+         elsif match_two (c, ctx, '#', ';') then -- FIXME: THIS OUGHT TO BE HANDLED AS A HASH TOKEN
             adv_char (ctx);
             adv_char (ctx);
-            ignore (parse_datum (ctx, lbl));
+            ignore (parse_datum (ctx));
             changed := true;
-         elsif match_two (c, ctx, '#', '!') then
-            -- FIXME: THIS IS ACTUALLY FOR DIRECTIVES AND SHOULD GO ELSEWHERE.
+         elsif match_two (c, ctx, '#', '!') then -- FIXME: THIS IS ACTUALLY FOR DIRECTIVES and also is a hash token
             adv_char (ctx);
             adv_char (ctx);
             while not is_eof (ctx)
-              and then not is_delimiter (peek_char (ctx))
+                  and then not is_delimiter (peek_char (ctx))
             loop
                adv_char (ctx);
             end loop;
@@ -1411,12 +1452,12 @@ package body sexpressions is
    --   end parse_character_literal;
 
    function parse_list_items
-     (ctx : in out parse_context; lbl : in out label_context)
+     (ctx : in out parse_context)
       return sexpr
    is
       res : sexpr := make_null;
    begin
-      skip_whitespace_and_comments (ctx, lbl);
+      skip_whitespace_and_comments (ctx);
       if is_eof (ctx) then
          raise parse_error with "unexpected eof in list";
       end if;
@@ -1428,17 +1469,17 @@ package body sexpressions is
         and then is_delimiter (peek_next_char (ctx))
       then
          adv_char (ctx); -- consume '.'
-         skip_whitespace_and_comments (ctx, lbl);
-         res := parse_datum (ctx, lbl);
-         skip_whitespace_and_comments (ctx, lbl);
+         skip_whitespace_and_comments (ctx);
+         res := parse_datum (ctx);
+         skip_whitespace_and_comments (ctx);
          if peek_char (ctx) /= ')' then
             raise parse_error with "expected ')' after dotted cdr";
          end if;
          adv_char (ctx); -- consume ')'
       else
          declare
-            head : sexpr := parse_datum (ctx, lbl);
-            tail : sexpr := parse_list_items (ctx, lbl);
+            head : sexpr := parse_datum (ctx);
+            tail : sexpr := parse_list_items (ctx);
          begin
             res := cons (head, tail);
          end;
@@ -1447,7 +1488,7 @@ package body sexpressions is
    end parse_list_items;
 
    function parse_vector_literal
-     (ctx : in out parse_context; lbl : in out label_context)
+     (ctx : in out parse_context)
       return sexpr
    is
       temp_list : sexpr;
@@ -1456,7 +1497,7 @@ package body sexpressions is
       res       : sexpr;
    begin
       adv_char (ctx); -- skip '('
-      temp_list := parse_list_items (ctx, lbl);
+      temp_list := parse_list_items (ctx);
       vec_count := length (temp_list);
 
       declare
@@ -1475,7 +1516,7 @@ package body sexpressions is
    end parse_vector_literal;
 
    function parse_bytevector_literal
-     (ctx : in out parse_context; lbl : in out label_context)
+     (ctx : in out parse_context)
       return sexpr
    is
       temp_list : sexpr;
@@ -1489,7 +1530,7 @@ package body sexpressions is
          raise parse_error with "expected '(' after #u8";
       end if;
       adv_char (ctx); -- skip '('
-      temp_list := parse_list_items (ctx, lbl);
+      temp_list := parse_list_items (ctx);
       bv_count := length (temp_list);
 
       declare
@@ -1645,7 +1686,7 @@ package body sexpressions is
       res : sexpr;
    begin
       if is_inf_or_nan (tok) then
-         raise parse_error with tok'img & " is not yet implemented";
+         raise parse_error with to_string (tok) & " is not yet implemented";
       elsif is_valid_integer (tok, radix) then
          res := make_integer (parse_int_val (tok, radix));
       elsif contains_slash (tok) then
@@ -1692,7 +1733,7 @@ package body sexpressions is
       if not is_eof (ctx) and then peek_char (ctx) = '#' then
          s := @ & '#';
       else
-         raise parse_error with "datum label error: """ & s'img & """";
+         raise parse_error with "datum label error: """ & to_string (s) & """";
       end if;
       return s;
    end collect_datum_label;
@@ -1714,14 +1755,6 @@ package body sexpressions is
       end if;
       return s;
    end collect_hash_token_start;
-
-   tokens_true : constant sexpr_string_array :=
-     [to_sexpr_string (sexpr_fixstr'("t")),
-      to_sexpr_string (sexpr_fixstr'("true"))];
-
-   tokens_false : constant sexpr_string_array :=
-     [to_sexpr_string (sexpr_fixstr'("f")),
-      to_sexpr_string (sexpr_fixstr'("false"))];
 
    prefixes_exactnumbers : constant sexpr_string_array :=
      [to_sexpr_string (sexpr_fixstr'("e#b")),
@@ -1875,7 +1908,7 @@ package body sexpressions is
                       (character_name_lookup (to_sexpr_fixstr (s)));
                else
                   raise parse_error
-                    with "unrecognized character name #\" & s'img;
+                  with "unrecognized character name #\" & to_string (s);
                end if;
             end if;
          end if;
@@ -1883,18 +1916,83 @@ package body sexpressions is
       return make_character (c);
    end make_character_from_hash_token;
 
-   function make_sexpr_from_hash_t
-     (ctx : in out parse_context) return sexpr
+   function make_boolean_sexpr (ctx : in out parse_context;
+                                short_form : in sexpr_fixstr;
+                                long_form : in sexpr_fixstr;
+                                value : in boolean)
+     return sexpr
    is
-      res : sexpr;
-      s   : sexpr_string;
+      res     : sexpr;
+      s       : constant sexpr_string := collect_identifier (ctx);
+      s_lower : constant sexpr_string := to_lower (s);
    begin
-      null; --????????????????????????????????????????????????????????????????????????????????????????????????????
-      return make_boolean (true);
-   end make_sexpr_from_hash_t;
+      if s_lower = short_form or s_lower = long_form then
+         res := make_boolean (value);
+      else
+         raise parse_error
+         with unrecognized_hash_token_message (s);
+      end if;
+      return res;
+   end make_boolean_sexpr;
+
+--   function collect_bytevector
+--     (ctx : in out parse_context)
+--      return sexpr
+--   is
+--      temp_list : sexpr;
+--      bv_count  : natural := 0;
+--      cur       : sexpr;
+--      res       : sexpr;
+--   begin
+--      if is_eof (ctx) or else peek_char (ctx) /= '(' then
+--         raise parse_error with "expected '(' after #u8";
+--      else
+--         adv_char (ctx); -- skip '('
+--         temp_list := parse_list_items (ctx);
+--         bv_count := length (temp_list);
+--
+--         declare
+--            bytes : byte_array (1 .. bv_count);
+--            idx   : positive := 1;
+--         begin
+--            cur := temp_list;
+--            while is_pair (cur) loop
+--               declare
+--                  val : long_long_integer := get_integer (car (cur));
+--               begin
+--                  if val < 0 or val > 255 then
+--                     raise parse_error
+--                     with "bytevector element out of range";
+--                  end if;
+--                  bytes (idx) := interfaces.unsigned_8 (val);
+--               end;
+--               idx := idx + 1;
+--               cur := cdr (cur);
+--            end loop;
+--            res := make_bytevector (bytes);
+--         end;
+--      end if;
+--      return res;
+--   end collect_bytevector;
+
+   function make_homogeneous_vector_sexpr (ctx : in out parse_context)
+     return sexpr
+   is
+      res     : sexpr;
+      s       : constant sexpr_string := collect_identifier (ctx);
+      s_lower : constant sexpr_string := to_lower (s);
+   begin
+      if s_lower = "u8" then
+         res := make_boolean (true); -- ??????????
+      else
+         raise parse_error
+         with unrecognized_hash_token_message (s);
+      end if;
+      return res;
+   end make_homogeneous_vector_sexpr;
 
    function parse_hash_prefix
-     (ctx : in out parse_context; lbl : in out label_context)
+     (ctx : in out parse_context)
       return sexpr
    is
       res      : sexpr;
@@ -1916,7 +2014,13 @@ package body sexpressions is
                null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
 
             when 't' | 'T' =>
-               res := make_sexpr_from_hash_t (ctx);
+               res := make_boolean_sexpr (ctx, "t", "true", true);
+
+            when 'f' | 'F' =>
+               res := make_boolean_sexpr (ctx, "f", "false", false);
+
+            when 'u' | 'U' =>
+               res := make_homogeneous_vector_sexpr (ctx);
 
             when others    =>
                token :=
@@ -1930,14 +2034,6 @@ package body sexpressions is
                if length (token) = 0 then
                   -- FIXME: GATHER SOME CONTEXT.
                   raise parse_error with "unrecognized hash token '#'";
-               elsif is_member
-                       (item => toklower, in_array => tokens_true)
-               then
-                  res := make_boolean (true);
-               elsif is_member
-                       (item => toklower, in_array => tokens_false)
-               then
-                  res := make_boolean (false);
                elsif to_lower (token) = "u8" then
                   null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
                elsif is_datum_label (toklower) then
@@ -2149,12 +2245,12 @@ package body sexpressions is
    --   end parse_hash_prefix;
 
    function parse_datum
-     (ctx : in out parse_context; lbl : in out label_context)
+     (ctx : in out parse_context)
       return sexpr
    is
       res : sexpr := make_null;
    begin
-      skip_whitespace_and_comments (ctx, lbl);
+      skip_whitespace_and_comments (ctx);
       if is_eof (ctx) then
          raise parse_error with "unexpected end of file";
       end if;
@@ -2164,17 +2260,17 @@ package body sexpressions is
       begin
          if c = sexpr_character'('(') then
             adv_char (ctx);
-            res := parse_list_items (ctx, lbl);
+            res := parse_list_items (ctx);
          elsif c = sexpr_character'('"') then
             res := parse_string_literal (ctx);
          elsif c = sexpr_character'('|') then
             res := parse_vertical_symbol (ctx);
          elsif c = sexpr_character'('#') then
-            res := parse_hash_prefix (ctx, lbl);
+            res := parse_hash_prefix (ctx);
          elsif c = sexpr_character'(''') then
             adv_char (ctx);
             declare
-               sub : sexpr := parse_datum (ctx, lbl);
+               sub : sexpr := parse_datum (ctx);
             begin
                res :=
                  cons (make_symbol ("quote"), cons (sub, make_null));
@@ -2182,7 +2278,7 @@ package body sexpressions is
          elsif c = sexpr_character'('`') then
             adv_char (ctx);
             declare
-               sub : sexpr := parse_datum (ctx, lbl);
+               sub : sexpr := parse_datum (ctx);
             begin
                res :=
                  cons
@@ -2195,7 +2291,7 @@ package body sexpressions is
             then
                adv_char (ctx);
                declare
-                  sub : sexpr := parse_datum (ctx, lbl);
+                  sub : sexpr := parse_datum (ctx);
                begin
                   res :=
                     cons
@@ -2204,7 +2300,7 @@ package body sexpressions is
                end;
             else
                declare
-                  sub : sexpr := parse_datum (ctx, lbl);
+                  sub : sexpr := parse_datum (ctx);
                begin
                   res :=
                     cons
@@ -2230,13 +2326,12 @@ package body sexpressions is
 
    function read_from_string (src : in sexpr_string) return sexpr is
       ctx : parse_context;
-      lbl : label_context;
       res : sexpr;
    begin
       ctx.src := src;
       ctx.pos := 1;
       ctx.len := length (ctx.src);
-      res := parse_datum (ctx, lbl);
+      res := parse_datum (ctx);
       return res;
    end read_from_string;
 
@@ -2249,7 +2344,6 @@ package body sexpressions is
      (src : in sexpr_string) return sexpr_array
    is
       ctx       : parse_context;
-      lbl       : label_context;
       temp_list : sexpr := make_null;
       cnt       : natural := 0;
    begin
@@ -2257,15 +2351,15 @@ package body sexpressions is
       ctx.pos := 1;
       ctx.len := length (ctx.src);
 
-      skip_whitespace_and_comments (ctx, lbl);
+      skip_whitespace_and_comments (ctx);
       while not is_eof (ctx) loop
          declare
-            d : sexpr := parse_datum (ctx, lbl);
+            d : sexpr := parse_datum (ctx);
          begin
             temp_list := cons (d, temp_list);
             cnt := cnt + 1;
          end;
-         skip_whitespace_and_comments (ctx, lbl);
+         skip_whitespace_and_comments (ctx);
       end loop;
 
       declare
