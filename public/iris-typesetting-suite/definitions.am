@@ -25,12 +25,20 @@ ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 
 @GNU@define make-ada-dep
 @GNU@$(MKDIR_P) .deps; \
-@GNU@printf "$(1).lo $(1).ali: \$$(wildcard " \
+@GNU@printf "$(1).lo $(1).ali: " \
 @GNU@  > .deps/$(1)$(2); \
-@GNU@$(GREP) '^D ' $(1).ali | $(AWK) '{print $$2}' | tr '\n' ' ' \
+@GNU@for f in `$(GREP) '^D ' $(1).ali | $(AWK) '{print $$2}' | tr '\n' ' '`; do \
+@GNU@  if test -f "$(builddir)/$${f}"; then \
+@GNU@    printf '%s ' "$(builddir)/$${f}"; \
+@GNU@  elif test -f "$(srcdir)/$${f}"; then \
+@GNU@    printf '%s ' "$(srcdir)/$${f}"; \
+@GNU@  fi; \
+@GNU@done \
 @GNU@  >> .deps/$(1)$(2); \
-@GNU@printf ")\n" >> .deps/$(1)$(2)
+@GNU@printf "\n" >> .deps/$(1)$(2)
 @GNU@endef
+
+#### @GNU@$(GREP) '^D ' $(1).ali | $(AWK) '{print $$2}' | tr '\n' ' '
 
 @GNU@define link-ada
 @GNU@$(call v,LINK)$(GNATBIND) $(1).ali -o b__$(1).adb && \
