@@ -1937,45 +1937,57 @@ package body sexpressions is
       return res;
    end make_boolean_sexpr;
 
---   function collect_bytevector
---     (ctx : in out parse_context)
---      return sexpr
---   is
---      temp_list : sexpr;
---      bv_count  : natural := 0;
---      cur       : sexpr;
---      res       : sexpr;
---   begin
---      if is_eof (ctx) or else peek_char (ctx) /= '(' then
---         raise parse_error with "expected '(' after #u8";
---      else
---         adv_char (ctx); -- skip '('
---         temp_list := parse_list_items (ctx);
---         bv_count := length (temp_list);
---
---         declare
---            bytes : byte_array (1 .. bv_count);
---            idx   : positive := 1;
---         begin
---            cur := temp_list;
---            while is_pair (cur) loop
---               declare
---                  val : long_long_integer := get_integer (car (cur));
---               begin
---                  if val < 0 or val > 255 then
---                     raise parse_error
---                     with "bytevector element out of range";
---                  end if;
---                  bytes (idx) := interfaces.unsigned_8 (val);
---               end;
---               idx := idx + 1;
---               cur := cdr (cur);
---            end loop;
---            res := make_bytevector (bytes);
---         end;
---      end if;
---      return res;
---   end collect_bytevector;
+   --
+   -- collect_bytevector:
+   --
+   -- This is a very permissive implementation that lets you write
+   -- expressions for the elements. That is not how bytevector
+   -- literals work in actual Scheme readers. Scheme readers typically
+   -- do not understand s-expressions. They understand tokenization,
+   -- handling of directives, etc.
+   --
+   -- (However, we might want some ways to work around not being an
+   -- implementation of Scheme. Being able to use an expression in a
+   -- #u8(...) expression may help work around not having means to
+   -- create bytevectors with Scheme programming.)
+   --
+   function collect_bytevector
+     (ctx : in out parse_context)
+      return sexpr
+   is
+      temp_list : sexpr;
+      bv_count  : natural := 0;
+      cur       : sexpr;
+      res       : sexpr;
+   begin
+      if is_eof (ctx) or else peek_char (ctx) /= '(' then
+         raise parse_error with "expected '(' after #u8";
+      else
+         adv_char (ctx); -- skip '('
+         temp_list := parse_list_items (ctx);
+         bv_count := length (temp_list);
+
+         declare
+            bytes : byte_array (1 .. bv_count);
+            idx   : positive := 1;
+            val : long_long_integer;
+         begin
+            cur := temp_list;
+            while is_pair (cur) loop
+               val := get_integer (car (cur));
+               if val < 0 or 255 < val then
+                  raise parse_error
+                  with "bytevector element out of range: " & val'img;
+               end if;
+               bytes (idx) := interfaces.unsigned_8 (val);
+               idx := idx + 1;
+               cur := cdr (cur);
+            end loop;
+            res := make_bytevector (bytes);
+         end;
+      end if;
+      return res;
+   end collect_bytevector;
 
    function make_homogeneous_vector_sexpr (ctx : in out parse_context)
      return sexpr
@@ -1985,10 +1997,9 @@ package body sexpressions is
       s_lower : constant sexpr_string := to_lower (s);
    begin
       if s_lower = "u8" then
-         res := make_boolean (true); -- ??????????
+         res := collect_bytevector (ctx);
       else
-         raise parse_error
-         with unrecognized_hash_token_message (s);
+         raise parse_error with unrecognized_hash_token_message (s);
       end if;
       return res;
    end make_homogeneous_vector_sexpr;
@@ -2036,8 +2047,6 @@ package body sexpressions is
                if length (token) = 0 then
                   -- FIXME: GATHER SOME CONTEXT.
                   raise parse_error with "unrecognized hash token '#'";
-               elsif to_lower (token) = "u8" then
-                  null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
                elsif is_datum_label (toklower) then
                   null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
                elsif is_numeral_hash_token (toklower) then
