@@ -1854,7 +1854,12 @@ package body sexpressions is
             if length (s) /= 1 then
                if (element (source => s, index => 1) in 'x' | 'X'
                    and not is_eof (ctx))
-                 and then (peek_char (ctx) = ';')
+                 and then (peek_char (ctx) = ';'
+                           and (for all ch of
+                                  to_sexpr_fixstr
+                                    (unbounded_slice
+                                       (s, 2, length (s))) =>
+                                  is_hexadecimal_digit (ch)))
                then
                   adv_char (ctx);
                   s := "16#" & unbounded_slice (s, 2, length (s)) & "#";
@@ -1878,6 +1883,16 @@ package body sexpressions is
       return make_character (c);
    end make_character_from_hash_token;
 
+   function make_sexpr_from_hash_t
+     (ctx : in out parse_context) return sexpr
+   is
+      res : sexpr;
+      s   : sexpr_string;
+   begin
+      null; --????????????????????????????????????????????????????????????????????????????????????????????????????
+      return make_boolean (true);
+   end make_sexpr_from_hash_t;
+
    function parse_hash_prefix
      (ctx : in out parse_context; lbl : in out label_context)
       return sexpr
@@ -1890,29 +1905,47 @@ package body sexpressions is
       adv_char (ctx); -- skip '#'
       if is_eof (ctx) then
          raise parse_error with "unexpected eof after '#'";
-      end if;
-      token := collect_hash_token_start (ctx);
-      toklower := to_lower (token);
-      put_line
-        (to_sexpr_fixstr
-           (toklower)); -------------------------------------------------- FIXME FIXME FIXME FIXME FIXME
-      if length (toklower) = 0 then
-         -- FIXME: GATHER SOME CONTEXT.
-         raise parse_error with "unrecognized hash token '#'";
-      elsif element (source => toklower, index => 1) = '\' then
-         res := make_character_from_hash_token (ctx);
-      elsif element (source => toklower, index => 1) = '(' then
-         null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      elsif is_member (item => toklower, in_array => tokens_true) then
-         res := make_boolean (true);
-      elsif is_member (item => toklower, in_array => tokens_false) then
-         res := make_boolean (false);
-      elsif toklower = "u8" then
-         null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      elsif is_datum_label (toklower) then
-         null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      elsif is_numeral_hash_token (toklower) then
-         null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+      else
+         case peek_char (ctx) is
+            when '\'       =>
+               adv_char (ctx);
+               res := make_character_from_hash_token (ctx);
+
+            when '('       =>
+               adv_char (ctx);
+               null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+
+            when 't' | 'T' =>
+               res := make_sexpr_from_hash_t (ctx);
+
+            when others    =>
+               token :=
+                 collect_hash_token_start
+                   (ctx); -------------------------------- FIXME: DO NOT DO IT THIS WAY
+               toklower :=
+                 token;  -- FIXME: POSSIBLY SUPPORT CASE-FOLDING.
+               --put_line
+               --  (to_sexpr_fixstr
+               --    (token)); -------------------------------------------------- FIXME FIXME FIXME FIXME FIXME
+               if length (token) = 0 then
+                  -- FIXME: GATHER SOME CONTEXT.
+                  raise parse_error with "unrecognized hash token '#'";
+               elsif is_member
+                       (item => toklower, in_array => tokens_true)
+               then
+                  res := make_boolean (true);
+               elsif is_member
+                       (item => toklower, in_array => tokens_false)
+               then
+                  res := make_boolean (false);
+               elsif to_lower (token) = "u8" then
+                  null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+               elsif is_datum_label (toklower) then
+                  null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+               elsif is_numeral_hash_token (toklower) then
+                  null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+               end if;
+         end case;
       end if;
       return res;
    end parse_hash_prefix;
