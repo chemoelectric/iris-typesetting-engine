@@ -187,12 +187,11 @@ package sexpressions is
    function acons
      (key : in sexpr; val : in sexpr; alist : in sexpr) return sexpr;
    function read_from_string (source : in sexpr_string) return sexpr;
-   function read_from_string
-     (source : in wide_wide_string) return sexpr;
-   function read (file_path : in string) return sexpr;
+   function read_from_string (source : in sexpr_fixstr) return sexpr;
+   function read (filename : in string) return sexpr;
    function read_all_from_string
      (source : in sexpr_string) return sexpr_array;
-   function read_all (file_path : in string) return sexpr_array;
+   function read_all (filename : in string) return sexpr_array;
    --
    -- FIXME: write_to_string requires detection of circular lists.
    --
@@ -207,13 +206,13 @@ package sexpressions is
    --
    -- FIXME: write requires detection of circular lists.
    --
-   -- procedure write (item : in sexpr; file_path : in string);
+   -- procedure write (item : in sexpr; filename : in string);
    --
-   procedure write_simple (item : in sexpr; file_path : in string);
+   procedure write_simple (item : in sexpr; filename : in string);
    --
    -- FIXME: display requires detection of circular lists.
    --
-   procedure display (item : in sexpr; file_path : in string);
+   procedure display (item : in sexpr; filename : in string);
 
 private
 

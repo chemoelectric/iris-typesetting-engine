@@ -9,10 +9,9 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
-with ada.finalization;     use ada.finalization;
-with interfaces.c;         use interfaces.c;
-with interfaces.c.strings; use interfaces.c.strings;
-with capypdf_0_capypdf_h;  use capypdf_0_capypdf_h;
+with ada.finalization;    use ada.finalization;
+with interfaces.c;        use interfaces.c;
+with capypdf_0_capypdf_h; use capypdf_0_capypdf_h;
 
 package pdf is
 

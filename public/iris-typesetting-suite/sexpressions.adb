@@ -2287,18 +2287,17 @@ package body sexpressions is
       end;
    end read_all_from_string;
 
-   function read_file_content
-     (file_path : in string) return sexpr_string
+   function read_file_content (filename : in string) return sexpr_string
    is
       file : file_type;
       buf  : sexpr_string := null_sexpr_string;
    begin
       begin
-         open (file, in_file, file_path);
+         open (file, in_file, filename);
       exception
          when others =>
             raise io_error
-              with "cannot open file for reading: " & file_path;
+              with "cannot open file for reading: " & filename;
       end;
 
       while not end_of_file (file) loop
@@ -2313,15 +2312,15 @@ package body sexpressions is
       return buf;
    end read_file_content;
 
-   function read (file_path : in string) return sexpr is
-      content : sexpr_string := read_file_content (file_path);
+   function read (filename : in string) return sexpr is
+      content : sexpr_string := read_file_content (filename);
       res     : sexpr := read_from_string (content);
    begin
       return res;
    end read;
 
-   function read_all (file_path : in string) return sexpr_array is
-      content : sexpr_string := read_file_content (file_path);
+   function read_all (filename : in string) return sexpr_array is
+      content : sexpr_string := read_file_content (filename);
    begin
       return read_all_from_string (content);
    end read_all;
@@ -2572,29 +2571,29 @@ package body sexpressions is
       return buf;
    end display_to_string;
 
-   procedure write_simple (item : in sexpr; file_path : in string) is
+   procedure write_simple (item : in sexpr; filename : in string) is
       file : file_type;
    begin
       begin
-         create (file, out_file, file_path, form => "WCEM=8");
+         create (file, out_file, filename, form => "WCEM=8");
       exception
          when others =>
             raise io_error
-              with "cannot create file for writing: " & file_path;
+              with "cannot create file for writing: " & filename;
       end;
       put_line (file, to_sexpr_fixstr (write_simple_to_string (item)));
       close (file);
    end write_simple;
 
-   procedure display (item : in sexpr; file_path : in string) is
+   procedure display (item : in sexpr; filename : in string) is
       file : file_type;
    begin
       begin
-         create (file, out_file, file_path, form => "WCEM=8");
+         create (file, out_file, filename, form => "WCEM=8");
       exception
          when others =>
             raise io_error
-              with "cannot create file for writing: " & file_path;
+              with "cannot create file for writing: " & filename;
       end;
       put_line (file, to_sexpr_fixstr (display_to_string (item)));
       close (file);
