@@ -1,5 +1,3 @@
---  test_sexpressions.adb --- Tests for R7RS S-Expressions
---
 --  SPDX-License-Identifier: MIT
 
 --

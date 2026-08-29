@@ -70,3 +70,15 @@ test_sexpressions_equal_DEPENDENCIES = test_sexpressions_equal.lo test_sexpressi
 DEP_FILES += .deps/test_sexpressions_equal.adbdep
 CLEANFILES += test_sexpressions_equal$(EXEEXT)
 
+test_sexpressions_read_write$(EXEEXT): test_sexpressions_read_write.lo test_sexpressions_read_write.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
+
+check_PROGRAMS += test_sexpressions_read_write
+test_sexpressions_read_write_SOURCES = test_sexpressions_read_write.adb
+test_sexpressions_read_write_LDADD = .libs/test_sexpressions_read_write.$(OBJEXT)
+test_sexpressions_read_write_LDADD += libiris.la
+test_sexpressions_read_write_DEPENDENCIES = test_sexpressions_read_write.lo test_sexpressions_read_write.ali
+
+DEP_FILES += .deps/test_sexpressions_read_write.adbdep
+CLEANFILES += test_sexpressions_read_write$(EXEEXT)
+
