@@ -6,6 +6,7 @@ pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
 with interfaces;
+with ada.exceptions;
 with ada.characters.conversions;
 with ada.strings;
 with ada.strings.fixed;
@@ -37,7 +38,8 @@ package body sexpressions is
    sexpr_newline   : constant sexpr_character :=
      sexpr_character'val (10);
    sexpr_vtab      : constant sexpr_character :=
-     sexpr_character'val (11) with unreferenced;
+     sexpr_character'val (11)
+   with unreferenced;
    sexpr_page      : constant sexpr_character :=
      sexpr_character'val (12);
    sexpr_return    : constant sexpr_character :=
@@ -1661,29 +1663,43 @@ package body sexpressions is
    end is_inf_or_nan;
 
    function parse_number_or_symbol
-     (ctx : in out parse_context; -- For future use in error messages.
-      source : in sexpr_string;
-      radix : in integer := 10;
-      exactness : in numerical_exactness := numerical_exactness_unspecified)
- return sexpr
+     (ctx          :
+        in out parse_context -- For future use in error messages.
+      with unreferenced;
+      source       : in sexpr_string;
+      radix        : in integer := 10;
+      allow_symbol : boolean := true) return sexpr
    with pre => is_radix (radix)
    is
-      tok : sexpr_string := source;
+      use ada.exceptions;
       res : sexpr;
    begin
-      if is_inf_or_nan (tok) then
+      if is_inf_or_nan (source) then
          raise parse_error
-           with to_string (tok) & " is not yet implemented";
-      elsif is_valid_integer (tok, radix) then
-         res := make_integer (parse_integer_val (tok, radix));
-      elsif contains_slash (tok) then
-         res := parse_what_contains_slash (tok, radix);
+           with to_string (source) & " is not yet implemented";
+      elsif is_valid_integer (source, radix) then
+         res := make_integer (parse_integer_val (source, radix));
+      elsif contains_slash (source) then
+         res := parse_what_contains_slash (source, radix);
       else
          begin
-            res := make_inexact (to_float (tok));
+            if radix = 10 then
+               res := make_inexact (to_float (source));
+            else
+               raise parse_error
+                 with
+                   "inexact notations are supported only for base 10:"
+                   & " """
+                   & to_string (source)
+                   & """";
+            end if;
          exception
-            when others =>
-               res := make_symbol (tok);
+            when exc : others =>
+               if allow_symbol then
+                  res := make_symbol (source);
+               else
+                  reraise_occurrence (exc);
+               end if;
          end;
       end if;
       return res;
@@ -2071,9 +2087,9 @@ package body sexpressions is
       return
         parse_number_or_symbol
           (ctx,
-           source    => collect_until_delimiter (ctx),
-           radix     => radix,
-           exactness => exactness);
+           source       => collect_until_delimiter (ctx),
+           radix        => radix,
+           allow_symbol => false);
    end make_hash_numeral_sexpr;
 
    function make_datum_label_sexpr
