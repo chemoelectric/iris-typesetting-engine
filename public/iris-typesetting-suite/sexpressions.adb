@@ -207,53 +207,6 @@ package body sexpressions is
       return s;
    end collect_while;
 
-   --   --
-   --   -- is_identifier:
-   --   --
-   --   -- Is “source” a valid R⁷RS Scheme identifier?
-   --   --
-   --   function is_identifier (source : in sexpr_fixstr) return boolean is
-   --      is_ident : boolean;
-   --   begin
-   --      case source'length is
-   --         when 0      =>
-   --            is_ident := false;
-   --
-   --         when 1      =>
-   --            is_ident := is_identifier_initial (source (source'first));
-   --
-   --         when others =>
-   --            is_ident :=
-   --              is_identifier_initial (source (source'first))
-   --              and (for all c of
-   --                     source (source'first + 1 .. source'last) =>
-   --                     is_identifier_subsequent (c));
-   --      end case;
-   --      return is_ident;
-   --   end is_identifier;
-   --
-   --   --
-   --   -- is_x_hexadecimal:
-   --   --
-   --   -- Is “source” of the form “x101AB;” or similar?
-   --   --
-   --   function is_x_hexadecimal (source : in sexpr_fixstr) return boolean
-   --   is
-   --      is_x_hex : boolean;
-   --   begin
-   --      if source'length <= 3 then
-   --         is_x_hex := false;
-   --      else
-   --         is_x_hex :=
-   --           source (source'first) in 'x' | 'X'
-   --           and source (source'last) = ';'
-   --           and (for all c of
-   --                  source (source'first + 1 .. source'last - 1) =>
-   --                  is_hexadecimal_digit (c));
-   --      end if;
-   --      return is_x_hex;
-   --   end is_x_hexadecimal;
-
    --
    -- collect_identifier:
    --
@@ -1627,7 +1580,6 @@ package body sexpressions is
       cur       : sexpr;
       res       : sexpr;
    begin
-      ------------------------------------------------ FIXME: FIND OUT WHAT HAPPENS IF THE LIST IS DOTTED.
       adv_char (ctx); -- skip '('
       temp_list := parse_list_items (ctx);
       vec_count := length (temp_list);
@@ -1642,6 +1594,10 @@ package body sexpressions is
             idx := idx + 1;
             cur := cdr (cur);
          end loop;
+         if not is_null (cur) then
+            -- FIXME: PROVIDE CONTEXT
+            raise parse_error with "a vector cannot be dotted";
+         end if;
          res := make_vector (items);
       end;
       return res;
@@ -1950,6 +1906,10 @@ package body sexpressions is
                idx := idx + 1;
                cur := cdr (cur);
             end loop;
+            if not is_null (cur) then
+               -- FIXME: PROVIDE CONTEXT
+               raise parse_error with "a bytevector cannot be dotted";
+            end if;
             res := make_bytevector (bytes);
          end;
       end if;
