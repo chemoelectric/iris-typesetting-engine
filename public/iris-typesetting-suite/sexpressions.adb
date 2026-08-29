@@ -542,27 +542,27 @@ package body sexpressions is
       return res;
    end make_integer;
 
-   function make_real (val : in long_float) return sexpr is
+   function make_inexact (val : in inexact_real) return sexpr is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_inexact);
       res.ptr.inexact_val := val;
       return res;
-   end make_real;
+   end make_inexact;
 
-   function make_rational (val : in exact_real) return sexpr is
+   function make_exact (val : in exact_real) return sexpr is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_rational);
       res.ptr.rational_val := val;
       return res;
-   end make_rational;
+   end make_exact;
 
-   function make_rational
+   function make_exact
      (num : in bignum_integer; den : in bignum_integer) return sexpr is
    begin
-      return make_rational (exact_reals."/" (num, den));
-   end make_rational;
+      return make_exact (exact_reals."/" (num, den));
+   end make_exact;
 
    function make_character (ch : in sexpr_character) return sexpr is
       res : sexpr;
@@ -669,19 +669,19 @@ package body sexpressions is
       return res;
    end is_integer;
 
-   function is_real (e : in sexpr) return boolean is
+   function is_inexact (e : in sexpr) return boolean is
       res : boolean := false;
    begin
       res := (e.ptr /= null and then e.ptr.kind = kind_inexact);
       return res;
-   end is_real;
+   end is_inexact;
 
-   function is_rational (e : in sexpr) return boolean is
+   function is_exact (e : in sexpr) return boolean is
       res : boolean := false;
    begin
       res := (e.ptr /= null and then e.ptr.kind = kind_rational);
       return res;
-   end is_rational;
+   end is_exact;
 
    function is_number (e : in sexpr) return boolean is
       res : boolean := false;
@@ -1743,14 +1743,14 @@ package body sexpressions is
       if length (num_str) /= 0 then
          n := parse_integer_val (num_str, radix);
          d := parse_integer_val (den_str, radix);
-         if d > 0 then
-            res := make_rational (n, d);
+         if 0 < d then
+            res := make_exact (n, d);
          else
             res := make_symbol (tok);
          end if;
-      else
-         res := make_symbol (tok);
-      end if;
+         else
+            res := make_symbol (tok);
+         end if;
       return res;
    end parse_what_contains_slash;
 
@@ -1775,7 +1775,7 @@ package body sexpressions is
          res := parse_what_contains_slash (tok, radix);
       else
          begin
-            res := make_real (to_float (tok));
+            res := make_inexact (to_float (tok));
          exception
             when others =>
                res := make_symbol (tok);

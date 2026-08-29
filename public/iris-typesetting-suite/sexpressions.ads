@@ -125,9 +125,9 @@ package sexpressions is
    function make_null return sexpr;
    function make_boolean (val : in boolean) return sexpr;
    function make_integer (val : in bignum_integer) return sexpr;
-   function make_real (val : in inexact_real) return sexpr;
-   function make_rational (val : in exact_real) return sexpr;
-   function make_rational
+   function make_inexact (val : in inexact_real) return sexpr;
+   function make_exact (val : in exact_real) return sexpr;
+   function make_exact
      (num : in bignum_integer; den : in bignum_integer) return sexpr;
    function make_character (ch : in sexpr_character) return sexpr;
    function make_string (str : in sexpr_string) return sexpr;
@@ -142,8 +142,8 @@ package sexpressions is
    function is_null (e : in sexpr) return boolean;
    function is_boolean (e : in sexpr) return boolean;
    function is_integer (e : in sexpr) return boolean;
-   function is_real (e : in sexpr) return boolean;
-   function is_rational (e : in sexpr) return boolean;
+   function is_inexact (e : in sexpr) return boolean;
+   function is_exact (e : in sexpr) return boolean;
    function is_number (e : in sexpr) return boolean;
    function is_character (e : in sexpr) return boolean;
    function is_string (e : in sexpr) return boolean;
