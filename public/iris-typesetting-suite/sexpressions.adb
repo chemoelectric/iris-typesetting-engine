@@ -37,8 +37,7 @@ package body sexpressions is
    sexpr_newline   : constant sexpr_character :=
      sexpr_character'val (10);
    sexpr_vtab      : constant sexpr_character :=
-     sexpr_character'val (11);
-   pragma unreferenced (sexpr_vtab);
+     sexpr_character'val (11) with unreferenced;
    sexpr_page      : constant sexpr_character :=
      sexpr_character'val (12);
    sexpr_return    : constant sexpr_character :=
@@ -291,7 +290,10 @@ package body sexpressions is
       return collect_while (ctx, predicate => is_ascii_digit'access);
    end collect_ascii_digits;
 
-   type numerical_exactness is (numerical_exactness_unspecified, numerically_exact, numerically_inexact);
+   type numerical_exactness is
+     (numerical_exactness_unspecified,
+      numerically_exact,
+      numerically_inexact);
 
    --
    -- is_radix:
@@ -640,7 +642,8 @@ package body sexpressions is
          res.ptr := new node_record (kind_bytevector);
          res.ptr.bytevector_val := new byte_array (1 .. bytes'length);
          for idx in bytes'range loop
-            res.ptr.bytevector_val (idx - bytes'first + 1) := bytes (idx);
+            res.ptr.bytevector_val (idx - bytes'first + 1) :=
+              bytes (idx);
          end loop;
       end return;
    end make_bytevector;
@@ -928,27 +931,23 @@ package body sexpressions is
    end cdr;
 
    function caar (e : in sexpr) return sexpr is
-      res : sexpr := car (car (e));
    begin
-      return res;
+      return car (car (e));
    end caar;
 
    function cadr (e : in sexpr) return sexpr is
-      res : sexpr := car (cdr (e));
    begin
-      return res;
+      return car (cdr (e));
    end cadr;
 
    function cdar (e : in sexpr) return sexpr is
-      res : sexpr := cdr (car (e));
    begin
-      return res;
+      return cdr (car (e));
    end cdar;
 
    function cddr (e : in sexpr) return sexpr is
-      res : sexpr := cdr (cdr (e));
    begin
-      return res;
+      return cdr (cdr (e));
    end cddr;
 
    function length (e : in sexpr) return natural is
@@ -1099,37 +1098,37 @@ package body sexpressions is
          res := false;
       else
          case ka is
-            when kind_null        =>
+            when kind_null       =>
                res := true;
 
-            when kind_boolean     =>
+            when kind_boolean    =>
                res := (a.ptr.boolean_val = b.ptr.boolean_val);
 
-            when kind_integer     =>
+            when kind_integer    =>
                res := (a.ptr.integer_val = b.ptr.integer_val);
 
-            when kind_inexact     =>
+            when kind_inexact    =>
                res := (a.ptr.inexact_val = b.ptr.inexact_val);
 
-            when kind_rational    =>
+            when kind_rational   =>
                res := (a.ptr.rational_val = b.ptr.rational_val);
 
-            when kind_character   =>
+            when kind_character  =>
                res := (a.ptr.character_val = b.ptr.character_val);
 
-            when kind_string      =>
+            when kind_string     =>
                res := (a.ptr.string_val = b.ptr.string_val);
 
-            when kind_symbol      =>
+            when kind_symbol     =>
                res := (a.ptr.symbol_val = b.ptr.symbol_val);
 
-            when kind_pair        =>
+            when kind_pair       =>
                res := equal_pairs (a, b);
 
-            when kind_vector      =>
+            when kind_vector     =>
                res := equal_vectors (a, b);
 
-            when kind_bytevector  =>
+            when kind_bytevector =>
                res := equal_bytevectors (a, b);
          end case;
       end if;
@@ -1467,92 +1466,6 @@ package body sexpressions is
       return make_symbol (buf);
    end parse_vertical_symbol;
 
-   --   function parse_named_char
-   --     (name : in sexpr_string) return sexpr_character
-   --   is
-   --      res : sexpr_character := ' ';
-   --      low : sexpr_string := to_lower (name);
-   --   begin
-   --      if low = "space" then
-   --         res := ' ';
-   --      elsif low = "newline" then
-   --         res := sexpr_newline;
-   --      elsif low = "tab" then
-   --         res := sexpr_character'val (9);
-   --      elsif low = "return" then
-   --         res := sexpr_character'val (13);
-   --      elsif low = "alarm" then
-   --         res := sexpr_character'val (7);
-   --      elsif low = "backspace" then
-   --         res := sexpr_character'val (8);
-   --      elsif low = "escape" then
-   --         res := sexpr_character'val (27);
-   --      elsif low = "null" then
-   --         res := sexpr_nul;
-   --      elsif low = "delete" then
-   --         res := sexpr_character'val (127);
-   --      elsif length (name) = 1 then
-   --         res := element (name, 1);
-   --      else
-   --         raise parse_error with "unknown character name: " & name'img;
-   --      end if;
-   --      return res;
-   --   end parse_named_char;
-
-   --   function parse_character_literal
-   --     (ctx : in out parse_context) return sexpr
-   --   is
-   --      res : sexpr;
-   --   begin
-   --      adv_char (ctx); -- skip '\'
-   --      if is_eof (ctx) then
-   --         raise parse_error with "unexpected eof after #\";
-   --      end if;
-   --
-   --      if peek_char (ctx) = 'x'
-   --        and then not is_delimiter (peek_next_char (ctx))
-   --        and then is_hexadecimal_digit (peek_next_char (ctx))
-   --      then
-   --         adv_char (ctx); -- skip 'x'
-   --         declare
-   --            hex_val : natural := 0;
-   --         begin
-   --            while not is_eof (ctx)
-   --              and then peek_char (ctx) /= ';'
-   --              and then not is_delimiter (peek_char (ctx))
-   --            loop
-   --               hex_val :=
-   --                 hex_val * 16 + parse_hex_digit (peek_char (ctx));
-   --               adv_char (ctx);
-   --            end loop;
-   --            if not is_eof (ctx) and then peek_char (ctx) = ';' then
-   --               adv_char (ctx);
-   --            end if;
-   --            res := make_character (sexpr_character'val (hex_val));
-   --         end;
-   --      elsif is_delimiter (peek_char (ctx)) then
-   --         declare
-   --            ch : sexpr_character := peek_char (ctx);
-   --         begin
-   --            adv_char (ctx);
-   --            res := make_character (ch);
-   --         end;
-   --      else
-   --         declare
-   --            tok : sexpr_string := null_sexpr_string;
-   --         begin
-   --            while not is_eof (ctx)
-   --              and then not is_delimiter (peek_char (ctx))
-   --            loop
-   --               append (tok, peek_char (ctx));
-   --               adv_char (ctx);
-   --            end loop;
-   --            res := make_character (parse_named_char (tok));
-   --         end;
-   --      end if;
-   --      return res;
-   --   end parse_character_literal;
-
    function parse_list_items (ctx : in out parse_context) return sexpr
    is
       res : sexpr := make_null;
@@ -1748,10 +1661,14 @@ package body sexpressions is
    end is_inf_or_nan;
 
    function parse_number_or_symbol
-     (raw_tok : in sexpr_string; radix : in integer := 10) return sexpr
+     (ctx : in out parse_context; -- For future use in error messages.
+      source : in sexpr_string;
+      radix : in integer := 10;
+      exactness : in numerical_exactness := numerical_exactness_unspecified)
+ return sexpr
    with pre => is_radix (radix)
    is
-      tok : sexpr_string := raw_tok;
+      tok : sexpr_string := source;
       res : sexpr;
    begin
       if is_inf_or_nan (tok) then
@@ -2034,10 +1951,11 @@ package body sexpressions is
    end make_homogeneous_vector_sexpr;
 
    procedure analyze_hash_numeral_tag
-     (ctx : in out parse_context;
-      radix : out integer;
+     (ctx       : in out parse_context;
+      radix     : out integer;
       exactness : out numerical_exactness)
-     with post => is_radix (radix) is
+   with post => is_radix (radix)
+   is
 
       procedure analyze_possible_exactness_tag is
          c1 : sexpr_character;
@@ -2054,10 +1972,12 @@ package body sexpressions is
                c1 := peek_char (ctx);
                adv_char (ctx);
                case to_lower (c1) is
-                  when 'e' =>
+                  when 'e'    =>
                      exactness := numerically_exact;
-                  when 'i' =>
+
+                  when 'i'    =>
                      exactness := numerically_inexact;
+
                   when others =>
                      -- FIXME: GIVE THIS SOME CONTEXT.
                      raise parse_error with "unrecognized hash token";
@@ -2081,14 +2001,18 @@ package body sexpressions is
                c1 := peek_char (ctx);
                adv_char (ctx);
                case to_lower (c1) is
-                  when 'b' =>
+                  when 'b'    =>
                      radix := 2;
-                  when 'o' =>
+
+                  when 'o'    =>
                      radix := 8;
-                  when 'd' =>
+
+                  when 'd'    =>
                      radix := 10;
-                  when 'x' =>
+
+                  when 'x'    =>
                      radix := 16;
+
                   when others =>
                      -- FIXME: GIVE THIS SOME CONTEXT.
                      raise parse_error with "unrecognized hash token";
@@ -2106,27 +2030,27 @@ package body sexpressions is
       c := peek_char (ctx);
       adv_char (ctx);
       case to_lower (c) is
-         when 'b' =>
+         when 'b'    =>
             radix := 2;
             analyze_possible_exactness_tag;
 
-         when 'o' =>
+         when 'o'    =>
             radix := 8;
             analyze_possible_exactness_tag;
 
-         when 'd' =>
+         when 'd'    =>
             radix := 10;
             analyze_possible_exactness_tag;
 
-         when 'x' =>
+         when 'x'    =>
             radix := 16;
             analyze_possible_exactness_tag;
 
-         when 'e' =>
+         when 'e'    =>
             exactness := numerically_exact;
             analyze_possible_radix_tag;
 
-         when 'i' =>
+         when 'i'    =>
             exactness := numerically_inexact;
             analyze_possible_radix_tag;
 
@@ -2137,13 +2061,19 @@ package body sexpressions is
    end analyze_hash_numeral_tag;
 
    function make_hash_numeral_sexpr
-     (ctx : in out parse_context) return sexpr is
-      res : sexpr;
-      radix : integer;
+     (ctx : in out parse_context) return sexpr
+   is
+      res       : sexpr;
+      radix     : integer;
       exactness : numerical_exactness;
    begin
       analyze_hash_numeral_tag (ctx, radix, exactness);
-      return make_boolean (false); --????????????????????????????????????????????????????????????????????????????????????????????????????
+      return
+        parse_number_or_symbol
+          (ctx,
+           source    => collect_until_delimiter (ctx),
+           radix     => radix,
+           exactness => exactness);
    end make_hash_numeral_sexpr;
 
    function make_datum_label_sexpr
@@ -2165,28 +2095,28 @@ package body sexpressions is
          raise parse_error with "unexpected eof after '#'";
       else
          case to_lower (peek_char (ctx)) is
-            when '\'        =>
+            when '\'                               =>
                res := make_character_from_hash_token (ctx);
 
-            when '('        =>
+            when '('                               =>
                res := make_vector_sexpr (ctx);
 
-            when 't'  =>
+            when 't'                               =>
                res := make_boolean_sexpr (ctx, "t", "true", true);
 
-            when 'f'  =>
+            when 'f'                               =>
                res := make_boolean_sexpr (ctx, "f", "false", false);
 
-            when 'u'  =>
+            when 'u'                               =>
                res := make_homogeneous_vector_sexpr (ctx);
 
             when 'b' | 'o' | 'd' | 'x' | 'e' | 'i' =>
                res := make_hash_numeral_sexpr (ctx);
 
-            when '0' .. '9' =>
+            when '0' .. '9'                        =>
                res := make_datum_label_sexpr (ctx);
 
-            when others     =>
+            when others                            =>
                token :=
                  collect_hash_token_start
                    (ctx); -------------------------------- FIXME: DO NOT DO IT THIS WAY
@@ -2474,7 +2404,7 @@ package body sexpressions is
                   append (tok, peek_char (ctx));
                   adv_char (ctx);
                end loop;
-               res := parse_number_or_symbol (tok);
+               res := parse_number_or_symbol (ctx, tok);
             end;
          end if;
       end;
@@ -2748,28 +2678,28 @@ package body sexpressions is
          append (buf, "()");
       else
          case e.ptr.kind is
-            when kind_null        =>
+            when kind_null       =>
                append (buf, "()");
 
-            when kind_boolean     =>
+            when kind_boolean    =>
                if e.ptr.boolean_val then
                   append (buf, "#t");
                else
                   append (buf, "#f");
                end if;
 
-            when kind_integer     =>
+            when kind_integer    =>
                buf :=
                  @
                  & to_sexpr_string
                      (trim_left (to_string (e.ptr.integer_val)));
 
-            when kind_inexact     =>
+            when kind_inexact    =>
                buf :=
                  @
                  & to_sexpr_string (trim_left (e.ptr.inexact_val'img));
 
-            when kind_rational    =>
+            when kind_rational   =>
                buf :=
                  @
                  & to_sexpr_string
@@ -2780,22 +2710,22 @@ package body sexpressions is
                      (trim_left
                         (to_string (denominator (e.ptr.rational_val))));
 
-            when kind_character   =>
+            when kind_character  =>
                serialize_character (e.ptr.character_val, display, buf);
 
-            when kind_string      =>
+            when kind_string     =>
                serialize_string (e.ptr.string_val, display, buf);
 
-            when kind_symbol      =>
+            when kind_symbol     =>
                append (buf, e.ptr.symbol_val);
 
-            when kind_pair        =>
+            when kind_pair       =>
                serialize_list (e, display, buf);
 
-            when kind_vector      =>
+            when kind_vector     =>
                serialize_vector (e, display, buf);
 
-            when kind_bytevector  =>
+            when kind_bytevector =>
                serialize_bytevector (e, buf);
          end case;
       end if;
