@@ -195,17 +195,15 @@ run_autoreconf() {
 
 write_ada_program() {
     cat >> programs.am <<EOF
-$2\$(EXEEXT): $2.lo libiris.la
-	\$(call link-ada,\$(basename \$(@)),\$(^),\$(LIBS))
+$2\$(EXEEXT): $2.lo $2.ali libiris.la
+	\$(call link-ada,\$(basename \$(@)),\
+          \$(filter-out %.ali,\$(^)),\$(LIBS))
 
 $1_PROGRAMS += $2
-$2_SOURCES =
-$2_SOURCES += $2.adb
-$2_LDADD =
-$2_LDADD += .libs/$2.\$(OBJEXT)
+$2_SOURCES = $2.adb
+$2_LDADD = .libs/$2.\$(OBJEXT)
 $2_LDADD += libiris.la
-$2_DEPENDENCIES =
-$2_DEPENDENCIES += $2.lo
+$2_DEPENDENCIES = $2.lo $2.ali
 
 DEP_FILES += .deps/$2.adbdep
 CLEANFILES += $2\$(EXEEXT)

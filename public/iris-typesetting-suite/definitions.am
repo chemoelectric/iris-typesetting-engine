@@ -38,8 +38,6 @@ ADALINK = $(LIBTOOL) $(AM_V_lt) $(AM_LIBTOOLFLAGS) \
 @GNU@printf "\n" >> .deps/$(1)$(2)
 @GNU@endef
 
-#### @GNU@$(GREP) '^D ' $(1).ali | $(AWK) '{print $$2}' | tr '\n' ' '
-
 @GNU@define link-ada
 @GNU@$(call v,LINK)$(GNATBIND) $(1).ali -o b__$(1).adb && \
 @GNU@$(LTADACOMPILE) -c b__$(1).adb && \

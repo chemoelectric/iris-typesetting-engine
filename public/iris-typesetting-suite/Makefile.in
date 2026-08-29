@@ -485,22 +485,21 @@ libiris_la_DEPENDENCIES = $(LIBIRIS_ADB_FILES:%.adb=%.lo) $(filter-out \
 	$(LIBIRIS_ADS_FILES:%.ads=%.lo))
 iris_SOURCES = iris.adb
 iris_LDADD = .libs/iris.$(OBJEXT) libiris.la
-iris_DEPENDENCIES = iris.lo
+iris_DEPENDENCIES = iris.lo iris.ali
 test_pdf_01_SOURCES = test_pdf_01.adb
 test_pdf_01_LDADD = .libs/test_pdf_01.$(OBJEXT) libiris.la
-test_pdf_01_DEPENDENCIES = test_pdf_01.lo
+test_pdf_01_DEPENDENCIES = test_pdf_01.lo test_pdf_01.ali
 test_find_main_system_fonts_SOURCES = test_find_main_system_fonts.adb
 test_find_main_system_fonts_LDADD =  \
 	.libs/test_find_main_system_fonts.$(OBJEXT) libiris.la
-test_find_main_system_fonts_DEPENDENCIES =  \
-	test_find_main_system_fonts.lo
+test_find_main_system_fonts_DEPENDENCIES = test_find_main_system_fonts.lo test_find_main_system_fonts.ali
 test_find_tex_fonts_SOURCES = test_find_tex_fonts.adb
 test_find_tex_fonts_LDADD = .libs/test_find_tex_fonts.$(OBJEXT) \
 	libiris.la
-test_find_tex_fonts_DEPENDENCIES = test_find_tex_fonts.lo
+test_find_tex_fonts_DEPENDENCIES = test_find_tex_fonts.lo test_find_tex_fonts.ali
 test_sexpressions_SOURCES = test_sexpressions.adb
 test_sexpressions_LDADD = .libs/test_sexpressions.$(OBJEXT) libiris.la
-test_sexpressions_DEPENDENCIES = test_sexpressions.lo
+test_sexpressions_DEPENDENCIES = test_sexpressions.lo test_sexpressions.ali
 AUTOM4TE = $(SHELL) $(srcdir)/build-aux/missing --run autom4te
 TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
 	$(srcdir)/testsuite.at
@@ -1114,8 +1113,6 @@ extremelyclean:: ; -rm -f $(srcdir)/tkrzw_langc_h.ads
 @GNU@printf "\n" >> .deps/$(1)$(2)
 @GNU@endef
 
-#### @GNU@$(GREP) '^D ' $(1).ali | $(AWK) '{print $$2}' | tr '\n' ' '
-
 @GNU@define link-ada
 @GNU@$(call v,LINK)$(GNATBIND) $(1).ali -o b__$(1).adb && \
 @GNU@$(LTADACOMPILE) -c b__$(1).adb && \
@@ -1179,20 +1176,20 @@ distclean-local::
 # coding: utf-8
 # tab-width: 4
 # end:
-iris$(EXEEXT): iris.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+iris$(EXEEXT): iris.lo iris.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 
-test_pdf_01$(EXEEXT): test_pdf_01.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+test_pdf_01$(EXEEXT): test_pdf_01.lo test_pdf_01.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 
-test_find_main_system_fonts$(EXEEXT): test_find_main_system_fonts.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+test_find_main_system_fonts$(EXEEXT): test_find_main_system_fonts.lo test_find_main_system_fonts.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 
-test_find_tex_fonts$(EXEEXT): test_find_tex_fonts.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+test_find_tex_fonts$(EXEEXT): test_find_tex_fonts.lo test_find_tex_fonts.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 
-test_sexpressions$(EXEEXT): test_sexpressions.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+test_sexpressions$(EXEEXT): test_sexpressions.lo test_sexpressions.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac $(srcdir)/Makefile.am
 	$(AWK) \
 	  'BEGIN{printf "# Signature of the current package.\n"; \

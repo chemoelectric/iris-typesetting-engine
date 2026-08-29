@@ -1,74 +1,59 @@
-iris$(EXEEXT): iris.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+iris$(EXEEXT): iris.lo iris.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 
 bin_PROGRAMS += iris
-iris_SOURCES =
-iris_SOURCES += iris.adb
-iris_LDADD =
-iris_LDADD += .libs/iris.$(OBJEXT)
+iris_SOURCES = iris.adb
+iris_LDADD = .libs/iris.$(OBJEXT)
 iris_LDADD += libiris.la
-iris_DEPENDENCIES =
-iris_DEPENDENCIES += iris.lo
+iris_DEPENDENCIES = iris.lo iris.ali
 
 DEP_FILES += .deps/iris.adbdep
 CLEANFILES += iris$(EXEEXT)
 
-test_pdf_01$(EXEEXT): test_pdf_01.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+test_pdf_01$(EXEEXT): test_pdf_01.lo test_pdf_01.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 
 check_PROGRAMS += test_pdf_01
-test_pdf_01_SOURCES =
-test_pdf_01_SOURCES += test_pdf_01.adb
-test_pdf_01_LDADD =
-test_pdf_01_LDADD += .libs/test_pdf_01.$(OBJEXT)
+test_pdf_01_SOURCES = test_pdf_01.adb
+test_pdf_01_LDADD = .libs/test_pdf_01.$(OBJEXT)
 test_pdf_01_LDADD += libiris.la
-test_pdf_01_DEPENDENCIES =
-test_pdf_01_DEPENDENCIES += test_pdf_01.lo
+test_pdf_01_DEPENDENCIES = test_pdf_01.lo test_pdf_01.ali
 
 DEP_FILES += .deps/test_pdf_01.adbdep
 CLEANFILES += test_pdf_01$(EXEEXT)
 
-test_find_main_system_fonts$(EXEEXT): test_find_main_system_fonts.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+test_find_main_system_fonts$(EXEEXT): test_find_main_system_fonts.lo test_find_main_system_fonts.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 
 check_PROGRAMS += test_find_main_system_fonts
-test_find_main_system_fonts_SOURCES =
-test_find_main_system_fonts_SOURCES += test_find_main_system_fonts.adb
-test_find_main_system_fonts_LDADD =
-test_find_main_system_fonts_LDADD += .libs/test_find_main_system_fonts.$(OBJEXT)
+test_find_main_system_fonts_SOURCES = test_find_main_system_fonts.adb
+test_find_main_system_fonts_LDADD = .libs/test_find_main_system_fonts.$(OBJEXT)
 test_find_main_system_fonts_LDADD += libiris.la
-test_find_main_system_fonts_DEPENDENCIES =
-test_find_main_system_fonts_DEPENDENCIES += test_find_main_system_fonts.lo
+test_find_main_system_fonts_DEPENDENCIES = test_find_main_system_fonts.lo test_find_main_system_fonts.ali
 
 DEP_FILES += .deps/test_find_main_system_fonts.adbdep
 CLEANFILES += test_find_main_system_fonts$(EXEEXT)
 
-test_find_tex_fonts$(EXEEXT): test_find_tex_fonts.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+test_find_tex_fonts$(EXEEXT): test_find_tex_fonts.lo test_find_tex_fonts.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 
 check_PROGRAMS += test_find_tex_fonts
-test_find_tex_fonts_SOURCES =
-test_find_tex_fonts_SOURCES += test_find_tex_fonts.adb
-test_find_tex_fonts_LDADD =
-test_find_tex_fonts_LDADD += .libs/test_find_tex_fonts.$(OBJEXT)
+test_find_tex_fonts_SOURCES = test_find_tex_fonts.adb
+test_find_tex_fonts_LDADD = .libs/test_find_tex_fonts.$(OBJEXT)
 test_find_tex_fonts_LDADD += libiris.la
-test_find_tex_fonts_DEPENDENCIES =
-test_find_tex_fonts_DEPENDENCIES += test_find_tex_fonts.lo
+test_find_tex_fonts_DEPENDENCIES = test_find_tex_fonts.lo test_find_tex_fonts.ali
 
 DEP_FILES += .deps/test_find_tex_fonts.adbdep
 CLEANFILES += test_find_tex_fonts$(EXEEXT)
 
-test_sexpressions$(EXEEXT): test_sexpressions.lo libiris.la
-	$(call link-ada,$(basename $(@)),$(^),$(LIBS))
+test_sexpressions$(EXEEXT): test_sexpressions.lo test_sexpressions.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 
 check_PROGRAMS += test_sexpressions
-test_sexpressions_SOURCES =
-test_sexpressions_SOURCES += test_sexpressions.adb
-test_sexpressions_LDADD =
-test_sexpressions_LDADD += .libs/test_sexpressions.$(OBJEXT)
+test_sexpressions_SOURCES = test_sexpressions.adb
+test_sexpressions_LDADD = .libs/test_sexpressions.$(OBJEXT)
 test_sexpressions_LDADD += libiris.la
-test_sexpressions_DEPENDENCIES =
-test_sexpressions_DEPENDENCIES += test_sexpressions.lo
+test_sexpressions_DEPENDENCIES = test_sexpressions.lo test_sexpressions.ali
 
 DEP_FILES += .deps/test_sexpressions.adbdep
 CLEANFILES += test_sexpressions$(EXEEXT)
