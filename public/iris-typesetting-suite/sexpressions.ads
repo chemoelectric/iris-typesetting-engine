@@ -9,6 +9,8 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
+with ada.numerics.big_numbers.big_integers;
+with ada.numerics.big_numbers.big_reals;
 with ada.wide_wide_characters;
 with ada.wide_wide_characters.handling;
 with ada.strings.wide_wide_unbounded;
@@ -18,6 +20,18 @@ with ada.finalization;
 with interfaces;
 
 package sexpressions is
+
+   package bignum_integers renames
+     ada.numerics.big_numbers.big_integers;
+   package exact_reals renames ada.numerics.big_numbers.big_reals;
+
+   subtype fixnum_integer is long_long_integer;
+   subtype bignum_integer is bignum_integers.big_integer;
+   subtype exact_real is exact_reals.big_real;
+   subtype inexact_real is long_float;
+
+   package exact_reals_conversions is new
+     exact_reals.float_conversions (num => inexact_real);
 
    package sexpr_characters renames ada.wide_wide_characters;
    package sexpr_characters_handling renames
@@ -86,7 +100,7 @@ package sexpressions is
      (kind_null,
       kind_boolean,
       kind_integer,
-      kind_real,
+      kind_inexact,
       kind_rational,
       kind_character,
       kind_string,
@@ -110,12 +124,11 @@ package sexpressions is
 
    function make_null return sexpr;
    function make_boolean (val : in boolean) return sexpr;
-   function make_integer (val : in long_long_integer) return sexpr;
-   function make_real (val : in long_float) return sexpr;
+   function make_integer (val : in bignum_integer) return sexpr;
+   function make_real (val : in inexact_real) return sexpr;
+   function make_rational (val : in exact_real) return sexpr;
    function make_rational
-     (num : in long_long_integer; den : in long_long_integer)
-      return sexpr
-   with pre => den > 0;
+     (num : in bignum_integer; den : in bignum_integer) return sexpr;
    function make_character (ch : in sexpr_character) return sexpr;
    function make_string (str : in sexpr_string) return sexpr;
    function make_string (str : in wide_wide_string) return sexpr;
@@ -139,53 +152,32 @@ package sexpressions is
    function is_list (e : in sexpr) return boolean;
    function is_vector (e : in sexpr) return boolean;
    function is_bytevector (e : in sexpr) return boolean;
-   function get_boolean (e : in sexpr) return boolean
-   with pre => is_boolean (e);
-   function get_integer (e : in sexpr) return long_long_integer
-   with pre => is_integer (e);
-   function get_real (e : in sexpr) return long_float
-   with pre => is_real (e);
-   function get_numerator (e : in sexpr) return long_long_integer
-   with pre => is_rational (e);
-   function get_denominator (e : in sexpr) return long_long_integer
-   with pre => is_rational (e);
-   function get_character (e : in sexpr) return sexpr_character
-   with pre => is_character (e);
-   function get_string (e : in sexpr) return sexpr_string
-   with pre => is_string (e);
-   function get_symbol (e : in sexpr) return sexpr_string
-   with pre => is_symbol (e);
-   function car (e : in sexpr) return sexpr
-   with pre => is_pair (e);
-   function cdr (e : in sexpr) return sexpr
-   with pre => is_pair (e);
-   function caar (e : in sexpr) return sexpr
-   with pre => is_pair (e) and then is_pair (car (e));
-   function cadr (e : in sexpr) return sexpr
-   with pre => is_pair (e) and then is_pair (cdr (e));
-   function cdar (e : in sexpr) return sexpr
-   with pre => is_pair (e) and then is_pair (car (e));
-   function cddr (e : in sexpr) return sexpr
-   with pre => is_pair (e) and then is_pair (cdr (e));
-   function length (e : in sexpr) return natural
-   with pre => is_list (e);
-   function list_ref (e : in sexpr; idx : in positive) return sexpr
-   with pre => is_list (e);
-   function vector_length (e : in sexpr) return natural
-   with pre => is_vector (e);
-   function vector_ref (e : in sexpr; idx : in positive) return sexpr
-   with pre => is_vector (e);
-   function bytevector_length (e : in sexpr) return natural
-   with pre => is_bytevector (e);
+   function get_boolean (e : in sexpr) return boolean;
+   function get_integer (e : in sexpr) return bignum_integer;
+   function get_inexact (e : in sexpr) return inexact_real;
+   function get_exact (e : in sexpr) return exact_real;
+   function get_numerator (e : in sexpr) return bignum_integer;
+   function get_denominator (e : in sexpr) return bignum_integer;
+   function get_character (e : in sexpr) return sexpr_character;
+   function get_string (e : in sexpr) return sexpr_string;
+   function get_symbol (e : in sexpr) return sexpr_string;
+   function car (e : in sexpr) return sexpr;
+   function cdr (e : in sexpr) return sexpr;
+   function caar (e : in sexpr) return sexpr;
+   function cadr (e : in sexpr) return sexpr;
+   function cdar (e : in sexpr) return sexpr;
+   function cddr (e : in sexpr) return sexpr;
+   function length (e : in sexpr) return natural;
+   function list_ref (e : in sexpr; idx : in positive) return sexpr;
+   function vector_length (e : in sexpr) return natural;
+   function vector_ref (e : in sexpr; idx : in positive) return sexpr;
+   function bytevector_length (e : in sexpr) return natural;
    function bytevector_ref
-     (e : in sexpr; idx : in positive) return interfaces.unsigned_8
-   with pre => is_bytevector (e);
+     (e : in sexpr; idx : in positive) return interfaces.unsigned_8;
    function equal (a : in sexpr; b : in sexpr) return boolean;
    function eqv (a : in sexpr; b : in sexpr) return boolean;
-   function assoc (key : in sexpr; alist : in sexpr) return sexpr
-   with pre => is_list (alist) or is_null (alist);
-   function assq (key : in sexpr_fixstr; alist : in sexpr) return sexpr
-   with pre => is_list (alist) or is_null (alist);
+   function assoc (key : in sexpr; alist : in sexpr) return sexpr;
+   function assq (key : in sexpr_fixstr; alist : in sexpr) return sexpr;
    function acons
      (key : in sexpr; val : in sexpr; alist : in sexpr) return sexpr;
    function read_from_string (source : in sexpr_string) return sexpr;
@@ -214,36 +206,35 @@ private
             null;
 
          when kind_boolean =>
-            bool_val : boolean;
+            boolean_val : boolean;
 
          when kind_integer =>
-            int_val : long_long_integer;
+            integer_val : bignum_integer;
 
-         when kind_real =>
-            real_val : long_float;
+         when kind_inexact =>
+            inexact_val : inexact_real;
 
          when kind_rational =>
-            num_val : long_long_integer;
-            den_val : long_long_integer;
+            rational_val : exact_real;
 
          when kind_character =>
-            char_val : sexpr_character;
+            character_val : sexpr_character;
 
          when kind_string =>
-            str_val : sexpr_string;
+            string_val : sexpr_string;
 
          when kind_symbol =>
-            sym_val : sexpr_string;
+            symbol_val : sexpr_string;
 
          when kind_pair =>
             car_val : sexpr;
             cdr_val : sexpr;
 
          when kind_vector =>
-            vec_val : sexpr_vector_access;
+            vector_val : sexpr_vector_access;
 
          when kind_bytevector =>
-            bytes_val : byte_vector_access;
+            bytevector_val : byte_vector_access;
       end case;
    end record;
 

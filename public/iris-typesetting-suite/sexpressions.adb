@@ -18,6 +18,9 @@ package body sexpressions is
 
    use interfaces;
    use ada.wide_wide_text_io;
+   use bignum_integers;
+   use exact_reals;
+   use exact_reals_conversions;
    use sexpr_characters_handling;
    use sexpr_strings;
 
@@ -497,13 +500,13 @@ package body sexpressions is
             obj.ptr.ref_count := obj.ptr.ref_count - 1;
          else
             if obj.ptr.kind = kind_vector
-              and then obj.ptr.vec_val /= null
+              and then obj.ptr.vector_val /= null
             then
-               free_vec (obj.ptr.vec_val);
+               free_vec (obj.ptr.vector_val);
             elsif obj.ptr.kind = kind_bytevector
-              and then obj.ptr.bytes_val /= null
+              and then obj.ptr.bytevector_val /= null
             then
-               free_bytes (obj.ptr.bytes_val);
+               free_bytes (obj.ptr.bytevector_val);
             end if;
             free_node (obj.ptr);
          end if;
@@ -527,43 +530,45 @@ package body sexpressions is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_boolean);
-      res.ptr.bool_val := val;
+      res.ptr.boolean_val := val;
       return res;
    end make_boolean;
 
-   function make_integer (val : in long_long_integer) return sexpr is
+   function make_integer (val : in bignum_integer) return sexpr is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_integer);
-      res.ptr.int_val := val;
+      res.ptr.integer_val := val;
       return res;
    end make_integer;
 
    function make_real (val : in long_float) return sexpr is
       res : sexpr;
    begin
-      res.ptr := new node_record (kind_real);
-      res.ptr.real_val := val;
+      res.ptr := new node_record (kind_inexact);
+      res.ptr.inexact_val := val;
       return res;
    end make_real;
 
-   function make_rational
-     (num : in long_long_integer; den : in long_long_integer)
-      return sexpr
-   is
+   function make_rational (val : in exact_real) return sexpr is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_rational);
-      res.ptr.num_val := num;
-      res.ptr.den_val := den;
+      res.ptr.rational_val := val;
       return res;
+   end make_rational;
+
+   function make_rational
+     (num : in bignum_integer; den : in bignum_integer) return sexpr is
+   begin
+      return make_rational (exact_reals."/" (num, den));
    end make_rational;
 
    function make_character (ch : in sexpr_character) return sexpr is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_character);
-      res.ptr.char_val := ch;
+      res.ptr.character_val := ch;
       return res;
    end make_character;
 
@@ -571,7 +576,7 @@ package body sexpressions is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_string);
-      res.ptr.str_val := str;
+      res.ptr.string_val := str;
       return res;
    end make_string;
 
@@ -584,7 +589,7 @@ package body sexpressions is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_symbol);
-      res.ptr.sym_val := sym;
+      res.ptr.symbol_val := sym;
       return res;
    end make_symbol;
 
@@ -616,9 +621,9 @@ package body sexpressions is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_vector);
-      res.ptr.vec_val := new sexpr_array (1 .. items'length);
+      res.ptr.vector_val := new sexpr_array (1 .. items'length);
       for idx in items'range loop
-         res.ptr.vec_val (idx - items'first + 1) := items (idx);
+         res.ptr.vector_val (idx - items'first + 1) := items (idx);
       end loop;
       return res;
    end make_vector;
@@ -627,9 +632,9 @@ package body sexpressions is
       res : sexpr;
    begin
       res.ptr := new node_record (kind_bytevector);
-      res.ptr.bytes_val := new byte_array (1 .. bytes'length);
+      res.ptr.bytevector_val := new byte_array (1 .. bytes'length);
       for idx in bytes'range loop
-         res.ptr.bytes_val (idx - bytes'first + 1) := bytes (idx);
+         res.ptr.bytevector_val (idx - bytes'first + 1) := bytes (idx);
       end loop;
       return res;
    end make_bytevector;
@@ -667,7 +672,7 @@ package body sexpressions is
    function is_real (e : in sexpr) return boolean is
       res : boolean := false;
    begin
-      res := (e.ptr /= null and then e.ptr.kind = kind_real);
+      res := (e.ptr /= null and then e.ptr.kind = kind_inexact);
       return res;
    end is_real;
 
@@ -683,7 +688,7 @@ package body sexpressions is
    begin
       if e.ptr /= null then
          res :=
-           (e.ptr.kind in kind_integer | kind_real | kind_rational);
+           (e.ptr.kind in kind_integer | kind_inexact | kind_rational);
       end if;
       return res;
    end is_number;
@@ -747,55 +752,142 @@ package body sexpressions is
       res : boolean := false;
    begin
       if e.ptr /= null and then e.ptr.kind = kind_boolean then
-         res := e.ptr.bool_val;
+         res := e.ptr.boolean_val;
       else
          raise type_error with "expected boolean s-expression";
       end if;
       return res;
    end get_boolean;
 
-   function get_integer (e : in sexpr) return long_long_integer is
-      res : long_long_integer := 0;
+   function get_integer (e : in sexpr) return bignum_integer is
+      res : bignum_integer := 0;
    begin
       if e.ptr /= null and then e.ptr.kind = kind_integer then
-         res := e.ptr.int_val;
+         res := e.ptr.integer_val;
       else
          raise type_error with "expected integer s-expression";
       end if;
       return res;
    end get_integer;
 
-   function get_real (e : in sexpr) return long_float is
-      res : long_float := 0.0;
-   begin
-      if e.ptr /= null and then e.ptr.kind = kind_real then
-         res := e.ptr.real_val;
-      elsif e.ptr /= null and then e.ptr.kind = kind_integer then
-         res := long_float (e.ptr.int_val);
-      else
+   function get_inexact (e : in sexpr) return inexact_real is
+      procedure err is
+      begin
+         -- FIXME: NEED A BETTER ERROR MESSAGE.
          raise type_error with "expected real s-expression";
+      end err;
+      res : inexact_real;
+   begin
+      if e.ptr = null then
+         err;
+      else
+         case e.ptr.kind is
+            when kind_inexact  =>
+               res := e.ptr.inexact_val;
+
+            when kind_integer  =>
+               res := from_big_real (to_big_real (e.ptr.integer_val));
+
+            when kind_rational =>
+               res := from_big_real (e.ptr.rational_val);
+
+            when others        =>
+               err;
+         end case;
       end if;
       return res;
-   end get_real;
+   end get_inexact;
 
-   function get_numerator (e : in sexpr) return long_long_integer is
-      res : long_long_integer := 0;
+   function get_exact (e : in sexpr) return exact_real is
+      procedure err is
+      begin
+         -- FIXME: NEED A BETTER ERROR MESSAGE.
+         raise type_error with "expected real s-expression";
+      end err;
+      res : exact_real;
    begin
-      if e.ptr /= null and then e.ptr.kind = kind_rational then
-         res := e.ptr.num_val;
+      if e.ptr = null then
+         err;
       else
-         raise type_error with "expected rational s-expression";
+         case e.ptr.kind is
+            when kind_inexact  =>
+               res := to_big_real (e.ptr.inexact_val);
+
+            when kind_integer  =>
+               res := to_big_real (e.ptr.integer_val);
+
+            when kind_rational =>
+               res := e.ptr.rational_val;
+
+            when others        =>
+               err;
+         end case;
+      end if;
+      return res;
+   end get_exact;
+
+   --
+   -- get_numerator:
+   --
+   -- This is a permissive implementation that does type conversions.
+   --
+   function get_numerator (e : in sexpr) return bignum_integer is
+      procedure err is
+      begin
+         -- FIXME: NEED A BETTER ERROR MESSAGE.
+         raise type_error with "expected real s-expression";
+      end err;
+      res : bignum_integer;
+   begin
+      if e.ptr = null then
+         err;
+      else
+         case e.ptr.kind is
+            when kind_inexact  =>
+               res := numerator (to_big_real (e.ptr.inexact_val));
+
+            when kind_integer  =>
+               res := e.ptr.integer_val;
+
+            when kind_rational =>
+               res := numerator (e.ptr.rational_val);
+
+            when others        =>
+               err;
+         end case;
       end if;
       return res;
    end get_numerator;
 
-   function get_denominator (e : in sexpr) return long_long_integer is
-      res : long_long_integer := 1;
+   --
+   -- get_denominator:
+   --
+   -- This is a permissive implementation that does type conversions.
+   --
+   function get_denominator (e : in sexpr) return bignum_integer is
+      procedure err is
+      begin
+         -- FIXME: NEED A BETTER ERROR MESSAGE.
+         raise type_error with "expected real s-expression";
+      end err;
+      res : bignum_integer;
    begin
-      if e.ptr /= null and then e.ptr.kind = kind_rational then
-         res := e.ptr.den_val;
+      if e.ptr = null then
+         err;
       else
-         raise type_error with "expected rational s-expression";
+         case e.ptr.kind is
+            when kind_inexact  =>
+               res := denominator (to_big_real (e.ptr.inexact_val));
+
+            when kind_integer  =>
+               res := 1;
+
+            when kind_rational =>
+               res := denominator (e.ptr.rational_val);
+
+            when others        =>
+               err;
+         end case;
       end if;
       return res;
    end get_denominator;
@@ -804,7 +896,7 @@ package body sexpressions is
       res : sexpr_character := ' ';
    begin
       if e.ptr /= null and then e.ptr.kind = kind_character then
-         res := e.ptr.char_val;
+         res := e.ptr.character_val;
       else
          raise type_error with "expected character s-expression";
       end if;
@@ -815,7 +907,7 @@ package body sexpressions is
       res : sexpr_string := null_sexpr_string;
    begin
       if e.ptr /= null and then e.ptr.kind = kind_string then
-         res := e.ptr.str_val;
+         res := e.ptr.string_val;
       else
          raise type_error with "expected string s-expression";
       end if;
@@ -826,7 +918,7 @@ package body sexpressions is
       res : sexpr_string := null_sexpr_string;
    begin
       if e.ptr /= null and then e.ptr.kind = kind_symbol then
-         res := e.ptr.sym_val;
+         res := e.ptr.symbol_val;
       else
          raise type_error with "expected symbol s-expression";
       end if;
@@ -912,9 +1004,9 @@ package body sexpressions is
    begin
       if e.ptr /= null
         and then e.ptr.kind = kind_vector
-        and then e.ptr.vec_val /= null
+        and then e.ptr.vector_val /= null
       then
-         res := e.ptr.vec_val'length;
+         res := e.ptr.vector_val'length;
       end if;
       return res;
    end vector_length;
@@ -924,10 +1016,10 @@ package body sexpressions is
    begin
       if e.ptr /= null
         and then e.ptr.kind = kind_vector
-        and then e.ptr.vec_val /= null
-        and then idx in e.ptr.vec_val'range
+        and then e.ptr.vector_val /= null
+        and then idx in e.ptr.vector_val'range
       then
-         res := e.ptr.vec_val (idx);
+         res := e.ptr.vector_val (idx);
       else
          raise type_error with "vector_ref index out of bounds";
       end if;
@@ -939,9 +1031,9 @@ package body sexpressions is
    begin
       if e.ptr /= null
         and then e.ptr.kind = kind_bytevector
-        and then e.ptr.bytes_val /= null
+        and then e.ptr.bytevector_val /= null
       then
-         res := e.ptr.bytes_val'length;
+         res := e.ptr.bytevector_val'length;
       end if;
       return res;
    end bytevector_length;
@@ -953,10 +1045,10 @@ package body sexpressions is
    begin
       if e.ptr /= null
         and then e.ptr.kind = kind_bytevector
-        and then e.ptr.bytes_val /= null
-        and then idx in e.ptr.bytes_val'range
+        and then e.ptr.bytevector_val /= null
+        and then idx in e.ptr.bytevector_val'range
       then
-         res := e.ptr.bytes_val (idx);
+         res := e.ptr.bytevector_val (idx);
       else
          raise type_error with "bytevector_ref index out of bounds";
       end if;
@@ -1023,27 +1115,25 @@ package body sexpressions is
                res := true;
 
             when kind_boolean    =>
-               res := (a.ptr.bool_val = b.ptr.bool_val);
+               res := (a.ptr.boolean_val = b.ptr.boolean_val);
 
             when kind_integer    =>
-               res := (a.ptr.int_val = b.ptr.int_val);
+               res := (a.ptr.integer_val = b.ptr.integer_val);
 
-            when kind_real       =>
-               res := (a.ptr.real_val = b.ptr.real_val);
+            when kind_inexact    =>
+               res := (a.ptr.inexact_val = b.ptr.inexact_val);
 
             when kind_rational   =>
-               res :=
-                 (a.ptr.num_val = b.ptr.num_val
-                  and a.ptr.den_val = b.ptr.den_val);
+               res := (a.ptr.rational_val = b.ptr.rational_val);
 
             when kind_character  =>
-               res := (a.ptr.char_val = b.ptr.char_val);
+               res := (a.ptr.character_val = b.ptr.character_val);
 
             when kind_string     =>
-               res := (a.ptr.str_val = b.ptr.str_val);
+               res := (a.ptr.string_val = b.ptr.string_val);
 
             when kind_symbol     =>
-               res := (a.ptr.sym_val = b.ptr.sym_val);
+               res := (a.ptr.symbol_val = b.ptr.symbol_val);
 
             when kind_pair       =>
                res := equal_pairs (a, b);
@@ -1594,15 +1684,14 @@ package body sexpressions is
       return is_valid_integer (to_sexpr_fixstr (source), radix);
    end is_valid_integer;
 
-   function parse_int_val
+   function parse_integer_val
      (source : in sexpr_string; radix : in positive)
-      return long_long_integer
+      return bignum_integer
    is
-      base         : constant long_long_integer :=
-        long_long_integer (radix);
-      digit        : long_long_integer;
-      sign         : long_long_integer;
-      unsigned_val : long_long_integer;
+      base         : constant bignum_integer := to_big_integer (radix);
+      digit        : bignum_integer;
+      sign         : bignum_integer;
+      unsigned_val : bignum_integer;
       st           : positive;
    begin
       sign := (if element (source, 1) = '-' then -1 else 1);
@@ -1610,11 +1699,11 @@ package body sexpressions is
       unsigned_val := 0;
       for i in st .. length (source) loop
          digit :=
-           long_long_integer (parse_hex_digit (element (source, i)));
+           to_big_integer (parse_hex_digit (element (source, i)));
          unsigned_val := (@ * base) + digit;
       end loop;
       return (sign * unsigned_val);
-   end parse_int_val;
+   end parse_integer_val;
 
    procedure split_fraction
      (tok     : in sexpr_string;
@@ -1647,13 +1736,13 @@ package body sexpressions is
    is
       num_str : sexpr_string;
       den_str : sexpr_string;
-      n, d    : long_long_integer;
+      n, d    : bignum_integer;
       res     : sexpr;
    begin
       split_fraction (tok, radix, num_str, den_str);
       if length (num_str) /= 0 then
-         n := parse_int_val (num_str, radix);
-         d := parse_int_val (den_str, radix);
+         n := parse_integer_val (num_str, radix);
+         d := parse_integer_val (den_str, radix);
          if d > 0 then
             res := make_rational (n, d);
          else
@@ -1681,7 +1770,7 @@ package body sexpressions is
          raise parse_error
            with to_string (tok) & " is not yet implemented";
       elsif is_valid_integer (tok, radix) then
-         res := make_integer (parse_int_val (tok, radix));
+         res := make_integer (parse_integer_val (tok, radix));
       elsif contains_slash (tok) then
          res := parse_what_contains_slash (tok, radix);
       else
@@ -1948,7 +2037,7 @@ package body sexpressions is
          declare
             bytes : byte_array (1 .. bv_count);
             idx   : positive := 1;
-            val   : long_long_integer;
+            val   : bignum_integer;
          begin
             cur := temp_list;
             while is_pair (cur) loop
@@ -1957,7 +2046,7 @@ package body sexpressions is
                   raise parse_error
                     with "bytevector element out of range: " & val'img;
                end if;
-               bytes (idx) := interfaces.unsigned_8 (val);
+               bytes (idx) := interfaces.unsigned_8 (to_integer (val));
                idx := idx + 1;
                cur := cdr (cur);
             end loop;
@@ -2591,7 +2680,7 @@ package body sexpressions is
                append (buf, "()");
 
             when kind_boolean    =>
-               if e.ptr.bool_val then
+               if e.ptr.boolean_val then
                   append (buf, "#t");
                else
                   append (buf, "#f");
@@ -2599,27 +2688,25 @@ package body sexpressions is
 
             when kind_integer    =>
                buf :=
-                 @ & to_sexpr_string (trim_left (e.ptr.int_val'img));
+                 @ & to_sexpr_string (to_string (e.ptr.integer_val));
 
-            when kind_real       =>
+            when kind_inexact    =>
                buf :=
-                 @ & to_sexpr_string (trim_left (e.ptr.real_val'img));
+                 @
+                 & to_sexpr_string (trim_left (e.ptr.inexact_val'img));
 
             when kind_rational   =>
                buf :=
-                 @
-                 & to_sexpr_string (trim_left (e.ptr.num_val'img))
-                 & sexpr_fixstr'("/")
-                 & to_sexpr_string (trim_left (e.ptr.den_val'img));
+                 @ & to_sexpr_string (to_string (e.ptr.rational_val));
 
             when kind_character  =>
-               serialize_character (e.ptr.char_val, display, buf);
+               serialize_character (e.ptr.character_val, display, buf);
 
             when kind_string     =>
-               serialize_string (e.ptr.str_val, display, buf);
+               serialize_string (e.ptr.string_val, display, buf);
 
             when kind_symbol     =>
-               append (buf, e.ptr.sym_val);
+               append (buf, e.ptr.symbol_val);
 
             when kind_pair       =>
                serialize_list (e, display, buf);
