@@ -466,7 +466,7 @@ package body sexpressions is
    end unrecognized_hash_token_message;
 
    --
-   -- to_float:
+   -- to_inexact_real:
    --
    -- FIXME / IMPORTANT NOTE:
    --
@@ -474,10 +474,11 @@ package body sexpressions is
    -- point notation. There might be subtle errors that we will have
    -- to fix.
    --
-   function to_float (item : sexpr_string) return long_float is
+   function to_inexact_real (item : sexpr_string) return inexact_real is
    begin
-      return long_float'value (conv.to_string (to_sexpr_fixstr (item)));
-   end to_float;
+      return
+        inexact_real'value (conv.to_string (to_sexpr_fixstr (item)));
+   end to_inexact_real;
 
    procedure free_node is new
      ada.unchecked_deallocation (node_record, node_access);
@@ -1793,7 +1794,7 @@ package body sexpressions is
       else
          begin
             if radix = 10 then
-               res := make_inexact (to_float (source));
+               res := make_inexact (to_inexact_real (source));
             else
                raise parse_error
                  with
