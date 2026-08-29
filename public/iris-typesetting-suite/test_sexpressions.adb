@@ -6,19 +6,15 @@ pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
 with ada.text_io;
-with ada.characters.conversions; use ada.characters.conversions;
 with interfaces;
 with sexpressions;
 
 procedure test_sexpressions is
 
-   use Ada.Text_IO;
-   use Interfaces;
+   use ada.text_io;
+   use interfaces;
    use sexpressions;
    use bignum_integers;
-   use exact_reals;
-   use exact_reals_conversions;
-   use sexpr_characters;
    use sexpr_strings;
 
    total_tests  : natural := 0;
