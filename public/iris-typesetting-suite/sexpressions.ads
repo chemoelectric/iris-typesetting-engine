@@ -134,48 +134,49 @@ package sexpressions is
    function make_string (str : in wide_wide_string) return sexpr;
    function make_symbol (sym : in sexpr_string) return sexpr;
    function make_symbol (sym : in wide_wide_string) return sexpr;
-   function to_exact (e : in sexpr) return sexpr;
-   function to_inexact (e : in sexpr) return sexpr;
+   function to_exact (item : in sexpr) return sexpr;
+   function to_inexact (item : in sexpr) return sexpr;
    function cons (car_val : in sexpr; cdr_val : in sexpr) return sexpr;
    function make_list (items : in sexpr_array) return sexpr;
    function make_vector (items : in sexpr_array) return sexpr;
    function make_bytevector (bytes : in byte_array) return sexpr;
-   function kind (e : in sexpr) return sexpr_kind;
-   function is_null (e : in sexpr) return boolean;
-   function is_boolean (e : in sexpr) return boolean;
-   function is_integer (e : in sexpr) return boolean;
-   function is_inexact (e : in sexpr) return boolean;
-   function is_exact (e : in sexpr) return boolean;
-   function is_number (e : in sexpr) return boolean;
-   function is_character (e : in sexpr) return boolean;
-   function is_string (e : in sexpr) return boolean;
-   function is_symbol (e : in sexpr) return boolean;
-   function is_pair (e : in sexpr) return boolean;
-   function is_list (e : in sexpr) return boolean;
-   function is_vector (e : in sexpr) return boolean;
-   function is_bytevector (e : in sexpr) return boolean;
-   function get_boolean (e : in sexpr) return boolean;
-   function get_integer (e : in sexpr) return bignum_integer;
-   function get_inexact (e : in sexpr) return inexact_real;
-   function get_exact (e : in sexpr) return exact_real;
-   function get_numerator (e : in sexpr) return bignum_integer;
-   function get_denominator (e : in sexpr) return bignum_integer;
-   function get_character (e : in sexpr) return sexpr_character;
-   function get_string (e : in sexpr) return sexpr_string;
-   function get_symbol (e : in sexpr) return sexpr_string;
-   function car (e : in sexpr) return sexpr;
-   function cdr (e : in sexpr) return sexpr;
-   function caar (e : in sexpr) return sexpr;
-   function cadr (e : in sexpr) return sexpr;
-   function cdar (e : in sexpr) return sexpr;
-   function cddr (e : in sexpr) return sexpr;
-   function length (e : in sexpr) return natural;
-   function list_ref (e : in sexpr; idx : in positive) return sexpr;
-   function vector_length (e : in sexpr) return natural;
-   function vector_ref (e : in sexpr; idx : in positive) return sexpr;
-   function bytevector_length (e : in sexpr) return natural;
+   function kind (item : in sexpr) return sexpr_kind;
+   function is_null (item : in sexpr) return boolean;
+   function is_boolean (item : in sexpr) return boolean;
+   function is_integer (item : in sexpr) return boolean;
+   function is_inexact (item : in sexpr) return boolean;
+   function is_exact (item : in sexpr) return boolean;
+   function is_number (item : in sexpr) return boolean;
+   function is_character (item : in sexpr) return boolean;
+   function is_string (item : in sexpr) return boolean;
+   function is_symbol (item : in sexpr) return boolean;
+   function is_pair (item : in sexpr) return boolean;
+   function is_list (item : in sexpr) return boolean;
+   function is_vector (item : in sexpr) return boolean;
+   function is_bytevector (item : in sexpr) return boolean;
+   function get_boolean (item : in sexpr) return boolean;
+   function get_integer (item : in sexpr) return bignum_integer;
+   function get_inexact (item : in sexpr) return inexact_real;
+   function get_exact (item : in sexpr) return exact_real;
+   function get_numerator (item : in sexpr) return bignum_integer;
+   function get_denominator (item : in sexpr) return bignum_integer;
+   function get_character (item : in sexpr) return sexpr_character;
+   function get_string (item : in sexpr) return sexpr_string;
+   function get_symbol (item : in sexpr) return sexpr_string;
+   function car (item : in sexpr) return sexpr;
+   function cdr (item : in sexpr) return sexpr;
+   function caar (item : in sexpr) return sexpr;
+   function cadr (item : in sexpr) return sexpr;
+   function cdar (item : in sexpr) return sexpr;
+   function cddr (item : in sexpr) return sexpr;
+   function length (item : in sexpr) return natural;
+   function list_ref (item : in sexpr; idx : in positive) return sexpr;
+   function vector_length (item : in sexpr) return natural;
+   function vector_ref
+     (item : in sexpr; idx : in positive) return sexpr;
+   function bytevector_length (item : in sexpr) return natural;
    function bytevector_ref
-     (e : in sexpr; idx : in positive) return interfaces.unsigned_8;
+     (item : in sexpr; idx : in positive) return interfaces.unsigned_8;
    function equal (left : in sexpr; right : in sexpr) return boolean;
    function eqv (left : in sexpr; right : in sexpr) return boolean;
    function assoc (key : in sexpr; alist : in sexpr) return sexpr;
@@ -192,23 +193,24 @@ package sexpressions is
    --
    -- FIXME: write_to_string requires detection of circular lists.
    --
-   -- function write_to_string (e : in sexpr) return sexpr_string;
+   -- function write_to_string (item : in sexpr) return sexpr_string;
    --
-   function write_simple_to_string (e : in sexpr) return sexpr_string;
+   function write_simple_to_string
+     (item : in sexpr) return sexpr_string;
    --
    -- FIXME: display_to_string requires detection of circular lists.
    --
-   function display_to_string (e : in sexpr) return sexpr_string;
+   function display_to_string (item : in sexpr) return sexpr_string;
    --
    -- FIXME: write requires detection of circular lists.
    --
-   -- procedure write (e : in sexpr; file_path : in string);
+   -- procedure write (item : in sexpr; file_path : in string);
    --
-   procedure write_simple (e : in sexpr; file_path : in string);
+   procedure write_simple (item : in sexpr; file_path : in string);
    --
    -- FIXME: display requires detection of circular lists.
    --
-   procedure display (e : in sexpr; file_path : in string);
+   procedure display (item : in sexpr; file_path : in string);
 
 private
 

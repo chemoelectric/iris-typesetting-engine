@@ -605,20 +605,21 @@ package body sexpressions is
       return make_symbol (to_sexpr_string (sym));
    end make_symbol;
 
-   function to_exact (e : in sexpr) return sexpr is
+   function to_exact (item : in sexpr) return sexpr is
       res : sexpr;
    begin
-      if e.ptr = null then
+      if item.ptr = null then
          -- FIXME: MORE CONTEXT
          raise type_error with "to_exact";
       else
-         case e.ptr.kind is
+         case item.ptr.kind is
             when kind_integer | kind_rational =>
-               res := e;
+               res := item;
 
             when kind_inexact                 =>
                res :=
-                 make_exact (get_numerator (e), get_denominator (e));
+                 make_exact
+                   (get_numerator (item), get_denominator (item));
 
             when others                       =>
                -- FIXME: MORE CONTEXT
@@ -628,19 +629,19 @@ package body sexpressions is
       return res;
    end to_exact;
 
-   function to_inexact (e : in sexpr) return sexpr is
+   function to_inexact (item : in sexpr) return sexpr is
       res : sexpr;
    begin
-      if e.ptr = null then
+      if item.ptr = null then
          -- FIXME: MORE CONTEXT
          raise type_error with "to_inexact";
       else
-         case e.ptr.kind is
+         case item.ptr.kind is
             when kind_integer | kind_rational =>
-               res := make_inexact (get_inexact (e));
+               res := make_inexact (get_inexact (item));
 
             when kind_inexact                 =>
-               res := e;
+               res := item;
 
             when others                       =>
                -- FIXME: MORE CONTEXT
@@ -692,68 +693,69 @@ package body sexpressions is
       end return;
    end make_bytevector;
 
-   function kind (e : in sexpr) return sexpr_kind is
+   function kind (item : in sexpr) return sexpr_kind is
    begin
-      return (if e.ptr /= null then e.ptr.kind else kind_null);
+      return (if item.ptr /= null then item.ptr.kind else kind_null);
    end kind;
 
-   function is_null (e : in sexpr) return boolean is
+   function is_null (item : in sexpr) return boolean is
    begin
-      return (e.ptr = null or else e.ptr.kind = kind_null);
+      return (item.ptr = null or else item.ptr.kind = kind_null);
    end is_null;
 
-   function is_boolean (e : in sexpr) return boolean is
+   function is_boolean (item : in sexpr) return boolean is
    begin
-      return (e.ptr /= null and then e.ptr.kind = kind_boolean);
+      return (item.ptr /= null and then item.ptr.kind = kind_boolean);
    end is_boolean;
 
-   function is_integer (e : in sexpr) return boolean is
+   function is_integer (item : in sexpr) return boolean is
    begin
-      return (e.ptr /= null and then e.ptr.kind = kind_integer);
+      return (item.ptr /= null and then item.ptr.kind = kind_integer);
    end is_integer;
 
-   function is_inexact (e : in sexpr) return boolean is
+   function is_inexact (item : in sexpr) return boolean is
    begin
-      return (e.ptr /= null and then e.ptr.kind = kind_inexact);
+      return (item.ptr /= null and then item.ptr.kind = kind_inexact);
    end is_inexact;
 
-   function is_exact (e : in sexpr) return boolean is
+   function is_exact (item : in sexpr) return boolean is
    begin
-      return (e.ptr /= null and then e.ptr.kind = kind_rational);
+      return (item.ptr /= null and then item.ptr.kind = kind_rational);
    end is_exact;
 
-   function is_number (e : in sexpr) return boolean is
+   function is_number (item : in sexpr) return boolean is
       res : boolean := false;
    begin
-      if e.ptr /= null then
+      if item.ptr /= null then
          res :=
-           (e.ptr.kind in kind_integer | kind_inexact | kind_rational);
+           (item.ptr.kind
+            in kind_integer | kind_inexact | kind_rational);
       end if;
       return res;
    end is_number;
 
-   function is_character (e : in sexpr) return boolean is
+   function is_character (item : in sexpr) return boolean is
    begin
-      return (e.ptr /= null and then e.ptr.kind = kind_character);
+      return (item.ptr /= null and then item.ptr.kind = kind_character);
    end is_character;
 
-   function is_string (e : in sexpr) return boolean is
+   function is_string (item : in sexpr) return boolean is
    begin
-      return (e.ptr /= null and then e.ptr.kind = kind_string);
+      return (item.ptr /= null and then item.ptr.kind = kind_string);
    end is_string;
 
-   function is_symbol (e : in sexpr) return boolean is
+   function is_symbol (item : in sexpr) return boolean is
    begin
-      return (e.ptr /= null and then e.ptr.kind = kind_symbol);
+      return (item.ptr /= null and then item.ptr.kind = kind_symbol);
    end is_symbol;
 
-   function is_pair (e : in sexpr) return boolean is
+   function is_pair (item : in sexpr) return boolean is
    begin
-      return (e.ptr /= null and then e.ptr.kind = kind_pair);
+      return (item.ptr /= null and then item.ptr.kind = kind_pair);
    end is_pair;
 
-   function is_list (e : in sexpr) return boolean is
-      cur : sexpr := e;
+   function is_list (item : in sexpr) return boolean is
+      cur : sexpr := item;
       res : boolean := false;
       cnt : natural := 0;
    begin
@@ -765,39 +767,40 @@ package body sexpressions is
       return res;
    end is_list;
 
-   function is_vector (e : in sexpr) return boolean is
+   function is_vector (item : in sexpr) return boolean is
    begin
-      return (e.ptr /= null and then e.ptr.kind = kind_vector);
+      return (item.ptr /= null and then item.ptr.kind = kind_vector);
    end is_vector;
 
-   function is_bytevector (e : in sexpr) return boolean is
+   function is_bytevector (item : in sexpr) return boolean is
    begin
-      return (e.ptr /= null and then e.ptr.kind = kind_bytevector);
+      return
+        (item.ptr /= null and then item.ptr.kind = kind_bytevector);
    end is_bytevector;
 
-   function get_boolean (e : in sexpr) return boolean is
+   function get_boolean (item : in sexpr) return boolean is
       res : boolean := false;
    begin
-      if e.ptr /= null and then e.ptr.kind = kind_boolean then
-         res := e.ptr.boolean_val;
+      if item.ptr /= null and then item.ptr.kind = kind_boolean then
+         res := item.ptr.boolean_val;
       else
          raise type_error with "expected boolean s-expression";
       end if;
       return res;
    end get_boolean;
 
-   function get_integer (e : in sexpr) return bignum_integer is
+   function get_integer (item : in sexpr) return bignum_integer is
       res : bignum_integer := 0;
    begin
-      if e.ptr /= null and then e.ptr.kind = kind_integer then
-         res := e.ptr.integer_val;
+      if item.ptr /= null and then item.ptr.kind = kind_integer then
+         res := item.ptr.integer_val;
       else
          raise type_error with "expected integer s-expression";
       end if;
       return res;
    end get_integer;
 
-   function get_inexact (e : in sexpr) return inexact_real is
+   function get_inexact (item : in sexpr) return inexact_real is
       procedure err is
       begin
          -- FIXME: NEED A BETTER ERROR MESSAGE.
@@ -805,18 +808,19 @@ package body sexpressions is
       end err;
       res : inexact_real;
    begin
-      if e.ptr = null then
+      if item.ptr = null then
          err;
       else
-         case e.ptr.kind is
+         case item.ptr.kind is
             when kind_inexact  =>
-               res := e.ptr.inexact_val;
+               res := item.ptr.inexact_val;
 
             when kind_integer  =>
-               res := from_big_real (to_big_real (e.ptr.integer_val));
+               res :=
+                 from_big_real (to_big_real (item.ptr.integer_val));
 
             when kind_rational =>
-               res := from_big_real (e.ptr.rational_val);
+               res := from_big_real (item.ptr.rational_val);
 
             when others        =>
                err;
@@ -825,7 +829,7 @@ package body sexpressions is
       return res;
    end get_inexact;
 
-   function get_exact (e : in sexpr) return exact_real is
+   function get_exact (item : in sexpr) return exact_real is
       procedure err is
       begin
          -- FIXME: NEED A BETTER ERROR MESSAGE.
@@ -833,18 +837,18 @@ package body sexpressions is
       end err;
       res : exact_real;
    begin
-      if e.ptr = null then
+      if item.ptr = null then
          err;
       else
-         case e.ptr.kind is
+         case item.ptr.kind is
             when kind_inexact  =>
-               res := to_big_real (e.ptr.inexact_val);
+               res := to_big_real (item.ptr.inexact_val);
 
             when kind_integer  =>
-               res := to_big_real (e.ptr.integer_val);
+               res := to_big_real (item.ptr.integer_val);
 
             when kind_rational =>
-               res := e.ptr.rational_val;
+               res := item.ptr.rational_val;
 
             when others        =>
                err;
@@ -858,7 +862,7 @@ package body sexpressions is
    --
    -- This is a permissive implementation that does type conversions.
    --
-   function get_numerator (e : in sexpr) return bignum_integer is
+   function get_numerator (item : in sexpr) return bignum_integer is
       procedure err is
       begin
          -- FIXME: NEED A BETTER ERROR MESSAGE.
@@ -866,18 +870,18 @@ package body sexpressions is
       end err;
       res : bignum_integer;
    begin
-      if e.ptr = null then
+      if item.ptr = null then
          err;
       else
-         case e.ptr.kind is
+         case item.ptr.kind is
             when kind_inexact  =>
-               res := numerator (to_big_real (e.ptr.inexact_val));
+               res := numerator (to_big_real (item.ptr.inexact_val));
 
             when kind_integer  =>
-               res := e.ptr.integer_val;
+               res := item.ptr.integer_val;
 
             when kind_rational =>
-               res := numerator (e.ptr.rational_val);
+               res := numerator (item.ptr.rational_val);
 
             when others        =>
                err;
@@ -891,7 +895,7 @@ package body sexpressions is
    --
    -- This is a permissive implementation that does type conversions.
    --
-   function get_denominator (e : in sexpr) return bignum_integer is
+   function get_denominator (item : in sexpr) return bignum_integer is
       procedure err is
       begin
          -- FIXME: NEED A BETTER ERROR MESSAGE.
@@ -899,18 +903,18 @@ package body sexpressions is
       end err;
       res : bignum_integer;
    begin
-      if e.ptr = null then
+      if item.ptr = null then
          err;
       else
-         case e.ptr.kind is
+         case item.ptr.kind is
             when kind_inexact  =>
-               res := denominator (to_big_real (e.ptr.inexact_val));
+               res := denominator (to_big_real (item.ptr.inexact_val));
 
             when kind_integer  =>
                res := 1;
 
             when kind_rational =>
-               res := denominator (e.ptr.rational_val);
+               res := denominator (item.ptr.rational_val);
 
             when others        =>
                err;
@@ -919,83 +923,83 @@ package body sexpressions is
       return res;
    end get_denominator;
 
-   function get_character (e : in sexpr) return sexpr_character is
+   function get_character (item : in sexpr) return sexpr_character is
       res : sexpr_character := ' ';
    begin
-      if e.ptr /= null and then e.ptr.kind = kind_character then
-         res := e.ptr.character_val;
+      if item.ptr /= null and then item.ptr.kind = kind_character then
+         res := item.ptr.character_val;
       else
          raise type_error with "expected character s-expression";
       end if;
       return res;
    end get_character;
 
-   function get_string (e : in sexpr) return sexpr_string is
+   function get_string (item : in sexpr) return sexpr_string is
       res : sexpr_string := null_sexpr_string;
    begin
-      if e.ptr /= null and then e.ptr.kind = kind_string then
-         res := e.ptr.string_val;
+      if item.ptr /= null and then item.ptr.kind = kind_string then
+         res := item.ptr.string_val;
       else
          raise type_error with "expected string s-expression";
       end if;
       return res;
    end get_string;
 
-   function get_symbol (e : in sexpr) return sexpr_string is
+   function get_symbol (item : in sexpr) return sexpr_string is
       res : sexpr_string := null_sexpr_string;
    begin
-      if e.ptr /= null and then e.ptr.kind = kind_symbol then
-         res := e.ptr.symbol_val;
+      if item.ptr /= null and then item.ptr.kind = kind_symbol then
+         res := item.ptr.symbol_val;
       else
          raise type_error with "expected symbol s-expression";
       end if;
       return res;
    end get_symbol;
 
-   function car (e : in sexpr) return sexpr is
+   function car (item : in sexpr) return sexpr is
       res : sexpr;
    begin
-      if e.ptr /= null and then e.ptr.kind = kind_pair then
-         res := e.ptr.car_val;
+      if item.ptr /= null and then item.ptr.kind = kind_pair then
+         res := item.ptr.car_val;
       else
          raise type_error with "expected pair for car";
       end if;
       return res;
    end car;
 
-   function cdr (e : in sexpr) return sexpr is
+   function cdr (item : in sexpr) return sexpr is
       res : sexpr;
    begin
-      if e.ptr /= null and then e.ptr.kind = kind_pair then
-         res := e.ptr.cdr_val;
+      if item.ptr /= null and then item.ptr.kind = kind_pair then
+         res := item.ptr.cdr_val;
       else
          raise type_error with "expected pair for cdr";
       end if;
       return res;
    end cdr;
 
-   function caar (e : in sexpr) return sexpr is
+   function caar (item : in sexpr) return sexpr is
    begin
-      return car (car (e));
+      return car (car (item));
    end caar;
 
-   function cadr (e : in sexpr) return sexpr is
+   function cadr (item : in sexpr) return sexpr is
    begin
-      return car (cdr (e));
+      return car (cdr (item));
    end cadr;
 
-   function cdar (e : in sexpr) return sexpr is
+   function cdar (item : in sexpr) return sexpr is
    begin
-      return cdr (car (e));
+      return cdr (car (item));
    end cdar;
 
-   function cddr (e : in sexpr) return sexpr is
+   function cddr (item : in sexpr) return sexpr is
    begin
-      return cdr (cdr (e));
+      return cdr (cdr (item));
    end cddr;
 
-   function length (e : in sexpr) return natural is
-      cur : sexpr := e;
+   function length (item : in sexpr) return natural is
+      cur : sexpr := item;
       cnt : natural := 0;
    begin
       while is_pair (cur) loop
@@ -1005,8 +1009,9 @@ package body sexpressions is
       return cnt;
    end length;
 
-   function list_ref (e : in sexpr; idx : in positive) return sexpr is
-      cur : sexpr := e;
+   function list_ref (item : in sexpr; idx : in positive) return sexpr
+   is
+      cur : sexpr := item;
       pos : positive := 1;
       res : sexpr;
    begin
@@ -1022,56 +1027,57 @@ package body sexpressions is
       return res;
    end list_ref;
 
-   function vector_length (e : in sexpr) return natural is
+   function vector_length (item : in sexpr) return natural is
       res : natural := 0;
    begin
-      if e.ptr /= null
-        and then e.ptr.kind = kind_vector
-        and then e.ptr.vector_val /= null
+      if item.ptr /= null
+        and then item.ptr.kind = kind_vector
+        and then item.ptr.vector_val /= null
       then
-         res := e.ptr.vector_val'length;
+         res := item.ptr.vector_val'length;
       end if;
       return res;
    end vector_length;
 
-   function vector_ref (e : in sexpr; idx : in positive) return sexpr is
+   function vector_ref (item : in sexpr; idx : in positive) return sexpr
+   is
       res : sexpr;
    begin
-      if e.ptr /= null
-        and then e.ptr.kind = kind_vector
-        and then e.ptr.vector_val /= null
-        and then idx in e.ptr.vector_val'range
+      if item.ptr /= null
+        and then item.ptr.kind = kind_vector
+        and then item.ptr.vector_val /= null
+        and then idx in item.ptr.vector_val'range
       then
-         res := e.ptr.vector_val (idx);
+         res := item.ptr.vector_val (idx);
       else
          raise type_error with "vector_ref index out of bounds";
       end if;
       return res;
    end vector_ref;
 
-   function bytevector_length (e : in sexpr) return natural is
+   function bytevector_length (item : in sexpr) return natural is
       res : natural := 0;
    begin
-      if e.ptr /= null
-        and then e.ptr.kind = kind_bytevector
-        and then e.ptr.bytevector_val /= null
+      if item.ptr /= null
+        and then item.ptr.kind = kind_bytevector
+        and then item.ptr.bytevector_val /= null
       then
-         res := e.ptr.bytevector_val'length;
+         res := item.ptr.bytevector_val'length;
       end if;
       return res;
    end bytevector_length;
 
    function bytevector_ref
-     (e : in sexpr; idx : in positive) return interfaces.unsigned_8
+     (item : in sexpr; idx : in positive) return interfaces.unsigned_8
    is
       res : interfaces.unsigned_8 := 0;
    begin
-      if e.ptr /= null
-        and then e.ptr.kind = kind_bytevector
-        and then e.ptr.bytevector_val /= null
-        and then idx in e.ptr.bytevector_val'range
+      if item.ptr /= null
+        and then item.ptr.kind = kind_bytevector
+        and then item.ptr.bytevector_val /= null
+        and then idx in item.ptr.bytevector_val'range
       then
-         res := e.ptr.bytevector_val (idx);
+         res := item.ptr.bytevector_val (idx);
       else
          raise type_error with "bytevector_ref index out of bounds";
       end if;
@@ -2325,7 +2331,7 @@ package body sexpressions is
    --
 
    procedure serialize_datum
-     (e : in sexpr; display : in boolean; buf : in out sexpr_string);
+     (item : in sexpr; display : in boolean; buf : in out sexpr_string);
 
    procedure serialize_string
      (str     : in sexpr_string;
@@ -2426,9 +2432,9 @@ package body sexpressions is
    end serialize_character;
 
    procedure serialize_list
-     (e : in sexpr; display : in boolean; buf : in out sexpr_string)
+     (item : in sexpr; display : in boolean; buf : in out sexpr_string)
    is
-      cur   : sexpr := e;
+      cur   : sexpr := item;
       first : boolean := true;
    begin
       append (buf, '(');
@@ -2449,24 +2455,24 @@ package body sexpressions is
    end serialize_list;
 
    procedure serialize_vector
-     (e : in sexpr; display : in boolean; buf : in out sexpr_string)
+     (item : in sexpr; display : in boolean; buf : in out sexpr_string)
    is
-      len : natural := vector_length (e);
+      len : natural := vector_length (item);
    begin
       append (buf, "#(");
       for idx in 1 .. len loop
          if idx > 1 then
             append (buf, ' ');
          end if;
-         serialize_datum (vector_ref (e, idx), display, buf);
+         serialize_datum (vector_ref (item, idx), display, buf);
       end loop;
       append (buf, ')');
    end serialize_vector;
 
    procedure serialize_bytevector
-     (e : in sexpr; buf : in out sexpr_string)
+     (item : in sexpr; buf : in out sexpr_string)
    is
-      len : natural := bytevector_length (e);
+      len : natural := bytevector_length (item);
    begin
       append (buf, "#u8(");
       for idx in 1 .. len loop
@@ -2474,7 +2480,7 @@ package body sexpressions is
             append (buf, ' ');
          end if;
          declare
-            b_val : interfaces.unsigned_8 := bytevector_ref (e, idx);
+            b_val : interfaces.unsigned_8 := bytevector_ref (item, idx);
             s_val : sexpr_string := to_sexpr_string (b_val'img);
          begin
             buf := @ & unbounded_slice (s_val, 2, length (s_val));
@@ -2484,17 +2490,18 @@ package body sexpressions is
    end serialize_bytevector;
 
    procedure serialize_datum
-     (e : in sexpr; display : in boolean; buf : in out sexpr_string) is
+     (item : in sexpr; display : in boolean; buf : in out sexpr_string)
+   is
    begin
-      if is_null (e) then
+      if is_null (item) then
          append (buf, "()");
       else
-         case e.ptr.kind is
+         case item.ptr.kind is
             when kind_null       =>
                append (buf, "()");
 
             when kind_boolean    =>
-               if e.ptr.boolean_val then
+               if item.ptr.boolean_val then
                   append (buf, "#t");
                else
                   append (buf, "#f");
@@ -2504,63 +2511,67 @@ package body sexpressions is
                buf :=
                  @
                  & to_sexpr_string
-                     (trim_left (to_string (e.ptr.integer_val)));
+                     (trim_left (to_string (item.ptr.integer_val)));
 
             when kind_inexact    =>
                buf :=
                  @
-                 & to_sexpr_string (trim_left (e.ptr.inexact_val'img));
+                 & to_sexpr_string
+                     (trim_left (item.ptr.inexact_val'img));
 
             when kind_rational   =>
                buf :=
                  @
                  & to_sexpr_string
                      (trim_left
-                        (to_string (numerator (e.ptr.rational_val))))
+                        (to_string (numerator (item.ptr.rational_val))))
                  & '/'
                  & to_sexpr_string
                      (trim_left
-                        (to_string (denominator (e.ptr.rational_val))));
+                        (to_string
+                           (denominator (item.ptr.rational_val))));
 
             when kind_character  =>
-               serialize_character (e.ptr.character_val, display, buf);
+               serialize_character
+                 (item.ptr.character_val, display, buf);
 
             when kind_string     =>
-               serialize_string (e.ptr.string_val, display, buf);
+               serialize_string (item.ptr.string_val, display, buf);
 
             when kind_symbol     =>
-               append (buf, e.ptr.symbol_val);
+               append (buf, item.ptr.symbol_val);
 
             when kind_pair       =>
-               serialize_list (e, display, buf);
+               serialize_list (item, display, buf);
 
             when kind_vector     =>
-               serialize_vector (e, display, buf);
+               serialize_vector (item, display, buf);
 
             when kind_bytevector =>
-               serialize_bytevector (e, buf);
+               serialize_bytevector (item, buf);
          end case;
       end if;
    end serialize_datum;
 
-   function write_simple_to_string (e : in sexpr) return sexpr_string is
+   function write_simple_to_string (item : in sexpr) return sexpr_string
+   is
       buf : sexpr_string := null_sexpr_string;
    begin
-      serialize_datum (e, false, buf);
+      serialize_datum (item, false, buf);
       return buf;
    end write_simple_to_string;
 
    --
    -- FIXME: display_to_string requires detection of circular lists.
    --
-   function display_to_string (e : in sexpr) return sexpr_string is
+   function display_to_string (item : in sexpr) return sexpr_string is
       buf : sexpr_string := null_sexpr_string;
    begin
-      serialize_datum (e, true, buf);
+      serialize_datum (item, true, buf);
       return buf;
    end display_to_string;
 
-   procedure write_simple (e : in sexpr; file_path : in string) is
+   procedure write_simple (item : in sexpr; file_path : in string) is
       file : file_type;
    begin
       begin
@@ -2570,11 +2581,11 @@ package body sexpressions is
             raise io_error
               with "cannot create file for writing: " & file_path;
       end;
-      put_line (file, to_sexpr_fixstr (write_simple_to_string (e)));
+      put_line (file, to_sexpr_fixstr (write_simple_to_string (item)));
       close (file);
    end write_simple;
 
-   procedure display (e : in sexpr; file_path : in string) is
+   procedure display (item : in sexpr; file_path : in string) is
       file : file_type;
    begin
       begin
@@ -2584,7 +2595,7 @@ package body sexpressions is
             raise io_error
               with "cannot create file for writing: " & file_path;
       end;
-      put_line (file, to_sexpr_fixstr (display_to_string (e)));
+      put_line (file, to_sexpr_fixstr (display_to_string (item)));
       close (file);
    end display;
 
