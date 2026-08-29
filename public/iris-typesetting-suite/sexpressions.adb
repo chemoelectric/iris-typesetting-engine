@@ -103,9 +103,7 @@ package body sexpressions is
    end peek_char;
 
    function peek_next_char
-     (ctx : in parse_context) return sexpr_character
-   is
-      res : sexpr_character := sexpr_nul;
+     (ctx : in parse_context) return sexpr_character is
    begin
       return peek_char (ctx => ctx, index => 1);
    end peek_next_char;
@@ -284,17 +282,11 @@ package body sexpressions is
    is
       function pred (item : in sexpr_character) return boolean is
       begin
-         return not is_delimiter (peek_char (ctx));
+         return not is_delimiter (item);
       end pred;
    begin
       return collect_while (ctx, predicate => pred'access);
    end collect_until_delimiter;
-
-   function collect_ascii_digits
-     (ctx : in out parse_context) return sexpr_string is
-   begin
-      return collect_while (ctx, predicate => is_ascii_digit'access);
-   end collect_ascii_digits;
 
    type numerical_exactness is
      (numerical_exactness_unspecified,
@@ -611,6 +603,51 @@ package body sexpressions is
    begin
       return make_symbol (to_sexpr_string (sym));
    end make_symbol;
+
+   function to_exact (e : in sexpr) return sexpr is
+      res : sexpr;
+   begin
+      if e.ptr = null then
+         -- FIXME: MORE CONTEXT
+         raise type_error with "to_exact";
+      else
+         case e.ptr.kind is
+            when kind_integer | kind_rational =>
+               res := e;
+
+            when kind_inexact                 =>
+               res :=
+                 make_exact (get_numerator (e), get_denominator (e));
+
+            when others                       =>
+               -- FIXME: MORE CONTEXT
+               raise type_error with "to_exact";
+         end case;
+      end if;
+      return res;
+   end to_exact;
+
+   function to_inexact (e : in sexpr) return sexpr is
+      res : sexpr;
+   begin
+      if e.ptr = null then
+         -- FIXME: MORE CONTEXT
+         raise type_error with "to_inexact";
+      else
+         case e.ptr.kind is
+            when kind_integer | kind_rational =>
+               res := make_inexact (get_inexact (e));
+
+            when kind_inexact                 =>
+               res := e;
+
+            when others                       =>
+               -- FIXME: MORE CONTEXT
+               raise type_error with "to_inexact";
+         end case;
+      end if;
+      return res;
+   end to_inexact;
 
    function cons (car_val : in sexpr; cdr_val : in sexpr) return sexpr
    is
@@ -1709,120 +1746,6 @@ package body sexpressions is
       return res;
    end parse_number_or_symbol;
 
-   function collect_datum_label
-     (ctx : in out parse_context) return sexpr_string
-   is
-      s : sexpr_string := null_sexpr_string;
-   begin
-      -- Collects a datum label, without the assignment (if there is
-      -- an assignment).
-      adv_char (ctx);
-      while not is_eof (ctx)
-        and then (not is_delimiter (peek_char (ctx))
-                  and peek_char (ctx) /= '#')
-      loop
-         s := @ & peek_char (ctx);
-         adv_char (ctx);
-      end loop;
-      if not is_eof (ctx) and then peek_char (ctx) = '#' then
-         s := @ & '#';
-      else
-         raise parse_error
-           with "datum label error: """ & to_string (s) & """";
-      end if;
-      return s;
-   end collect_datum_label;
-
-   function collect_hash_token_start
-     (ctx : in out parse_context) return sexpr_string
-   is
-      s : sexpr_string := null_sexpr_string;
-   begin
-      if not is_eof (ctx) then
-         if peek_char (ctx) in '\' | '(' then
-            s := @ & peek_char (ctx);
-            adv_char (ctx);
-         elsif is_ascii_digit (peek_char (ctx)) then
-            s := collect_datum_label (ctx);
-         else
-            s := collect_until_delimiter (ctx);
-         end if;
-      end if;
-      return s;
-   end collect_hash_token_start;
-
-   function is_numeral_prefix_character
-     (item : in sexpr_character) return boolean is
-   begin
-      return item in 'b' | 'o' | 'd' | 'x' | '#';
-   end is_numeral_prefix_character;
-
-   procedure split_at_numeral_prefix
-     (source : in sexpr_string;
-      prefix : out sexpr_string;
-      other  : out sexpr_string)
-   is
-      n : natural := length (source);
-      i : integer range 1 .. n + 1 := 1;
-
-      procedure handle_case (in_array : sexpr_character_array) is
-      begin
-         i := @ + 1;
-         if i /= n + 1 then
-            if is_numeral_prefix_character (element (source, i)) then
-               prefix := unbounded_slice (source, 1, i - 1);
-               other := unbounded_slice (source, i, n);
-            elsif (element (source, i) = '#' and i + 2 /= n + 1)
-              and then (is_member (element (source, i + 1), in_array)
-                        and is_numeral_prefix_character
-                              (element (source, i + 2)))
-            then
-               prefix := unbounded_slice (source, 1, i + 1);
-               other := unbounded_slice (source, i + 2, n);
-            end if;
-         end if;
-      end handle_case;
-
-   begin
-      prefix := null_sexpr_string;
-      other := source;
-      i := 1;
-      if i /= n + 1 then
-         case element (source, i) is
-            when 'b' | 'o' | 'd' | 'x' =>
-               handle_case (['e', 'i']);
-
-            when 'e' | 'i'             =>
-               handle_case (['b', 'o', 'd', 'x']);
-
-            when others                =>
-               null;
-         end case;
-      end if;
-   end split_at_numeral_prefix;
-
-   function is_numeral_hash_token
-     (source : in sexpr_string) return boolean
-   is
-      prefix : sexpr_string;
-      other  : sexpr_string;
-   begin
-      split_at_numeral_prefix (source, prefix, other);
-      return (length (prefix) /= 0);
-   end is_numeral_hash_token;
-
-   function is_datum_label (source : in sexpr_string) return boolean is
-      n : constant natural := length (source);
-      type char_array is array (1 .. n) of sexpr_character;
-      s : constant char_array := char_array (to_sexpr_fixstr (source));
-   begin
-      return
-        (2 <= n
-         and then (s (n) = '#'
-                   and (for all elem of s (1 .. n - 1) =>
-                          is_ascii_digit (elem))));
-   end is_datum_label;
-
    function make_character_from_hash_token
      (ctx : in out parse_context) return sexpr
    is
@@ -2089,12 +2012,23 @@ package body sexpressions is
       exactness : numerical_exactness;
    begin
       analyze_hash_numeral_tag (ctx, radix, exactness);
-      return
+      res :=
         parse_number_or_symbol
           (ctx,
            source       => collect_until_delimiter (ctx),
            radix        => radix,
            allow_symbol => false);
+      case exactness is
+         when numerical_exactness_unspecified =>
+            null;
+
+         when numerically_exact               =>
+            res := to_exact (res);
+
+         when numerically_inexact             =>
+            res := to_inexact (res);
+      end case;
+      return res;
    end make_hash_numeral_sexpr;
 
    function make_datum_label_sexpr
@@ -2106,10 +2040,7 @@ package body sexpressions is
 
    function parse_hash_prefix (ctx : in out parse_context) return sexpr
    is
-      res      : sexpr;
-      token    : sexpr_string;
-      toklower : sexpr_string;
-      prefix   : sexpr_string;
+      res : sexpr;
    begin
       adv_char (ctx); -- skip '#'
       if is_eof (ctx) then

@@ -134,6 +134,8 @@ package sexpressions is
    function make_string (str : in wide_wide_string) return sexpr;
    function make_symbol (sym : in sexpr_string) return sexpr;
    function make_symbol (sym : in wide_wide_string) return sexpr;
+   function to_exact (e : in sexpr) return sexpr;
+   function to_inexact (e : in sexpr) return sexpr;
    function cons (car_val : in sexpr; cdr_val : in sexpr) return sexpr;
    function make_list (items : in sexpr_array) return sexpr;
    function make_vector (items : in sexpr_array) return sexpr;
