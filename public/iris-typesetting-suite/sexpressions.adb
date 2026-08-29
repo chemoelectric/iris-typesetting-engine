@@ -56,28 +56,32 @@ package body sexpressions is
 
    ---------------------------------------------------------------------
 
-   type label_entry is record
-      id  : natural;
-      val : sexpr;
-   end record;
+   -- type label_entry is record
+   --    id  : natural;
+   --    val : sexpr;
+   -- end record;
 
-   -- FIXME: WE SHOULD SUPPORT ANY NUMBER OF LABELS. USE A MAP. The
-   -- standard says just that a label should be a sequence of digits.
-   -- To be the most GNUish, allow any sequence of digits.
-   type label_table_array is array (1 .. 128) of label_entry;
+   -- -- FIXME: WE SHOULD SUPPORT ANY NUMBER OF LABELS. USE A MAP. The
+   -- -- standard says just that a label should be a sequence of digits.
+   -- -- To be the most GNUish, allow any sequence of digits.
+   -- type label_table_array is array (1 .. 128) of label_entry;
 
-   type label_context is record
-      -- FIXME: THIS SHOULD BE IN THE PARSE CONTEXT
-      count   : natural := 0;
-      entries : label_table_array;
-   end record;
+   --
+   -- FIXME: There is not much point in supporting labels without full
+   -- support for circular lists.
+   --
+   -- type label_context is record
+   --    -- FIXME: THIS SHOULD BE IN THE PARSE CONTEXT
+   --    count   : natural := 0;
+   --    entries : label_table_array;
+   -- end record;
 
    type parse_context is record
-      src       : sexpr_string;
-      pos       : positive := 1;
-      len       : natural := 0;
-      fold_case : boolean := false; --------- FIXME: NOT CURRENTLY USED.
-      lbl       : label_context;
+      src : sexpr_string;
+      pos : positive := 1;
+      len : natural := 0;
+      -- fold_case : boolean := false;
+      -- lbl       : label_context;
    end record;
 
    function is_eof (ctx : in parse_context) return boolean is
@@ -466,7 +470,7 @@ package body sexpressions is
    function unrecognized_hash_token_message
      (token : in sexpr_string) return string is
    begin
-      return ("unrecognized hash token '#'" & to_string (token));
+      return ("unrecognized hash token '#" & to_string (token) & "'");
    end unrecognized_hash_token_message;
 
    --
@@ -1843,6 +1847,7 @@ package body sexpressions is
       --
       adv_char (ctx); -- consume the '\'
       if is_eof (ctx) then
+
          raise parse_error with "unexpected eof after #\";
       else
          c := peek_char (ctx);
@@ -2133,222 +2138,14 @@ package body sexpressions is
                res := make_datum_label_sexpr (ctx);
 
             when others                            =>
-               token :=
-                 collect_hash_token_start
-                   (ctx); -------------------------------- FIXME: DO NOT DO IT THIS WAY
-               toklower :=
-                 token;  -- FIXME: POSSIBLY SUPPORT CASE-FOLDING.
-               --put_line
-               --  (to_sexpr_fixstr
-               --    (token)); -------------------------------------------------- FIXME FIXME FIXME FIXME FIXME
-               if length (token) = 0 then
-                  -- FIXME: GATHER SOME CONTEXT.
-                  raise parse_error with "unrecognized hash token '#'";
-               elsif is_numeral_hash_token (toklower) then
-                  null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-               end if;
+               raise parse_error
+                 with
+                   unrecognized_hash_token_message
+                     (null_sexpr_string & peek_char (ctx));
          end case;
       end if;
       return res;
    end parse_hash_prefix;
-
-   --         when others                            =>
-   --            elsif is_ascii_digit (c) then
-   --               declare
-   --                  lbl_num : natural := 0;
-   --               begin
-   --                  while not is_eof (ctx)
-   --                        and then is_ascii_digit (peek_char (ctx))
-   --                  loop
-   --                     lbl_num :=
-   --                       lbl_num
-   --                         * 10
-   --                       + (sexpr_character'pos (peek_char (ctx))
-   --                          - sexpr_character'pos ('0'));
-   --                     adv_char (ctx);
-   --                  end loop;
-   --                  if not is_eof (ctx) and then peek_char (ctx) = '='
-   --                  then
-   --                     adv_char (ctx);
-   --                     res := parse_datum (ctx, lbl);
-   --                     if lbl.count < lbl.entries'last then
-   --                        lbl.count := lbl.count + 1;
-   --                        lbl.entries (lbl.count).id := lbl_num;
-   --                        lbl.entries (lbl.count).val := res;
-   --                     end if;
-   --                  elsif not is_eof (ctx) and then peek_char (ctx) = '#'
-   --                  then
-   --                     adv_char (ctx);
-   --                     declare
-   --                        found : boolean := false;
-   --                     begin
-   --                        for idx in 1 .. lbl.count loop
-   --                           if lbl.entries (idx).id = lbl_num then
-   --                              res := lbl.entries (idx).val;
-   --                              found := true;
-   --                           end if;
-   --                        end loop;
-   --                        if not found then
-   --                           raise parse_error
-   --                           with
-   --                             "unknown datum label #"
-   --                             & trim_left (lbl_num'img)
-   --                             & "#";
-   --                        end if;
-   --                     end;
-   --                  else
-   --                     raise parse_error
-   --                     with "malformed datum label syntax";
-   --                  end if;
-   --               end;
-   --            else
-   --               unrecognized_hash_token (c'img);
-   --            end if;
-   --      end case;
-   --      return res;
-
-   --   function parse_hash_prefix
-   --     (ctx : in out parse_context; lbl : in out label_context)
-   --     return sexpr
-   --   is
-   --      res : sexpr;
-   --      c   : sexpr_character;
-   --   begin
-   --      adv_char (ctx); -- skip '#'
-   --      if is_eof (ctx) then
-   --         raise parse_error with "unexpected eof after '#'";
-   --      end if;
-   --      c := peek_char (ctx);
-   --      case c is
-   --         when 't' | 'T'                         =>
-   --            adv_char (ctx);
-   --            skip_rue (ctx, c);  -- Handle #true
-   --            res := make_boolean (true);
-   --
-   --         when 'f' | 'F'                         =>
-   --            adv_char (ctx);
-   --            skip_alse (ctx, c); -- Handle #false
-   --            res := make_boolean (false);
-   --
-   --         when '\'                               =>
-   --            res := parse_character_literal (ctx);
-   --
-   --         when '('                               =>
-   --            res := parse_vector_literal (ctx, lbl);
-   --
-   --         when 'b' | 'B'                         =>
-   --            adv_char (ctx);
-   --            declare
-   --               tok : sexpr_string := null_sexpr_string;
-   --            begin
-   --               while not is_eof (ctx)
-   --                     and then not is_delimiter (peek_char (ctx))
-   --               loop
-   --                  tok := @ & peek_char (ctx);
-   --                  adv_char (ctx);
-   --               end loop;
-   --               res := parse_number_or_symbol (tok, 2);
-   --            end;
-   --
-   --         when 'o' | 'O'                         =>
-   --            adv_char (ctx);
-   --            declare
-   --               tok : sexpr_string := null_sexpr_string;
-   --            begin
-   --               while not is_eof (ctx)
-   --                     and then not is_delimiter (peek_char (ctx))
-   --               loop
-   --                  append (tok, peek_char (ctx));
-   --                  adv_char (ctx);
-   --               end loop;
-   --               res := parse_number_or_symbol (tok, 8);
-   --            end;
-   --
-   --         when 'x' | 'X'                         =>
-   --            adv_char (ctx);
-   --            declare
-   --               tok : sexpr_string := null_sexpr_string;
-   --            begin
-   --               while not is_eof (ctx)
-   --                     and then not is_delimiter (peek_char (ctx))
-   --               loop
-   --                  append (tok, peek_char (ctx));
-   --                  adv_char (ctx);
-   --               end loop;
-   --               res := parse_number_or_symbol (tok, 16);
-   --            end;
-   --
-   --         when 'd' | 'D' | 'e' | 'E' | 'i' | 'I' =>
-   --            adv_char (ctx);
-   --            declare
-   --               tok : sexpr_string := null_sexpr_string;
-   --            begin
-   --               while not is_eof (ctx)
-   --                     and then not is_delimiter (peek_char (ctx))
-   --               loop
-   --                  append (tok, peek_char (ctx));
-   --                  adv_char (ctx);
-   --               end loop;
-   --               res := parse_number_or_symbol (tok, 10);
-   --            end;
-   --
-   --         when others                            =>
-   --            if match_two (c, ctx, 'u', '8') then
-   --               res := parse_bytevector_literal (ctx, lbl);
-   --            elsif is_ascii_digit (c) then
-   --               declare
-   --                  lbl_num : natural := 0;
-   --               begin
-   --                  while not is_eof (ctx)
-   --                        and then is_ascii_digit (peek_char (ctx))
-   --                  loop
-   --                     lbl_num :=
-   --                       lbl_num
-   --                         * 10
-   --                       + (sexpr_character'pos (peek_char (ctx))
-   --                          - sexpr_character'pos ('0'));
-   --                     adv_char (ctx);
-   --                  end loop;
-   --                  if not is_eof (ctx) and then peek_char (ctx) = '='
-   --                  then
-   --                     adv_char (ctx);
-   --                     res := parse_datum (ctx, lbl);
-   --                     if lbl.count < lbl.entries'last then
-   --                        lbl.count := lbl.count + 1;
-   --                        lbl.entries (lbl.count).id := lbl_num;
-   --                        lbl.entries (lbl.count).val := res;
-   --                     end if;
-   --                  elsif not is_eof (ctx) and then peek_char (ctx) = '#'
-   --                  then
-   --                     adv_char (ctx);
-   --                     declare
-   --                        found : boolean := false;
-   --                     begin
-   --                        for idx in 1 .. lbl.count loop
-   --                           if lbl.entries (idx).id = lbl_num then
-   --                              res := lbl.entries (idx).val;
-   --                              found := true;
-   --                           end if;
-   --                        end loop;
-   --                        if not found then
-   --                           raise parse_error
-   --                           with
-   --                             "unknown datum label #"
-   --                             & trim_left (lbl_num'img)
-   --                             & "#";
-   --                        end if;
-   --                     end;
-   --                  else
-   --                     raise parse_error
-   --                     with "malformed datum label syntax";
-   --                  end if;
-   --               end;
-   --            else
-   --               unrecognized_hash_token (c'img);
-   --            end if;
-   --      end case;
-   --      return res;
-   --   end parse_hash_prefix;
 
    function parse_datum (ctx : in out parse_context) return sexpr is
       res : sexpr := make_null;
@@ -2508,20 +2305,18 @@ package body sexpressions is
       return buf;
    end read_file_content;
 
-   function read_from_file (file_path : in string) return sexpr is
+   function read (file_path : in string) return sexpr is
       content : sexpr_string := read_file_content (file_path);
       res     : sexpr := read_from_string (content);
    begin
       return res;
-   end read_from_file;
+   end read;
 
-   function read_all_from_file
-     (file_path : in string) return sexpr_array
-   is
+   function read_all (file_path : in string) return sexpr_array is
       content : sexpr_string := read_file_content (file_path);
    begin
       return read_all_from_string (content);
-   end read_all_from_file;
+   end read_all;
 
    ---------------------------------------------------------------------
    --
@@ -2747,19 +2542,16 @@ package body sexpressions is
       end if;
    end serialize_datum;
 
-   function write_to_string (e : in sexpr) return sexpr_string is
+   function write_simple_to_string (e : in sexpr) return sexpr_string is
       buf : sexpr_string := null_sexpr_string;
    begin
       serialize_datum (e, false, buf);
       return buf;
-   end write_to_string;
-
-   function write_simple_to_string (e : in sexpr) return sexpr_string is
-      res : sexpr_string := write_to_string (e);
-   begin
-      return res;
    end write_simple_to_string;
 
+   --
+   -- FIXME: display_to_string requires detection of circular lists.
+   --
    function display_to_string (e : in sexpr) return sexpr_string is
       buf : sexpr_string := null_sexpr_string;
    begin
@@ -2767,7 +2559,7 @@ package body sexpressions is
       return buf;
    end display_to_string;
 
-   procedure write_to_file (e : in sexpr; file_path : in string) is
+   procedure write_simple (e : in sexpr; file_path : in string) is
       file : file_type;
    begin
       begin
@@ -2777,11 +2569,11 @@ package body sexpressions is
             raise io_error
               with "cannot create file for writing: " & file_path;
       end;
-      put_line (file, to_sexpr_fixstr (write_to_string (e)));
+      put_line (file, to_sexpr_fixstr (write_simple_to_string (e)));
       close (file);
-   end write_to_file;
+   end write_simple;
 
-   procedure display_to_file (e : in sexpr; file_path : in string) is
+   procedure display (e : in sexpr; file_path : in string) is
       file : file_type;
    begin
       begin
@@ -2793,7 +2585,7 @@ package body sexpressions is
       end;
       put_line (file, to_sexpr_fixstr (display_to_string (e)));
       close (file);
-   end display_to_file;
+   end display;
 
    ---------------------------------------------------------------------
 

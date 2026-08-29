@@ -183,16 +183,30 @@ package sexpressions is
    function read_from_string (source : in sexpr_string) return sexpr;
    function read_from_string
      (source : in wide_wide_string) return sexpr;
-   function read_from_file (file_path : in string) return sexpr;
+   function read (file_path : in string) return sexpr;
    function read_all_from_string
      (source : in sexpr_string) return sexpr_array;
-   function read_all_from_file
-     (file_path : in string) return sexpr_array;
-   function write_to_string (e : in sexpr) return sexpr_string;
+   function read_all (file_path : in string) return sexpr_array;
+   --
+   -- FIXME: write_to_string requires detection of circular lists.
+   --
+   -- function write_to_string (e : in sexpr) return sexpr_string;
+   --
    function write_simple_to_string (e : in sexpr) return sexpr_string;
+   --
+   -- FIXME: display_to_string requires detection of circular lists.
+   --
    function display_to_string (e : in sexpr) return sexpr_string;
-   procedure write_to_file (e : in sexpr; file_path : in string);
-   procedure display_to_file (e : in sexpr; file_path : in string);
+   --
+   -- FIXME: write requires detection of circular lists.
+   --
+   -- procedure write (e : in sexpr; file_path : in string);
+   --
+   procedure write_simple (e : in sexpr; file_path : in string);
+   --
+   -- FIXME: display requires detection of circular lists.
+   --
+   procedure display (e : in sexpr; file_path : in string);
 
 private
 
