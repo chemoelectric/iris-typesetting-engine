@@ -291,6 +291,8 @@ package body sexpressions is
       return collect_while (ctx, predicate => is_ascii_digit'access);
    end collect_ascii_digits;
 
+   type numerical_exactness is (numerical_exactness_unspecified, numerically_exact, numerically_inexact);
+
    --
    -- is_radix:
    --
@@ -1823,32 +1825,6 @@ package body sexpressions is
       return s;
    end collect_hash_token_start;
 
-   prefixes_exactnumbers : constant sexpr_string_array :=
-     [to_sexpr_string (sexpr_fixstr'("e#b")),
-      to_sexpr_string (sexpr_fixstr'("b#e")),
-      to_sexpr_string (sexpr_fixstr'("e#o")),
-      to_sexpr_string (sexpr_fixstr'("o#e")),
-      to_sexpr_string (sexpr_fixstr'("e#d")),
-      to_sexpr_string (sexpr_fixstr'("d#e")),
-      to_sexpr_string (sexpr_fixstr'("e#x")),
-      to_sexpr_string (sexpr_fixstr'("x#e"))];
-
-   prefixes_inexactnumbers : constant sexpr_string_array :=
-     [to_sexpr_string (sexpr_fixstr'("i#b")),
-      to_sexpr_string (sexpr_fixstr'("b#i")),
-      to_sexpr_string (sexpr_fixstr'("i#o")),
-      to_sexpr_string (sexpr_fixstr'("o#i")),
-      to_sexpr_string (sexpr_fixstr'("i#d")),
-      to_sexpr_string (sexpr_fixstr'("d#i")),
-      to_sexpr_string (sexpr_fixstr'("i#x")),
-      to_sexpr_string (sexpr_fixstr'("x#i"))];
-
-   prefixes_numbers : constant sexpr_string_array :=
-     [to_sexpr_string (sexpr_fixstr'("b")),
-      to_sexpr_string (sexpr_fixstr'("o")),
-      to_sexpr_string (sexpr_fixstr'("d")),
-      to_sexpr_string (sexpr_fixstr'("x"))];
-
    function is_numeral_prefix_character
      (item : in sexpr_character) return boolean is
    begin
@@ -2068,10 +2044,123 @@ package body sexpressions is
       return res;
    end make_homogeneous_vector_sexpr;
 
+   procedure analyze_hash_numeral_tag
+     (ctx : in out parse_context;
+      radix : out integer;
+      exactness : out numerical_exactness)
+     with post => is_radix (radix) is
+
+      procedure analyze_possible_exactness_tag is
+         c1 : sexpr_character;
+      begin
+         if is_eof (ctx) then
+            -- FIXME: GIVE THIS CONTEXT.
+            raise parse_error with "unexpected eof";
+         elsif peek_char (ctx) = '#' then
+            adv_char (ctx);
+            if is_eof (ctx) then
+               -- FIXME: GIVE THIS CONTEXT.
+               raise parse_error with "unexpected eof";
+            else
+               c1 := peek_char (ctx);
+               adv_char (ctx);
+               case to_lower (c1) is
+                  when 'e' =>
+                     exactness := numerically_exact;
+                  when 'i' =>
+                     exactness := numerically_inexact;
+                  when others =>
+                     -- FIXME: GIVE THIS SOME CONTEXT.
+                     raise parse_error with "unrecognized hash token";
+               end case;
+            end if;
+         end if;
+      end analyze_possible_exactness_tag;
+
+      procedure analyze_possible_radix_tag is
+         c1 : sexpr_character;
+      begin
+         if is_eof (ctx) then
+            -- FIXME: GIVE THIS CONTEXT.
+            raise parse_error with "unexpected eof";
+         elsif peek_char (ctx) = '#' then
+            adv_char (ctx);
+            if is_eof (ctx) then
+               -- FIXME: GIVE THIS CONTEXT.
+               raise parse_error with "unexpected eof";
+            else
+               c1 := peek_char (ctx);
+               adv_char (ctx);
+               case to_lower (c1) is
+                  when 'b' =>
+                     radix := 2;
+                  when 'o' =>
+                     radix := 8;
+                  when 'd' =>
+                     radix := 10;
+                  when 'x' =>
+                     radix := 16;
+                  when others =>
+                     -- FIXME: GIVE THIS SOME CONTEXT.
+                     raise parse_error with "unrecognized hash token";
+               end case;
+            end if;
+         end if;
+      end analyze_possible_radix_tag;
+
+      c : sexpr_character;
+
+   begin
+      exactness := numerical_exactness_unspecified;
+      radix := 10;
+
+      c := peek_char (ctx);
+      adv_char (ctx);
+      case to_lower (c) is
+         when 'b' =>
+            radix := 2;
+            analyze_possible_exactness_tag;
+
+         when 'o' =>
+            radix := 8;
+            analyze_possible_exactness_tag;
+
+         when 'd' =>
+            radix := 10;
+            analyze_possible_exactness_tag;
+
+         when 'x' =>
+            radix := 16;
+            analyze_possible_exactness_tag;
+
+         when 'e' =>
+            exactness := numerically_exact;
+            analyze_possible_radix_tag;
+
+         when 'i' =>
+            exactness := numerically_inexact;
+            analyze_possible_radix_tag;
+
+         when others =>
+            -- FIXME: GIVE THIS SOME CONTEXT.
+            raise parse_error with "unrecognized hash token";
+      end case;
+   end analyze_hash_numeral_tag;
+
+   function make_hash_numeral_sexpr
+     (ctx : in out parse_context) return sexpr is
+      res : sexpr;
+      radix : integer;
+      exactness : numerical_exactness;
+   begin
+      analyze_hash_numeral_tag (ctx, radix, exactness);
+      return make_boolean (false); --????????????????????????????????????????????????????????????????????????????????????????????????????
+   end make_hash_numeral_sexpr;
+
    function make_datum_label_sexpr
      (ctx : in out parse_context) return sexpr is
    begin
-      raise parse_error with "datum labels are not yet supported";
+      raise parse_error with "datum labels are not yet implemented";
       return make_unspecified;
    end make_datum_label_sexpr;
 
@@ -2086,21 +2175,24 @@ package body sexpressions is
       if is_eof (ctx) then
          raise parse_error with "unexpected eof after '#'";
       else
-         case peek_char (ctx) is
+         case to_lower (peek_char (ctx)) is
             when '\'        =>
                res := make_character_from_hash_token (ctx);
 
             when '('        =>
                res := make_vector_sexpr (ctx);
 
-            when 't' | 'T'  =>
+            when 't'  =>
                res := make_boolean_sexpr (ctx, "t", "true", true);
 
-            when 'f' | 'F'  =>
+            when 'f'  =>
                res := make_boolean_sexpr (ctx, "f", "false", false);
 
-            when 'u' | 'U'  =>
+            when 'u'  =>
                res := make_homogeneous_vector_sexpr (ctx);
+
+            when 'b' | 'o' | 'd' | 'x' | 'e' | 'i' =>
+               res := make_hash_numeral_sexpr (ctx);
 
             when '0' .. '9' =>
                res := make_datum_label_sexpr (ctx);
@@ -2117,8 +2209,6 @@ package body sexpressions is
                if length (token) = 0 then
                   -- FIXME: GATHER SOME CONTEXT.
                   raise parse_error with "unrecognized hash token '#'";
-               elsif is_datum_label (toklower) then
-                  null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
                elsif is_numeral_hash_token (toklower) then
                   null; -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
                end if;
