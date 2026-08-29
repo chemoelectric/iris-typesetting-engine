@@ -1201,44 +1201,45 @@ package body sexpressions is
       return res;
    end real_numbers_are_equal;
 
-   function equal (a : in sexpr; b : in sexpr) return boolean is
-      ka  : sexpr_kind := kind (a);
-      kb  : sexpr_kind := kind (b);
-      res : boolean := false;
+   function equal (left : in sexpr; right : in sexpr) return boolean is
+      kleft  : sexpr_kind := kind (left);
+      kright : sexpr_kind := kind (right);
+      res    : boolean := false;
    begin
-      if is_null (a) and is_null (b) then
+      if is_null (left) and is_null (right) then
          res := true;
-      elsif (ka in kind_integer | kind_inexact | kind_rational)
-        and (kb in kind_integer | kind_inexact | kind_rational)
+      elsif (kleft in kind_integer | kind_inexact | kind_rational)
+        and (kright in kind_integer | kind_inexact | kind_rational)
       then
-         res := real_numbers_are_equal (a, ka, b, kb);
-      elsif ka /= kb then
+         res := real_numbers_are_equal (left, kleft, right, kright);
+      elsif kleft /= kright then
          res := false;
       else
-         case ka is
+         case kleft is
             when kind_null                                   =>
                res := true;
 
             when kind_boolean                                =>
-               res := (a.ptr.boolean_val = b.ptr.boolean_val);
+               res := (left.ptr.boolean_val = right.ptr.boolean_val);
 
             when kind_character                              =>
-               res := (a.ptr.character_val = b.ptr.character_val);
+               res :=
+                 (left.ptr.character_val = right.ptr.character_val);
 
             when kind_string                                 =>
-               res := (a.ptr.string_val = b.ptr.string_val);
+               res := (left.ptr.string_val = right.ptr.string_val);
 
             when kind_symbol                                 =>
-               res := (a.ptr.symbol_val = b.ptr.symbol_val);
+               res := (left.ptr.symbol_val = right.ptr.symbol_val);
 
             when kind_pair                                   =>
-               res := equal_pairs (a, b);
+               res := equal_pairs (left, right);
 
             when kind_vector                                 =>
-               res := equal_vectors (a, b);
+               res := equal_vectors (left, right);
 
             when kind_bytevector                             =>
-               res := equal_bytevectors (a, b);
+               res := equal_bytevectors (left, right);
 
             when kind_integer | kind_inexact | kind_rational =>
                raise type_error with "internal error";
@@ -1247,9 +1248,9 @@ package body sexpressions is
       return res;
    end equal;
 
-   function eqv (a : in sexpr; b : in sexpr) return boolean is
+   function eqv (left : in sexpr; right : in sexpr) return boolean is
    begin
-      return equal (a, b);
+      return equal (left, right);
    end eqv;
 
    function assoc (key : in sexpr; alist : in sexpr) return sexpr is

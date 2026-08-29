@@ -176,8 +176,8 @@ package sexpressions is
    function bytevector_length (e : in sexpr) return natural;
    function bytevector_ref
      (e : in sexpr; idx : in positive) return interfaces.unsigned_8;
-   function equal (a : in sexpr; b : in sexpr) return boolean;
-   function eqv (a : in sexpr; b : in sexpr) return boolean;
+   function equal (left : in sexpr; right : in sexpr) return boolean;
+   function eqv (left : in sexpr; right : in sexpr) return boolean;
    function assoc (key : in sexpr; alist : in sexpr) return sexpr;
    function assq (key : in sexpr_fixstr; alist : in sexpr) return sexpr;
    function acons
