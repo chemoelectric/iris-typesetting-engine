@@ -1122,57 +1122,125 @@ package body sexpressions is
       return res;
    end equal_bytevectors;
 
+   function real_numbers_are_equal
+     (a  : in sexpr;
+      ka : in sexpr_kind;
+      b  : in sexpr;
+      kb : in sexpr_kind) return boolean
+   with
+     pre =>
+       a.ptr /= null
+       and b.ptr /= null
+       and ka in kind_integer | kind_inexact | kind_rational
+       and kb in kind_integer | kind_inexact | kind_rational
+   is
+      res : boolean;
+   begin
+      case ka is
+         when kind_integer  =>
+            case kb is
+               when kind_integer  =>
+                  res := (a.ptr.integer_val = b.ptr.integer_val);
+
+               when kind_inexact  =>
+                  res :=
+                    (to_big_real (a.ptr.integer_val)
+                     = to_big_real (b.ptr.inexact_val));
+
+               when kind_rational =>
+                  res :=
+                    (to_big_real (a.ptr.integer_val)
+                     = b.ptr.rational_val);
+
+               when others        =>
+                  raise type_error with "internal error";
+            end case;
+
+         when kind_inexact  =>
+            case kb is
+               when kind_integer  =>
+                  res :=
+                    (to_big_real (a.ptr.inexact_val)
+                     = to_big_real (b.ptr.integer_val));
+
+               when kind_inexact  =>
+                  res := (a.ptr.inexact_val = b.ptr.inexact_val);
+
+               when kind_rational =>
+                  res :=
+                    (to_big_real (a.ptr.inexact_val)
+                     = b.ptr.rational_val);
+
+               when others        =>
+                  raise type_error with "internal error";
+            end case;
+
+         when kind_rational =>
+            case kb is
+               when kind_integer  =>
+                  res :=
+                    (a.ptr.rational_val
+                     = to_big_real (b.ptr.integer_val));
+
+               when kind_inexact  =>
+                  res :=
+                    (a.ptr.rational_val
+                     = to_big_real (b.ptr.inexact_val));
+
+               when kind_rational =>
+                  res := (a.ptr.rational_val = b.ptr.rational_val);
+
+               when others        =>
+                  raise type_error with "internal error";
+            end case;
+
+         when others        =>
+            raise type_error with "internal error";
+      end case;
+      return res;
+   end real_numbers_are_equal;
+
    function equal (a : in sexpr; b : in sexpr) return boolean is
       ka  : sexpr_kind := kind (a);
       kb  : sexpr_kind := kind (b);
       res : boolean := false;
    begin
-      ------------------------------------------- FIXME: THIS IS NOT CORRECT!!!!!!!!
-      ----------------- IT HAS TO DO TYPE CONVERSIONS!!!!!!!!
-      ----- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      ----- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      ----- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      ----- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      ----- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-      ----- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
       if is_null (a) and is_null (b) then
          res := true;
+      elsif (ka in kind_integer | kind_inexact | kind_rational)
+        and (kb in kind_integer | kind_inexact | kind_rational)
+      then
+         res := real_numbers_are_equal (a, ka, b, kb);
       elsif ka /= kb then
          res := false;
       else
          case ka is
-            when kind_null       =>
+            when kind_null                                   =>
                res := true;
 
-            when kind_boolean    =>
+            when kind_boolean                                =>
                res := (a.ptr.boolean_val = b.ptr.boolean_val);
 
-            when kind_integer    =>
-               res := (a.ptr.integer_val = b.ptr.integer_val);
-
-            when kind_inexact    =>
-               res := (a.ptr.inexact_val = b.ptr.inexact_val);
-
-            when kind_rational   =>
-               res := (a.ptr.rational_val = b.ptr.rational_val);
-
-            when kind_character  =>
+            when kind_character                              =>
                res := (a.ptr.character_val = b.ptr.character_val);
 
-            when kind_string     =>
+            when kind_string                                 =>
                res := (a.ptr.string_val = b.ptr.string_val);
 
-            when kind_symbol     =>
+            when kind_symbol                                 =>
                res := (a.ptr.symbol_val = b.ptr.symbol_val);
 
-            when kind_pair       =>
+            when kind_pair                                   =>
                res := equal_pairs (a, b);
 
-            when kind_vector     =>
+            when kind_vector                                 =>
                res := equal_vectors (a, b);
 
-            when kind_bytevector =>
+            when kind_bytevector                             =>
                res := equal_bytevectors (a, b);
+
+            when kind_integer | kind_inexact | kind_rational =>
+               raise type_error with "internal error";
          end case;
       end if;
       return res;

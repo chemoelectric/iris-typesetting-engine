@@ -39,6 +39,7 @@ AT_CHECK([m4_test_sexpr_equal([1],[1])],[0],[1])
 AT_CHECK([m4_test_sexpr_equal([-0],[-1])],[0],[0])
 AT_CHECK([m4_test_sexpr_equal([-0],[-0])],[0],[1])
 AT_CHECK([m4_test_sexpr_equal([-1],[-1])],[0],[1])
+AT_CHECK([m4_test_sexpr_equal([1],[1.0])],[0],[1])
 AT_CLEANUP
 
 #---------------------------------------------------------------------
