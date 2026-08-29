@@ -5,8 +5,9 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
-with Ada.Text_IO;
-with Interfaces;
+with ada.text_io;
+with ada.characters.conversions; use ada.characters.conversions;
+with interfaces;
 with sexpressions;
 
 procedure test_sexpressions is
@@ -14,6 +15,9 @@ procedure test_sexpressions is
    use Ada.Text_IO;
    use Interfaces;
    use sexpressions;
+   use bignum_integers;
+   use exact_reals;
+   use exact_reals_conversions;
    use sexpr_characters;
    use sexpr_strings;
 
@@ -46,18 +50,18 @@ procedure test_sexpressions is
 
    procedure test_numbers is
       i : sexpr := make_integer (42);
-      r : sexpr := make_real (3.14);
-      q : sexpr := make_rational (22, 7);
+      r : sexpr := make_inexact (3.14);
+      q : sexpr := make_exact (22, 7);
    begin
       assert_true (is_integer (i), "i is integer");
       assert_true (get_integer (i) = 42, "i = 42");
       assert_true (write_to_string (i) = "42", "i write 42");
 
-      assert_true (is_real (r), "r is real");
+      assert_true (is_inexact (r), "r is inexact real");
       assert_true
-        (get_real (r) > 3.13 and get_real (r) < 3.15, "r ~ 3.14");
+        (get_inexact (r) > 3.13 and get_inexact (r) < 3.15, "r ~ 3.14");
 
-      assert_true (is_rational (q), "q is rational");
+      assert_true (is_exact (q), "q is exact real");
       assert_true (get_numerator (q) = 22, "num = 22");
       assert_true (get_denominator (q) = 7, "den = 7");
       assert_true (write_to_string (q) = "22/7", "q write 22/7");

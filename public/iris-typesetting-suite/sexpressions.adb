@@ -1748,9 +1748,9 @@ package body sexpressions is
          else
             res := make_symbol (tok);
          end if;
-         else
-            res := make_symbol (tok);
-         end if;
+      else
+         res := make_symbol (tok);
+      end if;
       return res;
    end parse_what_contains_slash;
 
@@ -2688,7 +2688,9 @@ package body sexpressions is
 
             when kind_integer    =>
                buf :=
-                 @ & to_sexpr_string (to_string (e.ptr.integer_val));
+                 @
+                 & to_sexpr_string
+                     (trim_left (to_string (e.ptr.integer_val)));
 
             when kind_inexact    =>
                buf :=
@@ -2697,7 +2699,14 @@ package body sexpressions is
 
             when kind_rational   =>
                buf :=
-                 @ & to_sexpr_string (to_string (e.ptr.rational_val));
+                 @
+                 & to_sexpr_string
+                     (trim_left
+                        (to_string (numerator (e.ptr.rational_val))))
+                 & '/'
+                 & to_sexpr_string
+                     (trim_left
+                        (to_string (denominator (e.ptr.rational_val))));
 
             when kind_character  =>
                serialize_character (e.ptr.character_val, display, buf);
