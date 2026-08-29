@@ -33,7 +33,7 @@ indent:
 	sexpressions.ad[bs] \
 	test_pdf_[0-9][0-9].adb \
 	test_find*fonts.adb \
-	test_sexpressions.adb)
+	test_sexpressions*.adb)
 
 #---------------------------------------------------------------------
 # local variables:

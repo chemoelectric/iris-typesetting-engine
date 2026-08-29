@@ -122,7 +122,8 @@ host_triplet = @host@
 bin_PROGRAMS = iris$(EXEEXT)
 check_PROGRAMS = test_pdf_01$(EXEEXT) \
 	test_find_main_system_fonts$(EXEEXT) \
-	test_find_tex_fonts$(EXEEXT) test_sexpressions$(EXEEXT)
+	test_find_tex_fonts$(EXEEXT) test_sexpressions$(EXEEXT) \
+	test_sexpressions_equal$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -195,6 +196,9 @@ am_test_pdf_01_OBJECTS =
 test_pdf_01_OBJECTS = $(am_test_pdf_01_OBJECTS)
 am_test_sexpressions_OBJECTS =
 test_sexpressions_OBJECTS = $(am_test_sexpressions_OBJECTS)
+am_test_sexpressions_equal_OBJECTS =
+test_sexpressions_equal_OBJECTS =  \
+	$(am_test_sexpressions_equal_OBJECTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -229,11 +233,13 @@ am__v_CCLD_1 =
 SOURCES = $(libiris_la_SOURCES) $(nodist_libiris_la_SOURCES) \
 	$(iris_SOURCES) $(test_find_main_system_fonts_SOURCES) \
 	$(test_find_tex_fonts_SOURCES) $(test_pdf_01_SOURCES) \
-	$(test_sexpressions_SOURCES)
+	$(test_sexpressions_SOURCES) \
+	$(test_sexpressions_equal_SOURCES)
 DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
 	$(test_find_main_system_fonts_SOURCES) \
 	$(test_find_tex_fonts_SOURCES) $(test_pdf_01_SOURCES) \
-	$(test_sexpressions_SOURCES)
+	$(test_sexpressions_SOURCES) \
+	$(test_sexpressions_equal_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -433,11 +439,13 @@ DEP_FILES = $(LIBIRIS_ADB_FILES:%.adb=.deps/%.adbdep) \
 	.deps/test_pdf_01.adbdep \
 	.deps/test_find_main_system_fonts.adbdep \
 	.deps/test_find_tex_fonts.adbdep \
-	.deps/test_sexpressions.adbdep
+	.deps/test_sexpressions.adbdep \
+	.deps/test_sexpressions_equal.adbdep
 MOSTLYCLEANFILES = 
 CLEANFILES = iris$(EXEEXT) test_pdf_01$(EXEEXT) \
 	test_find_main_system_fonts$(EXEEXT) \
-	test_find_tex_fonts$(EXEEXT) test_sexpressions$(EXEEXT)
+	test_find_tex_fonts$(EXEEXT) test_sexpressions$(EXEEXT) \
+	test_sexpressions_equal$(EXEEXT)
 DISTCLEANFILES = Makefile GNUmakefile testsuite testsuite.log
 EXTRA_DIST = silent-rules.mk $(srcdir)/package.m4 $(TESTSUITE_DEPS) \
 	autogen.sh rename-macros.m4 ada-macros.m4 pdf.adb.prelude.m4 \
@@ -500,6 +508,10 @@ test_find_tex_fonts_DEPENDENCIES = test_find_tex_fonts.lo test_find_tex_fonts.al
 test_sexpressions_SOURCES = test_sexpressions.adb
 test_sexpressions_LDADD = .libs/test_sexpressions.$(OBJEXT) libiris.la
 test_sexpressions_DEPENDENCIES = test_sexpressions.lo test_sexpressions.ali
+test_sexpressions_equal_SOURCES = test_sexpressions_equal.adb
+test_sexpressions_equal_LDADD =  \
+	.libs/test_sexpressions_equal.$(OBJEXT) libiris.la
+test_sexpressions_equal_DEPENDENCIES = test_sexpressions_equal.lo test_sexpressions_equal.ali
 AUTOM4TE = $(SHELL) $(srcdir)/build-aux/missing --run autom4te
 TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
 	$(srcdir)/testsuite.at
@@ -1190,6 +1202,9 @@ test_find_tex_fonts$(EXEEXT): test_find_tex_fonts.lo test_find_tex_fonts.ali lib
 
 test_sexpressions$(EXEEXT): test_sexpressions.lo test_sexpressions.ali libiris.la
 	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
+
+test_sexpressions_equal$(EXEEXT): test_sexpressions_equal.lo test_sexpressions_equal.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 $(srcdir)/package.m4: $(top_srcdir)/configure.ac $(srcdir)/Makefile.am
 	$(AWK) \
 	  'BEGIN{printf "# Signature of the current package.\n"; \
@@ -1248,7 +1263,7 @@ indent:
 	sexpressions.ad[bs] \
 	test_pdf_[0-9][0-9].adb \
 	test_find*fonts.adb \
-	test_sexpressions.adb)
+	test_sexpressions*.adb)
 
 #---------------------------------------------------------------------
 # local variables:

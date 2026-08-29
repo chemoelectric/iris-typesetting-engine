@@ -23,6 +23,24 @@ AT_KEYWORDS([sexpr r7rs sexpr s-expression sexp scheme lisp])
 AT_CHECK(["${abs_builddir}"/test_sexpressions],[0],[ignore],[ignore])
 AT_CLEANUP
 
+m4_define([m4_test_sexpr_equal],
+  ["${abs_builddir}"/test_sexpressions_equal [$1] [$2] | tr -d '\n\r'])
+AT_SETUP([sexpressions_equal])
+AT_KEYWORDS([sexpr r7rs sexpr s-expression sexp scheme lisp equal])
+AT_CHECK([m4_test_sexpr_equal([\#f],[\#f])],[0],[1])
+AT_CHECK([m4_test_sexpr_equal([\#f],[\#false])],[0],[1])
+AT_CHECK([m4_test_sexpr_equal([\#t],[\#t])],[0],[1])
+AT_CHECK([m4_test_sexpr_equal([\#t],[\#true])],[0],[1])
+AT_CHECK([m4_test_sexpr_equal([\#f],[\#t])],[0],[0])
+AT_CHECK([m4_test_sexpr_equal([\#true],[\#false])],[0],[0])
+AT_CHECK([m4_test_sexpr_equal([0],[1])],[0],[0])
+AT_CHECK([m4_test_sexpr_equal([0],[0])],[0],[1])
+AT_CHECK([m4_test_sexpr_equal([1],[1])],[0],[1])
+AT_CHECK([m4_test_sexpr_equal([-0],[-1])],[0],[0])
+AT_CHECK([m4_test_sexpr_equal([-0],[-0])],[0],[1])
+AT_CHECK([m4_test_sexpr_equal([-1],[-1])],[0],[1])
+AT_CLEANUP
+
 #---------------------------------------------------------------------
 # local variables:
 # mode: autoconf

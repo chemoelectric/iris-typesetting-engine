@@ -3,3 +3,4 @@ check test_pdf_01
 check test_find_main_system_fonts
 check test_find_tex_fonts
 check test_sexpressions
+check test_sexpressions_equal
