@@ -525,17 +525,10 @@ package body sexpressions is
       null;
    end ignore;
 
-   function make_unspecified return sexpr is
-   begin
-      return res : sexpr do
-         res.ptr := new node_record (kind_unspecified);
-      end return;
-   end make_unspecified;
-
    function make_null return sexpr is
    begin
       return res : sexpr do
-         res.ptr := new node_record (kind_null);
+         res.ptr := null;
       end return;
    end make_null;
 
@@ -654,12 +647,12 @@ package body sexpressions is
 
    function kind (e : in sexpr) return sexpr_kind is
    begin
-      return (if e.ptr /= null then e.ptr.kind else kind_unspecified);
+      return (if e.ptr /= null then e.ptr.kind else kind_null);
    end kind;
 
    function is_null (e : in sexpr) return boolean is
    begin
-      return (e.ptr /= null and then e.ptr.kind = kind_null);
+      return (e.ptr = null or else e.ptr.kind = kind_null);
    end is_null;
 
    function is_boolean (e : in sexpr) return boolean is
@@ -1106,10 +1099,6 @@ package body sexpressions is
          res := false;
       else
          case ka is
-            when kind_unspecified =>
-               raise type_error
-                 with "equal cannot be applied to an unspecified value";
-
             when kind_null        =>
                res := true;
 
@@ -2161,7 +2150,7 @@ package body sexpressions is
      (ctx : in out parse_context) return sexpr is
    begin
       raise parse_error with "datum labels are not yet implemented";
-      return make_unspecified;
+      return make_null;
    end make_datum_label_sexpr;
 
    function parse_hash_prefix (ctx : in out parse_context) return sexpr
@@ -2759,10 +2748,6 @@ package body sexpressions is
          append (buf, "()");
       else
          case e.ptr.kind is
-            when kind_unspecified =>
-               raise type_error
-                 with "cannot serialize an unspecified value";
-
             when kind_null        =>
                append (buf, "()");
 
