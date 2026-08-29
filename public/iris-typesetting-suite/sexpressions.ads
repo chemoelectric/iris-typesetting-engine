@@ -97,7 +97,8 @@ package sexpressions is
      (key : in sexpr_string) return ada.containers.hash_type;
 
    type sexpr_kind is
-     (kind_null,
+     (kind_unspecified,
+      kind_null,
       kind_boolean,
       kind_integer,
       kind_inexact,
@@ -122,6 +123,7 @@ package sexpressions is
 
    procedure ignore (item : sexpr);
 
+   function make_unspecified return sexpr;
    function make_null return sexpr;
    function make_boolean (val : in boolean) return sexpr;
    function make_integer (val : in bignum_integer) return sexpr;
@@ -199,9 +201,12 @@ private
    type sexpr_vector_access is access all sexpr_array;
    type byte_vector_access is access all byte_array;
 
-   type node_record (kind : sexpr_kind := kind_null) is record
-      ref_count : natural := 1;
+   type node_record (kind : sexpr_kind := kind_unspecified) is record
+      reference_count : natural := 1;
       case kind is
+         when kind_unspecified =>
+            null;
+
          when kind_null =>
             null;
 
