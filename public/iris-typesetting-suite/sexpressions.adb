@@ -533,42 +533,43 @@ package body sexpressions is
       end return;
    end make_null;
 
-   function make_boolean (val : in boolean) return sexpr is
+   function make_boolean (item : in boolean) return sexpr is
    begin
       return res : sexpr do
          res.ptr := new node_record (kind_boolean);
-         res.ptr.boolean_val := val;
+         res.ptr.boolean_val := item;
       end return;
    end make_boolean;
 
-   function make_integer (val : in bignum_integer) return sexpr is
+   function make_integer (item : in bignum_integer) return sexpr is
    begin
       return res : sexpr do
          res.ptr := new node_record (kind_integer);
-         res.ptr.integer_val := val;
+         res.ptr.integer_val := item;
       end return;
    end make_integer;
 
-   function make_inexact (val : in inexact_real) return sexpr is
+   function make_inexact (item : in inexact_real) return sexpr is
    begin
       return res : sexpr do
          res.ptr := new node_record (kind_inexact);
-         res.ptr.inexact_val := val;
+         res.ptr.inexact_val := item;
       end return;
    end make_inexact;
 
-   function make_exact (val : in exact_real) return sexpr is
+   function make_exact (item : in exact_real) return sexpr is
    begin
       return res : sexpr do
          res.ptr := new node_record (kind_rational);
-         res.ptr.rational_val := val;
+         res.ptr.rational_val := item;
       end return;
    end make_exact;
 
    function make_exact
-     (num : in bignum_integer; den : in bignum_integer) return sexpr is
+     (numerator : in bignum_integer; denominator : in bignum_integer)
+      return sexpr is
    begin
-      return make_exact (exact_reals."/" (num, den));
+      return make_exact (exact_reals."/" (numerator, denominator));
    end make_exact;
 
    function make_character (ch : in sexpr_character) return sexpr is
@@ -579,30 +580,30 @@ package body sexpressions is
       end return;
    end make_character;
 
-   function make_string (str : in sexpr_string) return sexpr is
+   function make_string (source : in sexpr_string) return sexpr is
    begin
       return res : sexpr do
          res.ptr := new node_record (kind_string);
-         res.ptr.string_val := str;
+         res.ptr.string_val := source;
       end return;
    end make_string;
 
-   function make_string (str : in sexpr_fixstr) return sexpr is
+   function make_string (source : in sexpr_fixstr) return sexpr is
    begin
-      return make_string (to_sexpr_string (str));
+      return make_string (to_sexpr_string (source));
    end make_string;
 
-   function make_symbol (sym : in sexpr_string) return sexpr is
+   function make_symbol (source : in sexpr_string) return sexpr is
    begin
       return res : sexpr do
          res.ptr := new node_record (kind_symbol);
-         res.ptr.symbol_val := sym;
+         res.ptr.symbol_val := source;
       end return;
    end make_symbol;
 
-   function make_symbol (sym : in sexpr_fixstr) return sexpr is
+   function make_symbol (source : in sexpr_fixstr) return sexpr is
    begin
-      return make_symbol (to_sexpr_string (sym));
+      return make_symbol (to_sexpr_string (source));
    end make_symbol;
 
    function to_exact (item : in sexpr) return sexpr is
@@ -651,44 +652,43 @@ package body sexpressions is
       return res;
    end to_inexact;
 
-   function cons (car_val : in sexpr; cdr_val : in sexpr) return sexpr
-   is
+   function cons (car : in sexpr; cdr : in sexpr) return sexpr is
    begin
       return res : sexpr do
          res.ptr := new node_record (kind_pair);
-         res.ptr.car_val := car_val;
-         res.ptr.cdr_val := cdr_val;
+         res.ptr.car_val := car;
+         res.ptr.cdr_val := cdr;
       end return;
    end cons;
 
-   function make_list (items : in sexpr_array) return sexpr is
+   function make_list (source : in sexpr_array) return sexpr is
    begin
       return res : sexpr := make_null do
-         for idx in reverse items'range loop
-            res := cons (items (idx), res);
+         for idx in reverse source'range loop
+            res := cons (source (idx), res);
          end loop;
       end return;
    end make_list;
 
-   function make_vector (items : in sexpr_array) return sexpr is
+   function make_vector (source : in sexpr_array) return sexpr is
    begin
       return res : sexpr do
          res.ptr := new node_record (kind_vector);
-         res.ptr.vector_val := new sexpr_array (1 .. items'length);
-         for idx in items'range loop
-            res.ptr.vector_val (idx - items'first + 1) := items (idx);
+         res.ptr.vector_val := new sexpr_array (1 .. source'length);
+         for idx in source'range loop
+            res.ptr.vector_val (idx - source'first + 1) := source (idx);
          end loop;
       end return;
    end make_vector;
 
-   function make_bytevector (bytes : in byte_array) return sexpr is
+   function make_bytevector (source : in byte_array) return sexpr is
    begin
       return res : sexpr do
          res.ptr := new node_record (kind_bytevector);
-         res.ptr.bytevector_val := new byte_array (1 .. bytes'length);
-         for idx in bytes'range loop
-            res.ptr.bytevector_val (idx - bytes'first + 1) :=
-              bytes (idx);
+         res.ptr.bytevector_val := new byte_array (1 .. source'length);
+         for idx in source'range loop
+            res.ptr.bytevector_val (idx - source'first + 1) :=
+              source (idx);
          end loop;
       end return;
    end make_bytevector;
@@ -1009,13 +1009,13 @@ package body sexpressions is
       return cnt;
    end length;
 
-   function list_ref (item : in sexpr; idx : in positive) return sexpr
+   function list_ref (item : in sexpr; index : in positive) return sexpr
    is
       cur : sexpr := item;
       pos : positive := 1;
       res : sexpr;
    begin
-      while pos < idx and then is_pair (cur) loop
+      while pos < index and then is_pair (cur) loop
          cur := cur.ptr.cdr_val;
          pos := pos + 1;
       end loop;
@@ -1039,16 +1039,17 @@ package body sexpressions is
       return res;
    end vector_length;
 
-   function vector_ref (item : in sexpr; idx : in positive) return sexpr
+   function vector_ref
+     (item : in sexpr; index : in positive) return sexpr
    is
       res : sexpr;
    begin
       if item.ptr /= null
         and then item.ptr.kind = kind_vector
         and then item.ptr.vector_val /= null
-        and then idx in item.ptr.vector_val'range
+        and then index in item.ptr.vector_val'range
       then
-         res := item.ptr.vector_val (idx);
+         res := item.ptr.vector_val (index);
       else
          raise type_error with "vector_ref index out of bounds";
       end if;
@@ -1068,16 +1069,16 @@ package body sexpressions is
    end bytevector_length;
 
    function bytevector_ref
-     (item : in sexpr; idx : in positive) return interfaces.unsigned_8
+     (item : in sexpr; index : in positive) return interfaces.unsigned_8
    is
       res : interfaces.unsigned_8 := 0;
    begin
       if item.ptr /= null
         and then item.ptr.kind = kind_bytevector
         and then item.ptr.bytevector_val /= null
-        and then idx in item.ptr.bytevector_val'range
+        and then index in item.ptr.bytevector_val'range
       then
-         res := item.ptr.bytevector_val (idx);
+         res := item.ptr.bytevector_val (index);
       else
          raise type_error with "bytevector_ref index out of bounds";
       end if;

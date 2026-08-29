@@ -123,23 +123,24 @@ package sexpressions is
    procedure ignore (item : sexpr);
 
    function make_null return sexpr;
-   function make_boolean (val : in boolean) return sexpr;
-   function make_integer (val : in bignum_integer) return sexpr;
-   function make_inexact (val : in inexact_real) return sexpr;
-   function make_exact (val : in exact_real) return sexpr;
+   function make_boolean (item : in boolean) return sexpr;
+   function make_integer (item : in bignum_integer) return sexpr;
+   function make_inexact (item : in inexact_real) return sexpr;
+   function make_exact (item : in exact_real) return sexpr;
    function make_exact
-     (num : in bignum_integer; den : in bignum_integer) return sexpr;
+     (numerator : in bignum_integer; denominator : in bignum_integer)
+      return sexpr;
    function make_character (ch : in sexpr_character) return sexpr;
-   function make_string (str : in sexpr_string) return sexpr;
-   function make_string (str : in wide_wide_string) return sexpr;
-   function make_symbol (sym : in sexpr_string) return sexpr;
-   function make_symbol (sym : in wide_wide_string) return sexpr;
+   function make_string (source : in sexpr_fixstr) return sexpr;
+   function make_string (source : in sexpr_string) return sexpr;
+   function make_symbol (source : in sexpr_fixstr) return sexpr;
+   function make_symbol (source : in sexpr_string) return sexpr;
    function to_exact (item : in sexpr) return sexpr;
    function to_inexact (item : in sexpr) return sexpr;
-   function cons (car_val : in sexpr; cdr_val : in sexpr) return sexpr;
-   function make_list (items : in sexpr_array) return sexpr;
-   function make_vector (items : in sexpr_array) return sexpr;
-   function make_bytevector (bytes : in byte_array) return sexpr;
+   function cons (car : in sexpr; cdr : in sexpr) return sexpr;
+   function make_list (source : in sexpr_array) return sexpr;
+   function make_vector (source : in sexpr_array) return sexpr;
+   function make_bytevector (source : in byte_array) return sexpr;
    function kind (item : in sexpr) return sexpr_kind;
    function is_null (item : in sexpr) return boolean;
    function is_boolean (item : in sexpr) return boolean;
@@ -170,13 +171,15 @@ package sexpressions is
    function cdar (item : in sexpr) return sexpr;
    function cddr (item : in sexpr) return sexpr;
    function length (item : in sexpr) return natural;
-   function list_ref (item : in sexpr; idx : in positive) return sexpr;
+   function list_ref
+     (item : in sexpr; index : in positive) return sexpr;
    function vector_length (item : in sexpr) return natural;
    function vector_ref
-     (item : in sexpr; idx : in positive) return sexpr;
+     (item : in sexpr; index : in positive) return sexpr;
    function bytevector_length (item : in sexpr) return natural;
    function bytevector_ref
-     (item : in sexpr; idx : in positive) return interfaces.unsigned_8;
+     (item : in sexpr; index : in positive)
+      return interfaces.unsigned_8;
    function equal (left : in sexpr; right : in sexpr) return boolean;
    function eqv (left : in sexpr; right : in sexpr) return boolean;
    function assoc (key : in sexpr; alist : in sexpr) return sexpr;
