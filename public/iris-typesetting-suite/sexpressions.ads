@@ -195,11 +195,7 @@ package sexpressions is
    function read_all_from_string
      (source : in sexpr_string) return sexpr_array;
    function read_all (filename : in string) return sexpr_array;
-   --
-   -- FIXME: write_to_string requires detection of circular lists.
-   --
-   -- function write_to_string (item : in sexpr) return sexpr_string;
-   --
+   function write_to_string (item : in sexpr) return sexpr_string;
    function write_simple_to_string
      (item : in sexpr) return sexpr_string;
    --
