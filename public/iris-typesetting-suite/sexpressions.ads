@@ -139,6 +139,7 @@ package sexpressions is
    function to_inexact (item : in sexpr) return sexpr;
    function cons (car : in sexpr; cdr : in sexpr) return sexpr;
    function make_list (source : in sexpr_array) return sexpr;
+   function make_circular_list (source : in sexpr_array) return sexpr;
    function make_vector (source : in sexpr_array) return sexpr;
    function make_bytevector (source : in byte_array) return sexpr;
    function kind (item : in sexpr) return sexpr_kind;
@@ -173,6 +174,8 @@ package sexpressions is
    function length (item : in sexpr) return natural;
    function list_ref
      (item : in sexpr; index : in positive) return sexpr;
+   procedure set_car (pair : sexpr; value : sexpr);
+   procedure set_cdr (pair : sexpr; value : sexpr);
    function vector_length (item : in sexpr) return natural;
    function vector_ref
      (item : in sexpr; index : in positive) return sexpr;

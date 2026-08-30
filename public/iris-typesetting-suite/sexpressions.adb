@@ -27,6 +27,25 @@ package body sexpressions is
 
    package conv renames ada.characters.conversions;
 
+   package sexpr_fixstr_to_integer_maps is new
+     ada.containers.indefinite_hashed_maps
+       (key_type        => sexpr_fixstr,
+        element_type    => integer,
+        hash            => hash,
+        equivalent_keys => "=");
+
+   --
+   -- This will be used for datum labels.
+   --
+   package sexpr_fixstr_to_sexpr_maps is new
+     ada.containers.indefinite_hashed_maps
+       (key_type        => sexpr_fixstr,
+        element_type    => sexpr,
+        hash            => hash,
+        equivalent_keys => "=")with unreferenced;
+
+   ---------------------------------------------------------------------
+
    sexpr_nul       : constant sexpr_character :=
      sexpr_character'val (0);
    sexpr_alarm     : constant sexpr_character :=
@@ -56,32 +75,12 @@ package body sexpressions is
 
    ---------------------------------------------------------------------
 
-   -- type label_entry is record
-   --    id  : natural;
-   --    val : sexpr;
-   -- end record;
-
-   -- -- FIXME: WE SHOULD SUPPORT ANY NUMBER OF LABELS. USE A MAP. The
-   -- -- standard says just that a label should be a sequence of digits.
-   -- -- To be the most GNUish, allow any sequence of digits.
-   -- type label_table_array is array (1 .. 128) of label_entry;
-
-   --
-   -- FIXME: There is not much point in supporting labels without full
-   -- support for circular lists.
-   --
-   -- type label_context is record
-   --    -- FIXME: THIS SHOULD BE IN THE PARSE CONTEXT
-   --    count   : natural := 0;
-   --    entries : label_table_array;
-   -- end record;
-
    type parse_context is record
       src : sexpr_string;
       pos : positive := 1;
       len : natural := 0;
       -- fold_case : boolean := false;
-      -- lbl       : label_context;
+      -- lbl : sexpr_fixstr_to_sexpr_maps.map;
    end record;
 
    function is_eof (ctx : in parse_context) return boolean is
@@ -230,6 +229,17 @@ package body sexpressions is
       return s;
    end collect_identifier;
 
+   --
+   -- This will be used for datum labels.
+   --
+   function collect_ascii_digits
+     (ctx : in out parse_context) return sexpr_string
+   with unreferenced
+   is
+   begin
+      return collect_while (ctx, predicate => is_ascii_digit'access);
+   end collect_ascii_digits;
+
    function collect_until_delimiter
      (ctx : in out parse_context) return sexpr_string
    is
@@ -265,14 +275,7 @@ package body sexpressions is
           (source => source, side => ada.strings.left);
    end trim_left;
 
-   package sexpr_fixstr_to_integer is new
-     ada.containers.indefinite_hashed_maps
-       (key_type        => sexpr_fixstr,
-        element_type    => integer,
-        hash            => hash,
-        equivalent_keys => "=");
-
-   character_name_lookup : sexpr_fixstr_to_integer.map;
+   character_name_lookup : sexpr_fixstr_to_integer_maps.map;
 
    procedure initialize_character_name_lookup is
    begin
@@ -622,6 +625,30 @@ package body sexpressions is
          end loop;
       end return;
    end make_list;
+
+   function make_circular_list (source : in sexpr_array) return sexpr is
+      res  : sexpr;
+      last : sexpr;
+   begin
+      case source'length is
+         when 0      =>
+            raise type_error
+              with "attempt to make an empty circular list";
+
+         when 1      =>
+            res := cons (source (source'first), make_null);
+            set_cdr (last, res);
+
+         when others =>
+            last := cons (source (source'last), make_null);
+            res := last;
+            for idx in reverse source'first .. source'last - 1 loop
+               res := cons (source (idx), res);
+            end loop;
+            set_cdr (last, res);
+      end case;
+      return res;
+   end make_circular_list;
 
    function make_vector (source : in sexpr_array) return sexpr is
    begin
@@ -979,6 +1006,26 @@ package body sexpressions is
       end if;
       return res;
    end list_ref;
+
+   procedure set_car (pair : sexpr; value : sexpr) is
+   begin
+      if pair.ptr = null or else pair.ptr.kind /= kind_pair then
+         -- FIXME: PROVIDE BETTER CONTEXT
+         raise type_error with "cannot set_car a non-pair";
+      else
+         pair.ptr.car_val := value;
+      end if;
+   end set_car;
+
+   procedure set_cdr (pair : sexpr; value : sexpr) is
+   begin
+      if pair.ptr = null or else pair.ptr.kind /= kind_pair then
+         -- FIXME: PROVIDE BETTER CONTEXT
+         raise type_error with "cannot set_cdr a non-pair";
+      else
+         pair.ptr.cdr_val := value;
+      end if;
+   end set_cdr;
 
    function vector_length (item : in sexpr) return natural is
       res : natural := 0;
