@@ -2894,8 +2894,7 @@ package body sexpressions is
       result        : sexpr_string := null_sexpr_string;
    begin
       find_shared_structure
-        (shared_counts => shared_counts,
-         item          => item);
+        (shared_counts => shared_counts, item => item);
       serialize_with_datum_labels
         (shared_counts => shared_counts,
          item          => item,
@@ -2921,8 +2920,7 @@ package body sexpressions is
       result        : sexpr_string := null_sexpr_string;
    begin
       find_shared_structure
-        (shared_counts => shared_counts,
-         item          => item);
+        (shared_counts => shared_counts, item => item);
       serialize_with_datum_labels
         (shared_counts => shared_counts,
          item          => item,

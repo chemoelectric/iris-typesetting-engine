@@ -73,8 +73,7 @@ procedure test_sexpressions is
       assert_true (is_string (s), "s is string");
       assert_true (get_string (s) = "hello world", "s = hello world");
       assert_true
-        (write_to_string (s) = """hello world""",
-         "s write quoted");
+        (write_to_string (s) = """hello world""", "s write quoted");
       assert_true
         (display_to_string (s) = "hello world", "s display unquoted");
    end test_characters_and_strings;
@@ -84,8 +83,7 @@ procedure test_sexpressions is
    begin
       assert_true (is_symbol (sym), "sym is symbol");
       assert_true (get_symbol (sym) = "foobar", "sym = foobar");
-      assert_true
-        (write_to_string (sym) = "foobar", "sym write");
+      assert_true (write_to_string (sym) = "foobar", "sym write");
    end test_symbols;
 
    procedure test_pairs_and_lists is
@@ -98,8 +96,7 @@ procedure test_sexpressions is
       assert_true (is_pair (p), "p is pair");
       assert_true (get_integer (car (p)) = 1, "car(p) = 1");
       assert_true (get_integer (cdr (p)) = 2, "cdr(p) = 2");
-      assert_true
-        (write_to_string (p) = "(1 . 2)", "p write (1 . 2)");
+      assert_true (write_to_string (p) = "(1 . 2)", "p write (1 . 2)");
 
       assert_true (is_list (l1), "l1 is list");
       assert_true (length (l1) = 3, "l1 length 3");
