@@ -16,6 +16,7 @@ with ada.strings.fixed;
 with ada.strings.wide_wide_hash;
 with ada.wide_wide_text_io;
 with ada.containers;
+with ada.containers.hashed_sets;
 with ada.containers.hashed_maps;
 with ada.containers.ordered_maps;
 with ada.containers.indefinite_vectors;
@@ -72,17 +73,17 @@ package body sexpressions is
            mod integer_address (ada.containers.hash_type'last));
    end hash_address;
 
+   package address_sets is new
+     ada.containers.hashed_sets
+       (element_type        => system.address,
+        hash                => hash_address,
+        equivalent_elements => system."=",
+        "="                 => system."=");
+
    package address_to_natural_maps is new
      ada.containers.hashed_maps
        (key_type        => system.address,
         element_type    => natural,
-        hash            => hash_address,
-        equivalent_keys => system."=");
-
-   package address_to_boolean_maps is new
-     ada.containers.hashed_maps
-       (key_type        => system.address,
-        element_type    => boolean,
         hash            => hash_address,
         equivalent_keys => system."=");
 
@@ -2468,12 +2469,16 @@ package body sexpressions is
          and kind in kind_pair | kind_vector | kind_bytevector);
    end is_shared_or_circular;
 
+   separator_space : constant sexpr_string :=
+     to_sexpr_string (sexpr_fixstr'(" "));
+
    --
    -- Serialization in the style of SRFI-38
    --
    procedure serialize_with_datum_labels
      (shared_counts : in out address_to_natural_maps.map;
       item          : in sexpr;
+      display       : in boolean;
       result        : out sexpr_string)
    is
       use node_record_conversions;
@@ -2487,7 +2492,11 @@ package body sexpressions is
          tcount : natural;
       begin
          result := @ & "(";
-         serialize_with_datum_labels (shared_counts, car_val, result);
+         serialize_with_datum_labels
+           (shared_counts => shared_counts,
+            item          => car_val,
+            display       => display,
+            result        => result);
          done := false;
          tail := cdr_val;
          while not done and not is_null (tail) loop
@@ -2499,12 +2508,18 @@ package body sexpressions is
             then
                result := @ & " . ";
                serialize_with_datum_labels
-                 (shared_counts, tail, result);
+                 (shared_counts => shared_counts,
+                  item          => tail,
+                  display       => display,
+                  result        => result);
                done := true;
             else
                result := @ & " ";
                serialize_with_datum_labels
-                 (shared_counts, tail, result);
+                 (shared_counts => shared_counts,
+                  item          => tail,
+                  display       => display,
+                  result        => result);
                tail := cdr (tail);
             end if;
          end loop;
@@ -2514,8 +2529,8 @@ package body sexpressions is
       procedure serialize_vector_contents
         (vector_val : in sexpr_vector_access)
       is
-         separator     : sexpr_string := null_sexpr_string;
-         new_separator : constant sexpr_string :=
+         separator       : sexpr_string := null_sexpr_string;
+         separator_space : constant sexpr_string :=
            to_sexpr_string (sexpr_fixstr'(" "));
       begin
          if vector_val = null then
@@ -2526,15 +2541,83 @@ package body sexpressions is
             for i in vector_val'range loop
                result := @ & separator;
                serialize_with_datum_labels
-                 (shared_counts, vector_val (i), result);
-               separator := new_separator;
+                 (shared_counts => shared_counts,
+                  item          => vector_val (i),
+                  display       => display,
+                  result        => result);
+               separator := separator_space;
             end loop;
             result := @ & ")";
          end if;
       end serialize_vector_contents;
 
-      addr  : system.address;
-      count : natural;
+      procedure serialize_bytevector_contents
+        (bytevector_val : in byte_vector_access)
+      is
+         separator : sexpr_string := null_sexpr_string;
+      begin
+         if bytevector_val = null then
+            -- FIXME: I think this is never run.
+            result := @ & "#u8()";
+         else
+            result := @ & "#u8(";
+            for i in bytevector_val'range loop
+               result :=
+                 @
+                 & separator
+                 & to_sexpr_string
+                     (trim_left
+                        (unsigned_8'image (bytevector_val (i))));
+               separator := separator_space;
+            end loop;
+            result := @ & ")";
+         end if;
+      end serialize_bytevector_contents;
+
+      procedure serialize_item (item : in sexpr) is
+      begin
+         case item.ptr.kind is
+            when kind_pair       =>
+               serialize_pair_contents
+                 (item.ptr.car_val, item.ptr.cdr_val);
+
+            when kind_vector     =>
+               serialize_vector_contents (item.ptr.vector_val);
+
+            when kind_bytevector =>
+               serialize_bytevector_contents (item.ptr.bytevector_val);
+
+            when others          =>
+               serialize_datum
+                 (item    => item,
+                  buffer  => result,
+                  display => display,
+                  simple  => true);
+         end case;
+      end serialize_item;
+
+      label_counter : natural := 0;
+      label_map     : address_to_natural_maps.map;
+
+      function label_for_assignment
+        (addr : system.address) return natural
+      is
+         label : natural;
+      begin
+         if label_map.contains (addr) then
+            label := label_map.element (addr);
+         else
+            label := label_counter;
+            label_counter := @ + 1;
+            label_map.include (addr, label);
+         end if;
+         return label;
+      end label_for_assignment;
+
+      printed_set : address_sets.set;
+      label       : natural;
+      addr        : system.address;
+      count       : natural;
    begin
       if is_null (item) then
          result := @ & "()";
@@ -2544,23 +2627,31 @@ package body sexpressions is
          if is_shared_or_circular
               (kind => item.ptr.kind, count => count)
          then
-            null;--????????????????????????????????????????????????????????????????????????????????????????????????????
-
+            if printed_set.contains (addr) then
+               --
+               -- Print #label#
+               --
+               label := label_map.element (addr);
+               result :=
+                 @
+                 & "#"
+                 & to_sexpr_string (trim_left (label'img))
+                 & "#";
+            else
+               --
+               -- Print #label=<datum>
+               --
+               label := label_for_assignment (addr);
+               result :=
+                 @
+                 & "#"
+                 & to_sexpr_string (trim_left (label'img))
+                 & "=";
+               printed_set.include (addr);
+               serialize_item (item);
+            end if;
          else
-            case item.ptr.kind is
-               when kind_pair       =>
-                  serialize_pair_contents
-                    (item.ptr.car_val, item.ptr.cdr_val);
-
-               when kind_vector     =>
-                  serialize_vector_contents (item.ptr.vector_val);
-
-               when kind_bytevector =>
-                  null;--????????????????????????????????????????????????????????????????????????????????????????????????????
-
-               when others          =>
-                  null;--????????????????????????????????????????????????????????????????????????????????????????????????????
-            end case;
+            serialize_item (item);
          end if;
       end if;
    end serialize_with_datum_labels;
