@@ -35,13 +35,13 @@ procedure test_sexpressions is
       bf : sexpr := make_boolean (false);
    begin
       assert_true (is_null (n), "n should be null");
-      assert_true (write_simple_to_string (n) = "()", "null string ()");
+      assert_true (write_to_string (n) = "()", "null string ()");
       assert_true (is_boolean (bt), "bt is boolean");
       assert_true (get_boolean (bt) = true, "bt is true");
-      assert_true (write_simple_to_string (bt) = "#t", "bt write #t");
+      assert_true (write_to_string (bt) = "#t", "bt write #t");
       assert_true (is_boolean (bf), "bf is boolean");
       assert_true (get_boolean (bf) = false, "bf is false");
-      assert_true (write_simple_to_string (bf) = "#f", "bf write #f");
+      assert_true (write_to_string (bf) = "#f", "bf write #f");
    end test_null_and_booleans;
 
    procedure test_numbers is
@@ -51,7 +51,7 @@ procedure test_sexpressions is
    begin
       assert_true (is_integer (i), "i is integer");
       assert_true (get_integer (i) = 42, "i = 42");
-      assert_true (write_simple_to_string (i) = "42", "i write 42");
+      assert_true (write_to_string (i) = "42", "i write 42");
 
       assert_true (is_inexact (r), "r is inexact real");
       assert_true
@@ -60,7 +60,7 @@ procedure test_sexpressions is
       assert_true (is_exact (q), "q is exact real");
       assert_true (get_numerator (q) = 22, "num = 22");
       assert_true (get_denominator (q) = 7, "den = 7");
-      assert_true (write_simple_to_string (q) = "22/7", "q write 22/7");
+      assert_true (write_to_string (q) = "22/7", "q write 22/7");
    end test_numbers;
 
    procedure test_characters_and_strings is
@@ -68,12 +68,12 @@ procedure test_sexpressions is
       s : sexpr := make_string ("hello world");
    begin
       assert_true (is_character (c), "c is character");
-      assert_true (write_simple_to_string (c) = "#\a", "c write #\a");
+      assert_true (write_to_string (c) = "#\a", "c write #\a");
 
       assert_true (is_string (s), "s is string");
       assert_true (get_string (s) = "hello world", "s = hello world");
       assert_true
-        (write_simple_to_string (s) = """hello world""",
+        (write_to_string (s) = """hello world""",
          "s write quoted");
       assert_true
         (display_to_string (s) = "hello world", "s display unquoted");
@@ -85,7 +85,7 @@ procedure test_sexpressions is
       assert_true (is_symbol (sym), "sym is symbol");
       assert_true (get_symbol (sym) = "foobar", "sym = foobar");
       assert_true
-        (write_simple_to_string (sym) = "foobar", "sym write");
+        (write_to_string (sym) = "foobar", "sym write");
    end test_symbols;
 
    procedure test_pairs_and_lists is
@@ -99,7 +99,7 @@ procedure test_sexpressions is
       assert_true (get_integer (car (p)) = 1, "car(p) = 1");
       assert_true (get_integer (cdr (p)) = 2, "cdr(p) = 2");
       assert_true
-        (write_simple_to_string (p) = "(1 . 2)", "p write (1 . 2)");
+        (write_to_string (p) = "(1 . 2)", "p write (1 . 2)");
 
       assert_true (is_list (l1), "l1 is list");
       assert_true (length (l1) = 3, "l1 length 3");
@@ -107,7 +107,7 @@ procedure test_sexpressions is
       assert_true (get_integer (list_ref (l1, 2)) = 2, "l1(2) = 2");
       assert_true (get_integer (list_ref (l1, 3)) = 3, "l1(3) = 3");
       assert_true
-        (write_simple_to_string (l1) = "(1 2 3)", "l1 write (1 2 3)");
+        (write_to_string (l1) = "(1 2 3)", "l1 write (1 2 3)");
    end test_pairs_and_lists;
 
    procedure test_vectors_and_bytevectors is
@@ -125,7 +125,7 @@ procedure test_sexpressions is
       assert_true (vector_length (v) = 3, "v length = 3");
       assert_true (get_symbol (vector_ref (v, 2)) = "b", "v(2) = b");
       assert_true
-        (write_simple_to_string (v) = "#(a b c)", "v write #(a b c)");
+        (write_to_string (v) = "#(a b c)", "v write #(a b c)");
 
       bytes (1) := 10;
       bytes (2) := 20;
@@ -136,7 +136,7 @@ procedure test_sexpressions is
       assert_true (bytevector_length (bv) = 3, "bv length = 3");
       assert_true (bytevector_ref (bv, 2) = 20, "bv(2) = 20");
       assert_true
-        (write_simple_to_string (bv) = "#u8(10 20 30)",
+        (write_to_string (bv) = "#u8(10 20 30)",
          "bv write #u8(10 20 30)");
    end test_vectors_and_bytevectors;
 

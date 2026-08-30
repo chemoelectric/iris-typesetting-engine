@@ -2893,6 +2893,9 @@ package body sexpressions is
       shared_counts : address_to_natural_maps.map;
       result        : sexpr_string := null_sexpr_string;
    begin
+      find_shared_structure
+        (shared_counts => shared_counts,
+         item          => item);
       serialize_with_datum_labels
         (shared_counts => shared_counts,
          item          => item,
@@ -2917,6 +2920,9 @@ package body sexpressions is
       shared_counts : address_to_natural_maps.map;
       result        : sexpr_string := null_sexpr_string;
    begin
+      find_shared_structure
+        (shared_counts => shared_counts,
+         item          => item);
       serialize_with_datum_labels
         (shared_counts => shared_counts,
          item          => item,
