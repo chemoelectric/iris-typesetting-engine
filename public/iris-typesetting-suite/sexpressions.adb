@@ -2383,11 +2383,10 @@ package body sexpressions is
    -- Output and serialization
    --
 
-   procedure serialize_datum
+   procedure serialize_without_datum_labels
      (item    : in sexpr;
-      buffer  : in out sexpr_string;
       display : in boolean;
-      simple  : in boolean);
+      result  : in out sexpr_string);
 
    function shared_count
      (shared_counts : address_to_natural_maps.map;
@@ -2588,11 +2587,8 @@ package body sexpressions is
                serialize_bytevector_contents (item.ptr.bytevector_val);
 
             when others          =>
-               serialize_datum
-                 (item    => item,
-                  buffer  => result,
-                  display => display,
-                  simple  => true);
+               serialize_without_datum_labels
+                 (item => item, display => display, result => result);
          end case;
       end serialize_item;
 
@@ -2658,94 +2654,94 @@ package body sexpressions is
 
    procedure serialize_string
      (item    : in sexpr_string;
-      buffer  : in out sexpr_string;
-      display : in boolean) is
+      display : in boolean;
+      result  : in out sexpr_string) is
    begin
       if display then
-         append (buffer, item);
+         append (result, item);
       else
-         append (buffer, '"');
+         append (result, '"');
          for i in 1 .. length (item) loop
             declare
                c : sexpr_character := element (item, i);
             begin
                case c is
                   when sexpr_character'('"') =>
-                     append (buffer, "\""");
+                     append (result, "\""");
 
                   when sexpr_character'('\') =>
-                     append (buffer, "\\");
+                     append (result, "\\");
 
                   when sexpr_newline         =>
-                     append (buffer, "\n");
+                     append (result, "\n");
 
                   when sexpr_tab             =>
-                     append (buffer, "\t");
+                     append (result, "\t");
 
                   when sexpr_return          =>
-                     append (buffer, "\r");
+                     append (result, "\r");
 
                   when others                =>
-                     append (buffer, c);
+                     append (result, c);
                end case;
             end;
          end loop;
-         buffer := @ & sexpr_character'('"');
+         result := @ & sexpr_character'('"');
       end if;
    end serialize_string;
 
    procedure serialize_character
      (item    : in sexpr_character;
-      buffer  : in out sexpr_string;
-      display : in boolean)
+      display : in boolean;
+      result  : in out sexpr_string)
    is
       code : natural := sexpr_character'pos (item);
    begin
       if display then
          if code <= 255 then
-            append (buffer, sexpr_character'val (code));
+            append (result, sexpr_character'val (code));
          else
-            append (buffer, '?');
+            append (result, '?');
          end if;
       else
-         append (buffer, "#\");
+         append (result, "#\");
          case code is
             when 32        =>
-               append (buffer, "space");
+               append (result, "space");
 
             when 10        =>
-               append (buffer, "newline");
+               append (result, "newline");
 
             when 9         =>
-               append (buffer, "tab");
+               append (result, "tab");
 
             when 13        =>
-               append (buffer, "return");
+               append (result, "return");
 
             when 7         =>
-               append (buffer, "alarm");
+               append (result, "alarm");
 
             when 8         =>
-               append (buffer, "backspace");
+               append (result, "backspace");
 
             when 27        =>
-               append (buffer, "escape");
+               append (result, "escape");
 
             when 0         =>
-               append (buffer, "null");
+               append (result, "null");
 
             when 127       =>
-               append (buffer, "delete");
+               append (result, "delete");
 
             when 33 .. 126 =>
-               append (buffer, sexpr_character'val (code));
+               append (result, sexpr_character'val (code));
 
             when others    =>
-               append (buffer, "x");
+               append (result, "x");
                declare
                   hex_str : sexpr_string := to_sexpr_string (code'img);
                begin
-                  buffer :=
+                  result :=
                     @
                     & unbounded_slice (hex_str, 2, length (hex_str))
                     & sexpr_fixstr'(";");
@@ -2756,116 +2752,104 @@ package body sexpressions is
 
    procedure serialize_list
      (item    : in sexpr;
-      buffer  : in out sexpr_string;
       display : in boolean;
-      simple  : in boolean)
+      result  : in out sexpr_string)
    is
       cur   : sexpr := item;
       first : boolean := true;
    begin
-      append (buffer, '(');
+      append (result, '(');
       while is_pair (cur) loop
          if not first then
-            append (buffer, ' ');
+            append (result, ' ');
          end if;
          first := false;
-         serialize_datum
-           (item    => car (cur),
-            buffer  => buffer,
-            display => display,
-            simple  => simple);
+         serialize_without_datum_labels
+           (item => car (cur), display => display, result => result);
          cur := cdr (cur);
       end loop;
 
       if not is_null (cur) then
-         append (buffer, " . ");
-         serialize_datum
-           (item    => cur,
-            buffer  => buffer,
-            display => display,
-            simple  => simple);
+         append (result, " . ");
+         serialize_without_datum_labels
+           (item => cur, display => display, result => result);
       end if;
-      append (buffer, ')');
+      append (result, ')');
    end serialize_list;
 
    procedure serialize_vector
      (item    : in sexpr;
-      buffer  : in out sexpr_string;
       display : in boolean;
-      simple  : in boolean)
+      result  : in out sexpr_string)
    is
       len : natural := vector_length (item);
    begin
-      append (buffer, "#(");
+      append (result, "#(");
       for idx in 1 .. len loop
          if idx > 1 then
-            append (buffer, ' ');
+            append (result, ' ');
          end if;
-         serialize_datum
+         serialize_without_datum_labels
            (item    => vector_ref (item, idx),
             display => display,
-            buffer  => buffer,
-            simple  => simple);
+            result  => result);
       end loop;
-      append (buffer, ')');
+      append (result, ')');
    end serialize_vector;
 
    procedure serialize_bytevector
-     (item   : in sexpr;
-      buffer : in out sexpr_string;
-      simple : in boolean)
+     (item : in sexpr; result : in out sexpr_string)
    is
       len : natural := bytevector_length (item);
    begin
-      append (buffer, "#u8(");
+      append (result, "#u8(");
       for idx in 1 .. len loop
          if idx > 1 then
-            append (buffer, ' ');
+            append (result, ' ');
          end if;
          declare
             b_val : interfaces.unsigned_8 := bytevector_ref (item, idx);
             s_val : sexpr_string := to_sexpr_string (b_val'img);
          begin
-            buffer := @ & unbounded_slice (s_val, 2, length (s_val));
+            result := @ & unbounded_slice (s_val, 2, length (s_val));
          end;
       end loop;
-      buffer := @ & sexpr_character'(')');
+      result := @ & sexpr_character'(')');
    end serialize_bytevector;
 
-   procedure serialize_datum
+   procedure serialize_without_datum_labels
      (item    : in sexpr;
-      buffer  : in out sexpr_string;
       display : in boolean;
-      simple  : in boolean) is
+      result  : in out sexpr_string) is
    begin
       if is_null (item) then
-         append (buffer, "()");
+         append (result, "()");
       else
          case item.ptr.kind is
             when kind_null       =>
-               append (buffer, "()");
+               append (result, "()");
 
             when kind_boolean    =>
                if item.ptr.boolean_val then
-                  append (buffer, "#t");
+                  append (result, "#t");
                else
-                  append (buffer, "#f");
+                  append (result, "#f");
                end if;
 
             when kind_integer    =>
-               buffer :=
+               result :=
                  @
                  & to_sexpr_string
                      (trim_left (to_string (item.ptr.integer_val)));
 
             when kind_inexact    =>
-               buffer :=
+               result :=
                  @
                  & to_sexpr_string
                      (trim_left (item.ptr.inexact_val'img));
 
             when kind_rational   =>
-               buffer :=
+               result :=
                  @
                  & to_sexpr_string
                      (trim_left
@@ -2880,71 +2864,65 @@ package body sexpressions is
                serialize_character
                  (item    => item.ptr.character_val,
                   display => display,
-                  buffer  => buffer);
+                  result  => result);
 
             when kind_string     =>
                serialize_string
                  (item    => item.ptr.string_val,
                   display => display,
-                  buffer  => buffer);
+                  result  => result);
 
             when kind_symbol     =>
-               append (buffer, item.ptr.symbol_val);
+               append (result, item.ptr.symbol_val);
 
             when kind_pair       =>
                serialize_list
-                 (item    => item,
-                  display => display,
-                  buffer  => buffer,
-                  simple  => simple);
+                 (item => item, display => display, result => result);
 
             when kind_vector     =>
                serialize_vector
-                 (item    => item,
-                  display => display,
-                  buffer  => buffer,
-                  simple  => simple);
+                 (item => item, display => display, result => result);
 
             when kind_bytevector =>
-               serialize_bytevector
-                 (item => item, buffer => buffer, simple => simple);
+               serialize_bytevector (item => item, result => result);
          end case;
       end if;
-   end serialize_datum;
+   end serialize_without_datum_labels;
 
    function write_to_string (item : in sexpr) return sexpr_string is
-      buffer : sexpr_string := null_sexpr_string;
+      shared_counts : address_to_natural_maps.map;
+      result        : sexpr_string := null_sexpr_string;
    begin
-      serialize_datum
-        (item    => item,
-         display => false,
-         buffer  => buffer,
-         simple  => false);
-      return buffer;
+      serialize_with_datum_labels
+        (shared_counts => shared_counts,
+         item          => item,
+         display       => false,
+         result        => result);
+      return result;
    end write_to_string;
 
    function write_simple_to_string (item : in sexpr) return sexpr_string
    is
-      buffer : sexpr_string := null_sexpr_string;
+      result : sexpr_string := null_sexpr_string;
    begin
-      serialize_datum
-        (item    => item,
-         display => false,
-         buffer  => buffer,
-         simple  => true);
-      return buffer;
+      serialize_without_datum_labels
+        (item => item, display => false, result => result);
+      return result;
    end write_simple_to_string;
 
+   --
+   -- FIXME:  PRINT USING FLOYD’S METHOD WITH ... instead of using datum labels.
+   --
    function display_to_string (item : in sexpr) return sexpr_string is
-      buffer : sexpr_string := null_sexpr_string;
+      shared_counts : address_to_natural_maps.map;
+      result        : sexpr_string := null_sexpr_string;
    begin
-      serialize_datum
-        (item    => item,
-         display => true,
-         buffer  => buffer,
-         simple  =>
-           false); -- FIXME:  PRINT USING FLOYD’S METHOD WITH ... instead of using datum labels.
-      return buffer;
+      serialize_with_datum_labels
+        (shared_counts => shared_counts,
+         item          => item,
+         display       => true,
+         result        => result);
+      return result;
    end display_to_string;
 
    procedure write_simple (item : in sexpr; filename : in string) is
