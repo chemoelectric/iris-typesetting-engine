@@ -113,7 +113,6 @@ package sexpressions is
      array (positive range <>) of interfaces.unsigned_8;
 
    type sexpr is new ada.finalization.controlled with private;
-
    type sexpr_array is array (positive range <>) of sexpr;
 
    parse_error : exception;

@@ -15,14 +15,17 @@ with ada.strings;
 with ada.strings.fixed;
 with ada.strings.wide_wide_hash;
 with ada.wide_wide_text_io;
+with ada.containers;
 with ada.containers.hashed_maps;
-with ada.containers.indefinite_hashed_maps;
 with ada.containers.ordered_maps;
+with ada.containers.indefinite_vectors;
+with ada.containers.indefinite_hashed_maps;
 with ada.unchecked_deallocation;
 
 package body sexpressions is
 
    use interfaces;
+   use ada.containers;
    use ada.wide_wide_text_io;
    use bignum_integers;
    use exact_reals;
@@ -31,6 +34,13 @@ package body sexpressions is
    use sexpr_strings;
 
    package conv renames ada.characters.conversions;
+
+   package sexpr_vectors is new
+     ada.containers.indefinite_vectors
+       (index_type   => positive,
+        element_type => sexpr,
+        "="          => equal);
+   subtype sexpr_vector is sexpr_vectors.vector;
 
    package sexpr_fixstr_to_integer_maps is new
      ada.containers.indefinite_hashed_maps
@@ -2398,53 +2408,54 @@ package body sexpressions is
    -- **                THAT DO NOT CHANGE                    **
    -- **********************************************************
    --
-   -- FIXME: Consider writing a non-recursive version of this.
-   -- (In other words, using heap space instead of stack space.)
-   --
    procedure find_shared_structure
      (shared_counts : in out address_to_natural_maps.map;
       item          : in sexpr)
    is
       use node_record_conversions;
-      addr  : system.address;
-      count : natural;
+      addr     : system.address;
+      count    : natural;
+      workload : sexpr_vector;
+      subject  : sexpr;
    begin
       if not is_null (item) then
-         case item.ptr.kind is
-            when kind_pair       =>
-               addr := to_address (object_pointer (item.ptr));
-               count := shared_count (shared_counts, addr);
-               shared_counts.include (addr, count + 1);
-               if count = 0 then
-                  find_shared_structure
-                    (shared_counts, item.ptr.car_val);
-                  find_shared_structure
-                    (shared_counts, item.ptr.cdr_val);
-               end if;
-
-            when kind_vector     =>
-               if item.ptr.vector_val /= null then
-                  addr := to_address (object_pointer (item.ptr));
+         workload.append (item);
+         while workload.length /= 0 loop
+            subject := workload.last_element;
+            workload.set_length (workload.length - 1);
+            case subject.ptr.kind is
+               when kind_pair       =>
+                  addr := to_address (object_pointer (subject.ptr));
                   count := shared_count (shared_counts, addr);
                   shared_counts.include (addr, count + 1);
                   if count = 0 then
-                     for i in item.ptr.vector_val'range loop
-                        find_shared_structure
-                          (shared_counts, item.ptr.vector_val (i));
-                     end loop;
+                     workload.append (subject.ptr.car_val);
+                     workload.append (subject.ptr.cdr_val);
                   end if;
-               end if;
 
-            when kind_bytevector =>
-               if item.ptr.bytevector_val /= null then
-                  addr := to_address (object_pointer (item.ptr));
-                  count := shared_count (shared_counts, addr);
-                  shared_counts.include (addr, count + 1);
-               end if;
+               when kind_vector     =>
+                  if subject.ptr.vector_val /= null then
+                     addr := to_address (object_pointer (subject.ptr));
+                     count := shared_count (shared_counts, addr);
+                     shared_counts.include (addr, count + 1);
+                     if count = 0 then
+                        for i in subject.ptr.vector_val'range loop
+                           workload.append (subject.ptr.vector_val (i));
+                        end loop;
+                     end if;
+                  end if;
 
-            when others          =>
-               null;
-         end case;
+               when kind_bytevector =>
+                  if subject.ptr.bytevector_val /= null then
+                     addr := to_address (object_pointer (subject.ptr));
+                     count := shared_count (shared_counts, addr);
+                     shared_counts.include (addr, count + 1);
+                  end if;
+
+               when others          =>
+                  null;
+            end case;
+         end loop;
       end if;
    end find_shared_structure;
 
