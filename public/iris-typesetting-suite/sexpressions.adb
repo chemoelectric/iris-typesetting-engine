@@ -2401,7 +2401,8 @@ package body sexpressions is
    --
    -- find_shared_structure:
    --
-   -- Find shared structure, for serialization with datum labels.
+   -- Find shared structure, for serialization with datum labels
+   -- (SRFI-38).
    --
    -- **********************************************************
    -- **  THIS IMPLEMENTATION ASSUMES OBJECTS HAVE ADDRESSES  **
@@ -2458,6 +2459,111 @@ package body sexpressions is
          end loop;
       end if;
    end find_shared_structure;
+
+   function is_shared_or_circular
+     (kind : in sexpr_kind; count : in natural) return boolean is
+   begin
+      return
+        (1 < count
+         and kind in kind_pair | kind_vector | kind_bytevector);
+   end is_shared_or_circular;
+
+   --
+   -- Serialization in the style of SRFI-38
+   --
+   procedure serialize_with_datum_labels
+     (shared_counts : in out address_to_natural_maps.map;
+      item          : in sexpr;
+      result        : out sexpr_string)
+   is
+      use node_record_conversions;
+
+      procedure serialize_pair_contents
+        (car_val : in sexpr; cdr_val : in sexpr)
+      is
+         done   : boolean;
+         tail   : sexpr;
+         taddr  : system.address;
+         tcount : natural;
+      begin
+         result := @ & "(";
+         serialize_with_datum_labels (shared_counts, car_val, result);
+         done := false;
+         tail := cdr_val;
+         while not done and not is_null (tail) loop
+            taddr := to_address (object_pointer (tail.ptr));
+            tcount := shared_count (shared_counts, taddr);
+            if is_shared_or_circular
+                 (kind => tail.ptr.kind, count => tcount)
+              or not is_pair (tail)
+            then
+               result := @ & " . ";
+               serialize_with_datum_labels
+                 (shared_counts, tail, result);
+               done := true;
+            else
+               result := @ & " ";
+               serialize_with_datum_labels
+                 (shared_counts, tail, result);
+               tail := cdr (tail);
+            end if;
+         end loop;
+         result := @ & ")";
+      end serialize_pair_contents;
+
+      procedure serialize_vector_contents
+        (vector_val : in sexpr_vector_access)
+      is
+         separator     : sexpr_string := null_sexpr_string;
+         new_separator : constant sexpr_string :=
+           to_sexpr_string (sexpr_fixstr'(" "));
+      begin
+         if vector_val = null then
+            -- FIXME: I think this is never run.
+            result := @ & "#()";
+         else
+            result := @ & "#(";
+            for i in vector_val'range loop
+               result := @ & separator;
+               serialize_with_datum_labels
+                 (shared_counts, vector_val (i), result);
+               separator := new_separator;
+            end loop;
+            result := @ & ")";
+         end if;
+      end serialize_vector_contents;
+
+      addr  : system.address;
+      count : natural;
+   begin
+      if is_null (item) then
+         result := @ & "()";
+      else
+         addr := to_address (object_pointer (item.ptr));
+         count := shared_count (shared_counts, addr);
+         if is_shared_or_circular
+              (kind => item.ptr.kind, count => count)
+         then
+            null;--????????????????????????????????????????????????????????????????????????????????????????????????????
+
+         else
+            case item.ptr.kind is
+               when kind_pair       =>
+                  serialize_pair_contents
+                    (item.ptr.car_val, item.ptr.cdr_val);
+
+               when kind_vector     =>
+                  serialize_vector_contents (item.ptr.vector_val);
+
+               when kind_bytevector =>
+                  null;--????????????????????????????????????????????????????????????????????????????????????????????????????
+
+               when others          =>
+                  null;--????????????????????????????????????????????????????????????????????????????????????????????????????
+            end case;
+         end if;
+      end if;
+   end serialize_with_datum_labels;
 
    procedure serialize_string
      (item    : in sexpr_string;
