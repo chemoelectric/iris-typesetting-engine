@@ -9,7 +9,7 @@ with interfaces;
 
 package sequential_identifiers is
 
-   type sequential_identifier is new interfaces.unsigned_64 with atomic;
+   type sequential_identifier is new interfaces.unsigned_64;
 
    function next_sequential_identifier return sequential_identifier;
 

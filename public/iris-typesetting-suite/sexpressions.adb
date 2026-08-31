@@ -5,9 +5,6 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
-with system;
-with system.address_to_access_conversions;
-with system.storage_elements;
 with interfaces;
 with ada.exceptions;
 with ada.characters.conversions;
@@ -16,12 +13,12 @@ with ada.strings.fixed;
 with ada.strings.wide_wide_hash;
 with ada.wide_wide_text_io;
 with ada.containers;
-with ada.containers.hashed_sets;
-with ada.containers.hashed_maps;
-with ada.containers.ordered_maps;
 with ada.containers.indefinite_vectors;
 with ada.containers.indefinite_hashed_maps;
+with ada.containers.indefinite_ordered_maps;
+with ada.containers.indefinite_ordered_sets;
 with ada.unchecked_deallocation;
+with sequential_identifiers;
 
 package body sexpressions is
 
@@ -36,59 +33,34 @@ package body sexpressions is
 
    package conv renames ada.characters.conversions;
 
-   package sexpr_vectors is new
-     ada.containers.indefinite_vectors
-       (index_type   => positive,
-        element_type => sexpr,
-        "="          => equal);
-   subtype sexpr_vector is sexpr_vectors.vector;
-
    package sexpr_fixstr_to_integer_maps is new
-     ada.containers.indefinite_hashed_maps
+     indefinite_hashed_maps
        (key_type        => sexpr_fixstr,
         element_type    => integer,
         hash            => hash,
         equivalent_keys => "=");
 
-   --
-   -- This might be used for user-assigned datum labels.
-   --
-   package sexpr_fixstr_to_sexpr_maps is new
-     ada.containers.ordered_maps
-       (key_type     => bignum_integer,
-        element_type => sexpr)with unreferenced;
+   package sexpr_vectors is new
+     indefinite_vectors
+       (index_type   => positive,
+        element_type => sexpr,
+        "="          => sexpr_equivalents);
+   subtype sexpr_vector is sexpr_vectors.vector;
 
-   --
-   -- A hash function for system addresses.
-   --
-   function hash_address
-     (key : system.address) return ada.containers.hash_type
-   is
-      use system.storage_elements;
-      addr_val : constant integer_address := to_integer (key);
-   begin
-      return
-        ada.containers.hash_type
-          (addr_val
-           mod integer_address (ada.containers.hash_type'last));
-   end hash_address;
+   package sexpr_to_natural_maps is new
+     indefinite_ordered_maps
+       (key_type => sexpr,
+        element_type => natural,
+        "<" => sexpr_left_right,
+        "=" => "=");
+   subtype sexpr_to_natural_map is sexpr_to_natural_maps.map;
 
-   package address_sets is new
-     ada.containers.hashed_sets
-       (element_type        => system.address,
-        hash                => hash_address,
-        equivalent_elements => system."=",
-        "="                 => system."=");
-
-   package address_to_natural_maps is new
-     ada.containers.hashed_maps
-       (key_type        => system.address,
-        element_type    => natural,
-        hash            => hash_address,
-        equivalent_keys => system."=");
-
-   package node_record_conversions is new
-     system.address_to_access_conversions (node_record);
+   package sexpr_sets is new
+     indefinite_ordered_sets
+       (element_type => sexpr,
+        "<" => sexpr_left_right,
+        "=" => sexpr_equivalents);
+   subtype sexpr_set is sexpr_sets.set;
 
    ---------------------------------------------------------------------
 
@@ -126,7 +98,6 @@ package body sexpressions is
       pos : positive := 1;
       len : natural := 0;
       -- fold_case : boolean := false;
-      -- lbl : sexpr_fixstr_to_sexpr_maps.map;
    end record;
 
    function is_eof (ctx : in parse_context) return boolean is
@@ -274,17 +245,6 @@ package body sexpressions is
       end if;
       return s;
    end collect_identifier;
-
-   --
-   -- This will be used for datum labels.
-   --
-   function collect_ascii_digits
-     (ctx : in out parse_context) return sexpr_string
-   with unreferenced
-   is
-   begin
-      return collect_while (ctx, predicate => is_ascii_digit'access);
-   end collect_ascii_digits;
 
    function collect_until_delimiter
      (ctx : in out parse_context) return sexpr_string
@@ -527,6 +487,70 @@ package body sexpressions is
    begin
       null;
    end ignore;
+
+   function hash_sexpr (key : in sexpr) return hash_type is
+      --
+      -- FIXME: USE SPOOKYHASH. IN FACT, USE SPOOKYHASH EVERYWHERE.
+      --
+      
+      --
+      -- Knuth’s multiplier that (they say) does something such as use
+      -- the golden ratio to subdivide the space of hashes repeatedly
+      -- without running out of space. FIXME: LOOK UP THE REFERENCE IN
+      -- THE ART OF COMPUTER PROGRAMMING, AND FIX THIS COMMENT.
+      --
+      multiplier : constant sequential_identifier := 11400714819323198485;
+
+      k : sequential_identifier;
+      x : sequential_identifier;
+   begin
+      k := (if key.ptr = null then sequential_identifier'last else key.ptr.unique_identifier);
+      -- Use the multiplier, after mixing high and low bits.
+      x := multiplier * (shift_right (k, 30) xor k);
+      -- Mix high and low bits again.
+      return hash_type'mod (shift_right (x, 27) xor x);
+   end hash_sexpr;
+
+   function sexpr_equivalents (left, right : in sexpr) return boolean is
+      left_is_null : boolean;
+      right_is_null : boolean;
+      result : boolean;
+   begin
+      -- R⁷RS specifies (in an offhand way) that the null list be unique.
+
+      left_is_null := (left.ptr = null or else left.ptr.kind = kind_null);
+      right_is_null := (right.ptr = null or else right.ptr.kind = kind_null);
+
+      if left_is_null then
+         result := right_is_null;
+      elsif right_is_null then
+         result := false;
+      else
+         result := (left.ptr.unique_identifier = right.ptr.unique_identifier);
+      end if;
+      return result;
+   end sexpr_equivalents;
+
+   function sexpr_left_right (left, right : in sexpr) return boolean is
+      left_is_null : boolean;
+      right_is_null : boolean;
+      result : boolean;
+   begin
+      -- R⁷RS specifies (in an offhand way) that the null list be
+      -- unique. We will order the null list left of anything else.
+
+      left_is_null := (left.ptr = null or else left.ptr.kind = kind_null);
+      right_is_null := (right.ptr = null or else right.ptr.kind = kind_null);
+
+      if left_is_null then
+         result := not right_is_null;
+      elsif right_is_null then
+         result := false;
+      else
+         result := (left.ptr.unique_identifier < right.ptr.unique_identifier);
+      end if;
+      return result;
+   end sexpr_left_right;
 
    function make_null return sexpr is
    begin
@@ -2389,12 +2413,12 @@ package body sexpressions is
       result  : in out sexpr_string);
 
    function shared_count
-     (shared_counts : address_to_natural_maps.map;
-      node_addr     : in system.address) return natural is
+     (shared_counts : sexpr_to_natural_map;
+      item : in sexpr) return natural is
    begin
       return
-        (if shared_counts.contains (node_addr)
-         then shared_counts.element (node_addr)
+        (if shared_counts.contains (item)
+         then shared_counts.element (item)
          else 0);
    end shared_count;
 
@@ -2410,11 +2434,9 @@ package body sexpressions is
    -- **********************************************************
    --
    procedure find_shared_structure
-     (shared_counts : in out address_to_natural_maps.map;
+     (shared_counts : in out sexpr_to_natural_map;
       item          : in sexpr)
    is
-      use node_record_conversions;
-      addr     : system.address;
       count    : natural;
       workload : sexpr_vector;
       subject  : sexpr;
@@ -2423,12 +2445,11 @@ package body sexpressions is
          workload.append (item);
          while workload.length /= 0 loop
             subject := workload.last_element;
-            workload.set_length (workload.length - 1);
+            workload.delete_last;
             case subject.ptr.kind is
                when kind_pair       =>
-                  addr := to_address (object_pointer (subject.ptr));
-                  count := shared_count (shared_counts, addr);
-                  shared_counts.include (addr, count + 1);
+                  count := shared_count (shared_counts, subject);
+                  shared_counts.include (subject, count + 1);
                   if count = 0 then
                      workload.append (subject.ptr.car_val);
                      workload.append (subject.ptr.cdr_val);
@@ -2436,9 +2457,8 @@ package body sexpressions is
 
                when kind_vector     =>
                   if subject.ptr.vector_val /= null then
-                     addr := to_address (object_pointer (subject.ptr));
-                     count := shared_count (shared_counts, addr);
-                     shared_counts.include (addr, count + 1);
+                     count := shared_count (shared_counts, subject);
+                     shared_counts.include (subject, count + 1);
                      if count = 0 then
                         for i in subject.ptr.vector_val'range loop
                            workload.append (subject.ptr.vector_val (i));
@@ -2448,9 +2468,8 @@ package body sexpressions is
 
                when kind_bytevector =>
                   if subject.ptr.bytevector_val /= null then
-                     addr := to_address (object_pointer (subject.ptr));
-                     count := shared_count (shared_counts, addr);
-                     shared_counts.include (addr, count + 1);
+                     count := shared_count (shared_counts, subject);
+                     shared_counts.include (subject, count + 1);
                   end if;
 
                when others          =>
@@ -2475,19 +2494,16 @@ package body sexpressions is
    -- Serialization in the style of SRFI-38
    --
    procedure serialize_with_datum_labels
-     (shared_counts : in out address_to_natural_maps.map;
+     (shared_counts : in out sexpr_to_natural_map;
       item          : in sexpr;
       display       : in boolean;
       result        : out sexpr_string)
    is
-      use node_record_conversions;
-
       procedure serialize_pair_contents
-        (car_val : in sexpr; cdr_val : in sexpr)
+        (car_val, cdr_val : in sexpr)
       is
          done   : boolean;
          tail   : sexpr;
-         taddr  : system.address;
          tcount : natural;
       begin
          result := @ & "(";
@@ -2499,8 +2515,7 @@ package body sexpressions is
          done := false;
          tail := cdr_val;
          while not done and not is_null (tail) loop
-            taddr := to_address (object_pointer (tail.ptr));
-            tcount := shared_count (shared_counts, taddr);
+            tcount := shared_count (shared_counts, tail);
             if is_shared_or_circular
                  (kind => tail.ptr.kind, count => tcount)
               or not is_pair (tail)
@@ -2593,41 +2608,39 @@ package body sexpressions is
       end serialize_item;
 
       label_counter : natural := 0;
-      label_map     : address_to_natural_maps.map;
+      label_map     : sexpr_to_natural_map;
 
       function label_for_assignment
-        (addr : system.address) return natural
+        (item : sexpr) return natural
       is
          label : natural;
       begin
-         if label_map.contains (addr) then
-            label := label_map.element (addr);
+         if label_map.contains (item) then
+            label := label_map.element (item);
          else
             label := label_counter;
             label_counter := @ + 1;
-            label_map.include (addr, label);
+            label_map.include (item, label);
          end if;
          return label;
       end label_for_assignment;
 
-      printed_set : address_sets.set;
+      printed_set : sexpr_set;
       label       : natural;
-      addr        : system.address;
       count       : natural;
    begin
       if is_null (item) then
          result := @ & "()";
       else
-         addr := to_address (object_pointer (item.ptr));
-         count := shared_count (shared_counts, addr);
+         count := shared_count (shared_counts, item);
          if is_shared_or_circular
               (kind => item.ptr.kind, count => count)
          then
-            if printed_set.contains (addr) then
+            if printed_set.contains (item) then
                --
                -- Print #label#
                --
-               label := label_map.element (addr);
+               label := label_map.element (item);
                result :=
                  @
                  & "#"
@@ -2637,13 +2650,13 @@ package body sexpressions is
                --
                -- Print #label=<datum>
                --
-               label := label_for_assignment (addr);
+               label := label_for_assignment (item);
                result :=
                  @
                  & "#"
                  & to_sexpr_string (trim_left (label'img))
                  & "=";
-               printed_set.include (addr);
+               printed_set.include (item);
                serialize_item (item);
             end if;
          else
@@ -2890,7 +2903,7 @@ package body sexpressions is
    end serialize_without_datum_labels;
 
    function write_to_string (item : in sexpr) return sexpr_string is
-      shared_counts : address_to_natural_maps.map;
+      shared_counts : sexpr_to_natural_map;
       result        : sexpr_string := null_sexpr_string;
    begin
       find_shared_structure
@@ -2916,7 +2929,7 @@ package body sexpressions is
    -- FIXME:  PRINT USING FLOYD’S METHOD WITH ... instead of using datum labels.
    --
    function display_to_string (item : in sexpr) return sexpr_string is
-      shared_counts : address_to_natural_maps.map;
+      shared_counts : sexpr_to_natural_map;
       result        : sexpr_string := null_sexpr_string;
    begin
       find_shared_structure

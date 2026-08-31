@@ -18,6 +18,7 @@ with ada.strings.wide_wide_hash;
 with ada.containers;
 with ada.finalization;
 with interfaces;
+with sequential_identifiers;
 
 package sexpressions is
 
@@ -127,7 +128,7 @@ package sexpressions is
    function make_inexact (item : in inexact_real) return sexpr;
    function make_exact (item : in exact_real) return sexpr;
    function make_exact
-     (numerator : in bignum_integer; denominator : in bignum_integer)
+     (numerator, denominator : in bignum_integer)
       return sexpr;
    function make_character (ch : in sexpr_character) return sexpr;
    function make_string (source : in sexpr_fixstr) return sexpr;
@@ -182,12 +183,11 @@ package sexpressions is
    function bytevector_ref
      (item : in sexpr; index : in positive)
       return interfaces.unsigned_8;
-   function equal (left : in sexpr; right : in sexpr) return boolean;
-   function eqv (left : in sexpr; right : in sexpr) return boolean;
-   function assoc (key : in sexpr; alist : in sexpr) return sexpr;
+   function equal (left, right : in sexpr) return boolean;
+   function eqv (left, right : in sexpr) return boolean;
+   function assoc (key, alist : in sexpr) return sexpr;
    function assq (key : in sexpr_fixstr; alist : in sexpr) return sexpr;
-   function acons
-     (key : in sexpr; val : in sexpr; alist : in sexpr) return sexpr;
+   function acons (key, val, alist : in sexpr) return sexpr;
    function read_from_string (source : in sexpr_string) return sexpr;
    function read_from_string (source : in sexpr_fixstr) return sexpr;
    function read (filename : in string) return sexpr;
@@ -212,13 +212,33 @@ package sexpressions is
    --
    procedure display (item : in sexpr; filename : in string);
 
+   ---------------------------------------------------------------------
+   --
+   -- Tools for use of sexpr type as keys.
+   --
+
+   -- For equivalence testing. The "=" operation.
+   function sexpr_equivalents (left, right : in sexpr) return boolean;
+
+   -- For ordering. The "<" operation.
+   function sexpr_left_right (left, right : in sexpr) return boolean;
+
+   -- For hashing. A hash function.
+   function hash_sexpr (key : in sexpr) return ada.containers.hash_type;
+
+   ---------------------------------------------------------------------
+
 private
+
+   use sequential_identifiers;
 
    type sexpr_vector_access is access all sexpr_array;
    type byte_vector_access is access all byte_array;
 
    type node_record (kind : sexpr_kind := kind_null) is record
-      reference_count : natural := 1;
+      unique_identifier : sequential_identifier :=
+        next_sequential_identifier;
+      reference_count   : natural := 1;
       case kind is
          when kind_null =>
             null;
