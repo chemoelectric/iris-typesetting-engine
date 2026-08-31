@@ -5,7 +5,6 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
-with interfaces;
 with ada.containers;
 
 package sequential_identifiers is
@@ -14,24 +13,14 @@ package sequential_identifiers is
 
    function next_sequential_identifier return sequential_identifier;
 
-   function "<" (left, right : in sequential_identifier) return boolean;
-
-   function ">" (left, right : in sequential_identifier) return boolean;
-
-   function "=" (left, right : in sequential_identifier) return boolean;
-
-   function "<="
-     (left, right : in sequential_identifier) return boolean;
-
-   function ">="
-     (left, right : in sequential_identifier) return boolean;
-
    --
    -- FIXME:
    --
    -- ADD SUPPORT EVERYWHERE FOR INCREMENTAL HASHING.
    --
-   -- Use SpookyHash.
+   -- Use SpookyHash. I ALREADY HAVE IT IN MY OWN C23 CODE, which can
+   -- be used with the Ada, and can get my llm to implement it in
+   -- parallel.
    --
    -- Ada seems not to do hashing terribly well, just as everyone else
    -- seems not to do it well. Hashing should be done incrementally.
@@ -56,6 +45,17 @@ package sequential_identifiers is
 
 private
 
-   type sequential_identifier is new interfaces.unsigned_64;
+   --
+   -- A set of identifiers so large even filling and emptying memory
+   -- again and again would not come close to exhausting identifiers.
+   --
+   type sequential_identifier is mod 2**128;
+
+   protected type thread_safe_counter is
+      procedure increment_counter_value;
+      function get_counter_value return sequential_identifier;
+   private
+      counter_value : sequential_identifier := 0;
+   end thread_safe_counter;
 
 end sequential_identifiers;

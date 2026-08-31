@@ -5,89 +5,71 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
-with interfaces;
 with ada.containers;
-with system.atomic_operations.modular_arithmetic;
 
 package body sequential_identifiers is
 
-   use interfaces;
    use ada.containers;
 
-   type atomic_result_type is new sequential_identifier with atomic;
+   protected body thread_safe_counter is
 
-   package atomic_result_type_operations is new
-     system.atomic_operations.modular_arithmetic
-       (atomic_type => atomic_result_type);
-   use atomic_result_type_operations;
+      procedure increment_counter_value is
+      begin
+         counter_value := @ + 1;
+      end increment_counter_value;
 
-   counter : aliased atomic_result_type := 0;
+      function get_counter_value return sequential_identifier is
+      begin
+         return counter_value;
+      end get_counter_value;
+
+   end thread_safe_counter;
+
+   counter : thread_safe_counter;
 
    function next_sequential_identifier return sequential_identifier is
-      atomic_result : atomic_result_type;
+      result : constant sequential_identifier :=
+        counter.get_counter_value;
    begin
-      atomic_result :=
-        atomic_fetch_and_add (item => counter, value => 1);
-      return sequential_identifier (atomic_result);
+      counter.increment_counter_value;
+      return result;
    end next_sequential_identifier;
-
-   function "<" (left, right : in sequential_identifier) return boolean
-   is
-   begin
-      return "<" (unsigned_64 (left), unsigned_64 (right));
-   end "<";
-
-   function ">" (left, right : in sequential_identifier) return boolean
-   is
-   begin
-      return ">" (unsigned_64 (left), unsigned_64 (right));
-   end ">";
-
-   function "=" (left, right : in sequential_identifier) return boolean
-   is
-   begin
-      return "=" (unsigned_64 (left), unsigned_64 (right));
-   end "=";
-
-   function "<=" (left, right : in sequential_identifier) return boolean
-   is
-   begin
-      return "<=" (unsigned_64 (left), unsigned_64 (right));
-   end "<=";
-
-   function ">=" (left, right : in sequential_identifier) return boolean
-   is
-   begin
-      return ">=" (unsigned_64 (left), unsigned_64 (right));
-   end ">=";
 
    function hash_sequential_identifier
      (key : in sequential_identifier) return hash_type
    is
       --
-      -- FIXME: USE SPOOKYHASH. IN FACT, USE SPOOKYHASH EVERYWHERE AND
-      -- ADD SUPPORT FOR INCREMENTAL HASHING.
+      -- FNV-1a hash. FIXME: ********** USE SPOOKYHASH **************
       --
-      -- Knuth’s method must be as old as the hills. It surely is not
-      -- bad, but we now have incremental hashing methods that can
-      -- deal better with arrays, lists, etc.
+      -- 32-bit FNV-1a constants.
       --
+      fnv_prime : constant hash_type := 16777619;
+      hash      : hash_type := 2166136261;
 
       --
-      -- Knuth’s multiplier that (they say) does something such as use
-      -- the golden ratio to subdivide the space of hashes repeatedly
-      -- without running out of space. FIXME: LOOK UP THE REFERENCE IN
-      -- THE ART OF COMPUTER PROGRAMMING, AND FIX THIS COMMENT.
+      -- Extract 32-bit chunks from the 128-bit key.
       --
-      multiplier : constant sequential_identifier :=
-        11400714819323198485;
-
-      x : sequential_identifier;
+      chunk_0 : constant hash_type := hash_type (key and 16#ffff_ffff#);
+      chunk_1 : constant hash_type :=
+        hash_type ((key / 2**32) and 16#ffff_ffff#);
+      chunk_2 : constant hash_type :=
+        hash_type ((key / 2**64) and 16#ffff_ffff#);
+      chunk_3 : constant hash_type :=
+        hash_type ((key / 2**96) and 16#ffff_ffff#);
    begin
-      -- Use the multiplier, after mixing high and low bits.
-      x := multiplier * (shift_right (key, 30) xor key);
-      -- Mix high and low bits again.
-      return hash_type'mod (shift_right (x, 27) xor x);
+      hash := hash xor chunk_0;
+      hash := hash * fnv_prime;
+
+      hash := hash xor chunk_1;
+      hash := hash * fnv_prime;
+
+      hash := hash xor chunk_2;
+      hash := hash * fnv_prime;
+
+      hash := hash xor chunk_3;
+      hash := hash * fnv_prime;
+
+      return hash;
    end hash_sequential_identifier;
 
 end sequential_identifiers;
