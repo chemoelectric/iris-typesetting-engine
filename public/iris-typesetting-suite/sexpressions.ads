@@ -98,7 +98,7 @@ package sexpressions is
      (key : in sexpr_string) return ada.containers.hash_type;
 
    type sexpr_kind is
-     (kind_null,
+     (kind_null,                -- FIXME: MAKE THESE START sexpr_kind_
       kind_boolean,
       kind_integer,
       kind_inexact,
@@ -113,7 +113,7 @@ package sexpressions is
    type byte_array is
      array (positive range <>) of interfaces.unsigned_8;
 
-   type sexpr is new ada.finalization.controlled with private;
+   type sexpr is private;
    type sexpr_array is array (positive range <>) of sexpr;
 
    parse_error : exception;
@@ -128,9 +128,8 @@ package sexpressions is
    function make_inexact (item : in inexact_real) return sexpr;
    function make_exact (item : in exact_real) return sexpr;
    function make_exact
-     (numerator, denominator : in bignum_integer)
-      return sexpr;
-   function make_character (ch : in sexpr_character) return sexpr;
+     (numerator, denominator : in bignum_integer) return sexpr;
+   function make_character (item : in sexpr_character) return sexpr;
    function make_string (source : in sexpr_fixstr) return sexpr;
    function make_string (source : in sexpr_string) return sexpr;
    function make_symbol (source : in sexpr_fixstr) return sexpr;
@@ -174,8 +173,8 @@ package sexpressions is
    function length (item : in sexpr) return natural;
    function list_ref
      (item : in sexpr; index : in positive) return sexpr;
-   procedure set_car (pair : sexpr; value : sexpr);
-   procedure set_cdr (pair : sexpr; value : sexpr);
+   procedure set_car (pair, value : sexpr);
+   procedure set_cdr (pair, value : sexpr);
    function vector_length (item : in sexpr) return natural;
    function vector_ref
      (item : in sexpr; index : in positive) return sexpr;
@@ -220,9 +219,6 @@ package sexpressions is
    -- For equivalence testing. The "=" operation.
    function sexpr_equivalents (left, right : in sexpr) return boolean;
 
-   -- For ordering. The "<" operation.
-   function sexpr_left_right (left, right : in sexpr) return boolean;
-
    -- For hashing. A hash function.
    function hash_sexpr (key : in sexpr) return ada.containers.hash_type;
 
@@ -235,10 +231,8 @@ private
    type sexpr_vector_access is access all sexpr_array;
    type byte_vector_access is access all byte_array;
 
-   type node_record (kind : sexpr_kind := kind_null) is record
-      unique_identifier : sequential_identifier :=
-        next_sequential_identifier;
-      reference_count   : natural := 1;
+   type node_record (kind : sexpr_kind) is record
+      reference_count : natural := 1;
       case kind is
          when kind_null =>
             null;
@@ -276,15 +270,47 @@ private
       end case;
    end record;
 
+   --
+   -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+   --
+   -- FIXME: A LOT OF THE LOGIC FOR node_record MANAGEMENT COULD BE
+   -- MOVED INTO THE REGISTRY. Thus reducing the number of
+   -- indirections.
+   --
+   -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+   --
+
    type node_access is access all node_record;
 
-   type sexpr is new ada.finalization.controlled with record
+   type sexpr_element is new ada.finalization.controlled with record
       ptr : node_access := null;
    end record;
 
    overriding
-   procedure adjust (obj : in out sexpr);
+   procedure adjust (object : in out sexpr_element);
    overriding
-   procedure finalize (obj : in out sexpr);
+   procedure finalize (object : in out sexpr_element);
+
+   type sexpr_record is record
+      reference_count : natural := 1;
+      identifier      : sequential_identifier :=
+        next_sequential_identifier;
+   end record;
+
+   type sexpr_record_access is access all sexpr_record;
+
+   type sexpr is new ada.finalization.controlled with record
+      ptr : sexpr_record_access;
+   end record;
+
+   overriding
+   procedure adjust (object : in out sexpr);
+   overriding
+   procedure finalize (object : in out sexpr);
+
+   null_sexpr_record : aliased sexpr_record :=
+     (reference_count => 1, identifier => next_sequential_identifier);
+   null_sexpr        : sexpr :=
+     (ada.finalization.controlled with ptr => null_sexpr_record'access);
 
 end sexpressions;

@@ -8,6 +8,14 @@ AT_COPYRIGHT([Copyright © 2026 Barry Schwartz])
 m4_define([m4_trim_right_newlines],[${AWK} 'NR>1{print ""}{printf "%s",[$]0}'])
 
 #---------------------------------------------------------------------
+AT_BANNER([data structures])
+
+AT_SETUP([spookyhash])
+AT_KEYWORDS([spookyhash hash hashtable hashmap])
+AT_CHECK(["${abs_builddir}"/test_spookyhash],[0])
+AT_CLEANUP
+
+#---------------------------------------------------------------------
 AT_BANNER([document formats])
 
 AT_SETUP([pdf])

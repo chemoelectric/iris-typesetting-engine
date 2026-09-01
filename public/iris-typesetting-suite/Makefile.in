@@ -119,12 +119,13 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+EXTRA_PROGRAMS =
 bin_PROGRAMS = iris$(EXEEXT)
 check_PROGRAMS = test_pdf_01$(EXEEXT) \
 	test_find_main_system_fonts$(EXEEXT) \
 	test_find_tex_fonts$(EXEEXT) test_sexpressions$(EXEEXT) \
 	test_sexpressions_equal$(EXEEXT) \
-	test_sexpressions_read_write$(EXEEXT)
+	test_sexpressions_read_write$(EXEEXT) test_spookyhash$(EXEEXT)
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -177,8 +178,9 @@ am__uninstall_files_from_dir = { \
   }
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am__objects_1 =
+am__objects_2 = spookyhash.lo
 am_libiris_la_OBJECTS = $(am__objects_1) $(am__objects_1) \
-	$(am__objects_1)
+	$(am__objects_2)
 nodist_libiris_la_OBJECTS =
 libiris_la_OBJECTS = $(am_libiris_la_OBJECTS) \
 	$(nodist_libiris_la_OBJECTS)
@@ -203,6 +205,9 @@ test_sexpressions_equal_OBJECTS =  \
 am_test_sexpressions_read_write_OBJECTS =
 test_sexpressions_read_write_OBJECTS =  \
 	$(am_test_sexpressions_read_write_OBJECTS)
+am_test_spookyhash_OBJECTS = test_spookyhash.$(OBJEXT)
+test_spookyhash_OBJECTS = $(am_test_spookyhash_OBJECTS)
+test_spookyhash_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -216,6 +221,11 @@ am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
 am__v_at_0 = @
 am__v_at_1 = 
 DEFAULT_INCLUDES = -I.@am__isrc@
+depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
+am__maybe_remake_depfiles = depfiles
+am__depfiles_remade = ./$(DEPDIR)/spookyhash.Plo \
+	./$(DEPDIR)/test_spookyhash.Po
+am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -239,13 +249,15 @@ SOURCES = $(libiris_la_SOURCES) $(nodist_libiris_la_SOURCES) \
 	$(test_find_tex_fonts_SOURCES) $(test_pdf_01_SOURCES) \
 	$(test_sexpressions_SOURCES) \
 	$(test_sexpressions_equal_SOURCES) \
-	$(test_sexpressions_read_write_SOURCES)
+	$(test_sexpressions_read_write_SOURCES) \
+	$(test_spookyhash_SOURCES)
 DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
 	$(test_find_main_system_fonts_SOURCES) \
 	$(test_find_tex_fonts_SOURCES) $(test_pdf_01_SOURCES) \
 	$(test_sexpressions_SOURCES) \
 	$(test_sexpressions_equal_SOURCES) \
-	$(test_sexpressions_read_write_SOURCES)
+	$(test_sexpressions_read_write_SOURCES) \
+	$(test_spookyhash_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -278,10 +290,11 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/ada-interfaces.am \
 	$(top_srcdir)/build-aux/compile \
 	$(top_srcdir)/build-aux/config.guess \
 	$(top_srcdir)/build-aux/config.sub \
+	$(top_srcdir)/build-aux/depcomp \
 	$(top_srcdir)/build-aux/install-sh \
 	$(top_srcdir)/build-aux/ltmain.sh \
 	$(top_srcdir)/build-aux/missing COPYING build-aux/compile \
-	build-aux/config.guess build-aux/config.sub \
+	build-aux/config.guess build-aux/config.sub build-aux/depcomp \
 	build-aux/install-sh build-aux/ltmain.sh build-aux/missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
@@ -479,7 +492,7 @@ LIBIRIS_ADS_FILES = pdf.ads font_finders.ads sexpressions.ads \
 	fontconfig_fontconfig_h.ads stdarg_h.ads stddef_h.ads \
 	stdint_h.ads stdlib_h.ads sys_select_h.ads sys_stat_h.ads \
 	sys_types_h.ads tkrzw_langc_h.ads
-LIBIRIS_C_FILES = 
+LIBIRIS_C_FILES = spookyhash.c spookyhash.h
 LIBIRIS_OBJEXT = 
 LIBIRIS_DEPENDS = 
 ADALD = $(ADA)
@@ -531,9 +544,12 @@ TESTSUITE_DEPS = $(srcdir)/atconfig.in $(srcdir)/package.m4 \
 	$(srcdir)/testsuite.at
 AM_DISTCHECK_CONFIGURE_FLAGS = 
 ALL_THE_CHECK_FLAGS = $(color-flag) $(jobs-flag) $(TESTSUITEFLAGS)
+test_spookyhash_SOURCES = test_spookyhash.c spookyhash-reference.h
+test_spookyhash_DEPENDENCIES = spookyhash.c spookyhash.h
 all: all-am
 
 .SUFFIXES:
+.SUFFIXES: .c .lo .o .obj
 am--refresh: GNUmakefile
 	@:
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(srcdir)/inits.am $(srcdir)/common-source-files.am $(srcdir)/ada-interfaces.am $(srcdir)/definitions.am $(srcdir)/mk-includes.am $(srcdir)/rules.am $(srcdir)/libiris.am $(srcdir)/programs.am $(srcdir)/tests.am $(srcdir)/extra-dist.am $(am__configure_deps)
@@ -655,11 +671,45 @@ clean-libLTLIBRARIES:
 libiris.la: $(libiris_la_OBJECTS) $(libiris_la_DEPENDENCIES) $(EXTRA_libiris_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(libdir) $(libiris_la_OBJECTS) $(libiris_la_LIBADD) $(LIBS)
 
+test_spookyhash$(EXEEXT): $(test_spookyhash_OBJECTS) $(test_spookyhash_DEPENDENCIES) $(EXTRA_test_spookyhash_DEPENDENCIES) 
+	@rm -f test_spookyhash$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_spookyhash_OBJECTS) $(test_spookyhash_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
+
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spookyhash.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_spookyhash.Po@am__quote@ # am--include-marker
+
+$(am__depfiles_remade):
+	@$(MKDIR_P) $(@D)
+	@: >>$@
+
+am--depfiles: $(am__depfiles_remade)
+
+.c.o:
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ $<
+
+.c.obj:
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+.c.lo:
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -911,6 +961,8 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) check-local
 check: check-am
 all-am: GNUmakefile $(PROGRAMS) $(LTLIBRARIES)
+install-EXTRAPROGRAMS: install-libLTLIBRARIES
+
 install-binPROGRAMS: install-libLTLIBRARIES
 
 install-checkPROGRAMS: install-libLTLIBRARIES
@@ -959,6 +1011,8 @@ clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
+	-rm -f ./$(DEPDIR)/spookyhash.Plo
+	-rm -f ./$(DEPDIR)/test_spookyhash.Po
 	-rm -f GNUmakefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-libtool distclean-local distclean-tags
@@ -1006,6 +1060,8 @@ installcheck-am: installcheck-local
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
+	-rm -f ./$(DEPDIR)/spookyhash.Plo
+	-rm -f ./$(DEPDIR)/test_spookyhash.Po
 	-rm -f GNUmakefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -1026,21 +1082,22 @@ uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES
 
 .MAKE: check-am install-am install-strip
 
-.PHONY: CTAGS GTAGS TAGS all all-am am--refresh check check-am \
-	check-local clean clean-binPROGRAMS clean-checkPROGRAMS \
-	clean-cscope clean-generic clean-libLTLIBRARIES clean-libtool \
-	clean-local cscope cscopelist-am ctags ctags-am dist dist-all \
-	dist-bzip2 dist-bzip3 dist-gzip dist-lzip dist-shar dist-tarZ \
-	dist-xz dist-zip dist-zstd distcheck distclean \
-	distclean-compile distclean-generic distclean-libtool \
-	distclean-local distclean-tags distcleancheck distdir \
-	distuninstallcheck dvi dvi-am html html-am info info-am \
-	install install-am install-binPROGRAMS install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-libLTLIBRARIES install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installcheck-local installdirs \
+.PHONY: CTAGS GTAGS TAGS all all-am am--depfiles am--refresh check \
+	check-am check-local clean clean-binPROGRAMS \
+	clean-checkPROGRAMS clean-cscope clean-generic \
+	clean-libLTLIBRARIES clean-libtool clean-local cscope \
+	cscopelist-am ctags ctags-am dist dist-all dist-bzip2 \
+	dist-bzip3 dist-gzip dist-lzip dist-shar dist-tarZ dist-xz \
+	dist-zip dist-zstd distcheck distclean distclean-compile \
+	distclean-generic distclean-libtool distclean-local \
+	distclean-tags distcleancheck distdir distuninstallcheck dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-binPROGRAMS install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am \
+	install-libLTLIBRARIES install-man install-pdf install-pdf-am \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installcheck-local installdirs \
 	maintainer-clean maintainer-clean-generic mostlyclean \
 	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
 	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \

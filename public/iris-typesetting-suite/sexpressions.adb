@@ -14,9 +14,8 @@ with ada.strings.wide_wide_hash;
 with ada.wide_wide_text_io;
 with ada.containers;
 with ada.containers.indefinite_vectors;
+with ada.containers.indefinite_hashed_sets;
 with ada.containers.indefinite_hashed_maps;
-with ada.containers.indefinite_ordered_maps;
-with ada.containers.indefinite_ordered_sets;
 with ada.unchecked_deallocation;
 with sequential_identifiers;
 
@@ -39,6 +38,16 @@ package body sexpressions is
         element_type    => integer,
         hash            => hash,
         equivalent_keys => "=");
+   subtype sexpr_fixstr_to_integer_map is
+     sexpr_fixstr_to_integer_maps.map;
+
+   package sexpr_fixstr_to_sexpr_maps is new
+     indefinite_hashed_maps
+       (key_type        => sexpr_fixstr,
+        element_type    => sexpr,
+        hash            => hash,
+        equivalent_keys => "=");
+   subtype sexpr_fixstr_to_sexpr_map is sexpr_fixstr_to_sexpr_maps.map;
 
    package sexpr_vectors is new
      indefinite_vectors
@@ -47,20 +56,20 @@ package body sexpressions is
         "="          => sexpr_equivalents);
    subtype sexpr_vector is sexpr_vectors.vector;
 
-   package sexpr_to_natural_maps is new
-     indefinite_ordered_maps
-       (key_type => sexpr,
-        element_type => natural,
-        "<" => sexpr_left_right,
-        "=" => "=");
-   subtype sexpr_to_natural_map is sexpr_to_natural_maps.map;
-
    package sexpr_sets is new
-     indefinite_ordered_sets
-       (element_type => sexpr,
-        "<" => sexpr_left_right,
-        "=" => sexpr_equivalents);
+     indefinite_hashed_sets
+       (element_type        => sexpr,
+        hash                => hash_sexpr,
+        equivalent_elements => sexpr_equivalents);
    subtype sexpr_set is sexpr_sets.set;
+
+   package sexpr_to_natural_maps is new
+     indefinite_hashed_maps
+       (key_type        => sexpr,
+        element_type    => natural,
+        hash            => hash_sexpr,
+        equivalent_keys => "=");
+   subtype sexpr_to_natural_map is sexpr_to_natural_maps.map;
 
    ---------------------------------------------------------------------
 
@@ -281,7 +290,7 @@ package body sexpressions is
           (source => source, side => ada.strings.left);
    end trim_left;
 
-   character_name_lookup : sexpr_fixstr_to_integer_maps.map;
+   character_name_lookup : sexpr_fixstr_to_integer_map;
 
    procedure initialize_character_name_lookup is
    begin
@@ -451,180 +460,242 @@ package body sexpressions is
    procedure free_bytevector is new
      ada.unchecked_deallocation (byte_array, byte_vector_access);
 
-   procedure adjust (obj : in out sexpr) is
+   ---------------------------------------------------------------------
+   --
+   -- Memory management of sexpr_element
+   --
+
+   procedure adjust (object : in out sexpr_element) is
    begin
-      if obj.ptr /= null then
-         obj.ptr.reference_count := @ + 1;
+      if object.ptr /= null then
+         object.ptr.reference_count := @ + 1;
       end if;
    end adjust;
 
-   procedure finalize (obj : in out sexpr) is
+   procedure finalize (object : in out sexpr_element) is
    begin
-      if obj.ptr /= null then
-         obj.ptr.reference_count := @ - 1;
-         if obj.ptr.reference_count = 0 then
-            case obj.ptr.kind is
+      if object.ptr /= null then
+         object.ptr.reference_count := @ - 1;
+         if object.ptr.reference_count = 0 then
+            case object.ptr.kind is
                when kind_vector     =>
-                  if obj.ptr.vector_val /= null then
-                     free_vector (obj.ptr.vector_val);
+                  if object.ptr.vector_val /= null then
+                     free_vector (object.ptr.vector_val);
                   end if;
 
                when kind_bytevector =>
-                  if obj.ptr.bytevector_val /= null then
-                     free_bytevector (obj.ptr.bytevector_val);
+                  if object.ptr.bytevector_val /= null then
+                     free_bytevector (object.ptr.bytevector_val);
                   end if;
 
                when others          =>
                   null;
             end case;
-            free_node (obj.ptr);
+            free_node (object.ptr);
          end if;
       end if;
-      obj.ptr := null;
+      object.ptr := null;
    end finalize;
 
-   procedure ignore (item : sexpr) is
+   ---------------------------------------------------------------------
+   --
+   -- Memory management of sexpr
+   --
+
+   package sequential_identifier_to_sexpr_element_maps is new
+     ada.containers.indefinite_hashed_maps
+       (key_type        => sequential_identifier,
+        element_type    => sexpr_element,
+        hash            => hash_sequential_identifier,
+        equivalent_keys => "=");
+
+   protected type sexpr_registry_type is
+      procedure insert (key : in sexpr; value : in sexpr_element);
+      procedure delete (key : in sexpr);
+      function element (key : in sexpr) return sexpr_element
+      with pre => key.ptr /= null;
+   private
+      table : sequential_identifier_to_sexpr_element_maps.map;
+   end sexpr_registry_type;
+
+   protected body sexpr_registry_type is
+
+      procedure insert (key : in sexpr; value : in sexpr_element) is
+      begin
+         if key.ptr /= null then
+            table.insert (key.ptr.identifier, value);
+         end if;
+      end insert;
+
+      procedure delete (key : in sexpr) is
+      begin
+         if key.ptr /= null then
+            table.delete (key.ptr.identifier);
+         end if;
+      end delete;
+
+      function element (key : in sexpr) return sexpr_element is
+      begin
+         return table.element (key.ptr.identifier);
+      end element;
+
+   end sexpr_registry_type;
+
+   --
+   -- Where reside most of the content of all the sexpr except the
+   -- null list (which is unique and does not live in this registry).
+   --
+   sexpr_registry : sexpr_registry_type;
+
+   procedure adjust (object : in out sexpr) is
+   begin
+      if object.ptr /= null then
+         object.ptr.reference_count := @ + 1;
+      end if;
+   end adjust;
+
+   procedure finalize (object : in out sexpr) is
+   begin
+      if object.ptr /= null then
+         object.ptr.reference_count := @ - 1;
+         if object.ptr.reference_count = 0 then
+            sexpr_registry.delete (key => object);
+         end if;
+      end if;
+      object.ptr := null;
+   end finalize;
+
+   function make_sexpr (node : in node_access) return sexpr
+   with pre => node.kind /= kind_null
+   is
+   begin
+      return result : sexpr do
+         sexpr_registry.insert
+           (key   => result,
+            value =>
+              sexpr_element'
+                (ada.finalization.controlled with ptr => node));
+      end return;
+   end make_sexpr;
+
+   function get_node (item : in sexpr) return node_access is
+   begin
+      return sexpr_registry.element (item).ptr;
+   end get_node;
+
+   ---------------------------------------------------------------------
+
+   procedure ignore (item : in sexpr) is
    begin
       null;
    end ignore;
 
-   function hash_sexpr (key : in sexpr) return hash_type is
-      --
-      -- FIXME: USE SPOOKYHASH. IN FACT, USE SPOOKYHASH EVERYWHERE.
-      --
-      
-      --
-      -- Knuth’s multiplier that (they say) does something such as use
-      -- the golden ratio to subdivide the space of hashes repeatedly
-      -- without running out of space. FIXME: LOOK UP THE REFERENCE IN
-      -- THE ART OF COMPUTER PROGRAMMING, AND FIX THIS COMMENT.
-      --
-      multiplier : constant sequential_identifier := 11400714819323198485;
+   ---------------------------------------------------------------------
 
-      k : sequential_identifier;
-      x : sequential_identifier;
+   function hash_sexpr (key : in sexpr) return hash_type is
    begin
-      k := (if key.ptr = null then sequential_identifier'last else key.ptr.unique_identifier);
-      -- Use the multiplier, after mixing high and low bits.
-      x := multiplier * (shift_right (k, 30) xor k);
-      -- Mix high and low bits again.
-      return hash_type'mod (shift_right (x, 27) xor x);
+      return
+        (if key.ptr = null
+         then hash_type'(0)
+         else hash_sequential_identifier (key.ptr.identifier));
    end hash_sexpr;
 
    function sexpr_equivalents (left, right : in sexpr) return boolean is
-      left_is_null : boolean;
-      right_is_null : boolean;
-      result : boolean;
    begin
-      -- R⁷RS specifies (in an offhand way) that the null list be unique.
-
-      left_is_null := (left.ptr = null or else left.ptr.kind = kind_null);
-      right_is_null := (right.ptr = null or else right.ptr.kind = kind_null);
-
-      if left_is_null then
-         result := right_is_null;
-      elsif right_is_null then
-         result := false;
-      else
-         result := (left.ptr.unique_identifier = right.ptr.unique_identifier);
-      end if;
-      return result;
+      return
+        (if left.ptr = null or right.ptr = null
+         then left.ptr = right.ptr
+         else left.ptr.identifier = right.ptr.identifier);
    end sexpr_equivalents;
 
-   function sexpr_left_right (left, right : in sexpr) return boolean is
-      left_is_null : boolean;
-      right_is_null : boolean;
-      result : boolean;
-   begin
-      -- R⁷RS specifies (in an offhand way) that the null list be
-      -- unique. We will order the null list left of anything else.
-
-      left_is_null := (left.ptr = null or else left.ptr.kind = kind_null);
-      right_is_null := (right.ptr = null or else right.ptr.kind = kind_null);
-
-      if left_is_null then
-         result := not right_is_null;
-      elsif right_is_null then
-         result := false;
-      else
-         result := (left.ptr.unique_identifier < right.ptr.unique_identifier);
-      end if;
-      return result;
-   end sexpr_left_right;
+   ---------------------------------------------------------------------
+   --
+   -- The unique null list.
+   --
 
    function make_null return sexpr is
    begin
-      return res : sexpr do
-         res.ptr := null;
-      end return;
+      return null_sexpr;
    end make_null;
+
+   ---------------------------------------------------------------------
+   --
+   -- The unique #f and #t
+   --
+
+   function create_boolean_node (value : boolean) return node_access is
+   begin
+      return result : node_access := new node_record (kind_boolean) do
+         result.boolean_val := value;
+      end return;
+   end create_boolean_node;
+
+   the_false_value : constant sexpr :=
+     make_sexpr (create_boolean_node (false));
+   the_true_value  : constant sexpr :=
+     make_sexpr (create_boolean_node (true));
 
    function make_boolean (item : in boolean) return sexpr is
    begin
-      return res : sexpr do
-         res.ptr := new node_record (kind_boolean);
-         res.ptr.boolean_val := item;
-      end return;
+      return (if item then the_true_value else the_false_value);
    end make_boolean;
 
-   function make_integer (item : in bignum_integer) return sexpr is
+   ---------------------------------------------------------------------
+   --
+   -- Except by special arrangements, symbols with the same name are
+   -- eq to each other. This is arranged by having them be the same
+   -- sexpr.
+   --
+   -- (In actual Schemes the making of symbols can get notoriously
+   -- complicated. To this point, we here will keep it fairly simple.)
+   --
+
+   protected type symbol_registry_type is
+      function contains (key : in sexpr_fixstr) return boolean;
+      procedure insert (key : in sexpr_fixstr; value : in sexpr);
+      function element (key : in sexpr_fixstr) return sexpr;
+   private
+      table : sexpr_fixstr_to_sexpr_map;
+   end symbol_registry_type;
+
+   protected body symbol_registry_type is
+
+      function contains (key : in sexpr_fixstr) return boolean is
+      begin
+         return table.contains (key);
+      end contains;
+
+      procedure insert (key : in sexpr_fixstr; value : in sexpr) is
+      begin
+         table.insert (key, value);
+      end insert;
+
+      function element (key : in sexpr_fixstr) return sexpr is
+      begin
+         return table.element (key);
+      end element;
+
+   end symbol_registry_type;
+
+   symbol_registry : symbol_registry_type;
+
+   function register_new_symbol (source : in sexpr_string) return sexpr
+   is
+      node : node_access := new node_record (kind_symbol);
    begin
-      return res : sexpr do
-         res.ptr := new node_record (kind_integer);
-         res.ptr.integer_val := item;
+      node.symbol_val := source;
+      return result : sexpr := make_sexpr (node) do
+         symbol_registry.insert (to_sexpr_fixstr (source), result);
       end return;
-   end make_integer;
-
-   function make_inexact (item : in inexact_real) return sexpr is
-   begin
-      return res : sexpr do
-         res.ptr := new node_record (kind_inexact);
-         res.ptr.inexact_val := item;
-      end return;
-   end make_inexact;
-
-   function make_exact (item : in exact_real) return sexpr is
-   begin
-      return res : sexpr do
-         res.ptr := new node_record (kind_rational);
-         res.ptr.rational_val := item;
-      end return;
-   end make_exact;
-
-   function make_exact
-     (numerator : in bignum_integer; denominator : in bignum_integer)
-      return sexpr is
-   begin
-      return make_exact (exact_reals."/" (numerator, denominator));
-   end make_exact;
-
-   function make_character (ch : in sexpr_character) return sexpr is
-   begin
-      return res : sexpr do
-         res.ptr := new node_record (kind_character);
-         res.ptr.character_val := ch;
-      end return;
-   end make_character;
-
-   function make_string (source : in sexpr_string) return sexpr is
-   begin
-      return res : sexpr do
-         res.ptr := new node_record (kind_string);
-         res.ptr.string_val := source;
-      end return;
-   end make_string;
-
-   function make_string (source : in sexpr_fixstr) return sexpr is
-   begin
-      return make_string (to_sexpr_string (source));
-   end make_string;
+   end register_new_symbol;
 
    function make_symbol (source : in sexpr_string) return sexpr is
+      src : sexpr_fixstr := to_sexpr_fixstr (source);
    begin
-      return res : sexpr do
-         res.ptr := new node_record (kind_symbol);
-         res.ptr.symbol_val := source;
-      end return;
+      return
+        (if symbol_registry.contains (src)
+         then symbol_registry.element (src)
+         else register_new_symbol (source));
    end make_symbol;
 
    function make_symbol (source : in sexpr_fixstr) return sexpr is
@@ -632,59 +703,95 @@ package body sexpressions is
       return make_symbol (to_sexpr_string (source));
    end make_symbol;
 
-   function to_exact (item : in sexpr) return sexpr is
-      res : sexpr;
+   ---------------------------------------------------------------------
+
+   function make_integer (item : in bignum_integer) return sexpr is
+      node : node_access := new node_record (kind_integer);
    begin
-      if item.ptr = null then
-         -- FIXME: MORE CONTEXT
-         raise type_error with "to_exact";
-      else
-         case item.ptr.kind is
-            when kind_integer | kind_rational =>
-               res := item;
+      node.integer_val := item;
+      return make_sexpr (node);
+   end make_integer;
 
-            when kind_inexact                 =>
-               res :=
-                 make_exact
-                   (get_numerator (item), get_denominator (item));
+   function make_inexact (item : in inexact_real) return sexpr is
+      node : node_access := new node_record (kind_inexact);
+   begin
+      node.inexact_val := item;
+      return make_sexpr (node);
+   end make_inexact;
 
-            when others                       =>
-               -- FIXME: MORE CONTEXT
-               raise type_error with "to_exact";
-         end case;
-      end if;
-      return res;
+   function make_exact (item : in exact_real) return sexpr is
+      node : node_access := new node_record (kind_rational);
+   begin
+      node.rational_val := item;
+      return make_sexpr (node);
+   end make_exact;
+
+   function make_exact
+     (numerator, denominator : in bignum_integer) return sexpr is
+   begin
+      return make_exact (exact_reals."/" (numerator, denominator));
+   end make_exact;
+
+   function make_character (item : in sexpr_character) return sexpr is
+      node : node_access := new node_record (kind_character);
+   begin
+      node.character_val := item;
+      return make_sexpr (node);
+   end make_character;
+
+   function make_string (source : in sexpr_string) return sexpr is
+      node : node_access := new node_record (kind_string);
+   begin
+      node.string_val := source;
+      return make_sexpr (node);
+   end make_string;
+
+   function make_string (source : in sexpr_fixstr) return sexpr is
+   begin
+      return make_string (to_sexpr_string (source));
+   end make_string;
+
+   function to_exact (item : in sexpr) return sexpr is
+      result : sexpr;
+   begin
+      case kind (item) is
+         when kind_integer | kind_rational =>
+            result := item;
+
+         when kind_inexact                 =>
+            result :=
+              make_exact (get_numerator (item), get_denominator (item));
+
+         when others                       =>
+            -- FIXME: MORE CONTEXT
+            raise type_error with "to_exact";
+      end case;
+      return result;
    end to_exact;
 
    function to_inexact (item : in sexpr) return sexpr is
-      res : sexpr;
+      result : sexpr;
    begin
-      if item.ptr = null then
-         -- FIXME: MORE CONTEXT
-         raise type_error with "to_inexact";
-      else
-         case item.ptr.kind is
-            when kind_integer | kind_rational =>
-               res := make_inexact (get_inexact (item));
+      case kind (item) is
+         when kind_integer | kind_rational =>
+            result := make_inexact (get_inexact (item));
 
-            when kind_inexact                 =>
-               res := item;
+         when kind_inexact                 =>
+            result := item;
 
-            when others                       =>
-               -- FIXME: MORE CONTEXT
-               raise type_error with "to_inexact";
-         end case;
-      end if;
-      return res;
+         when others                       =>
+            -- FIXME: MORE CONTEXT
+            raise type_error with "to_inexact";
+      end case;
+      return result;
    end to_inexact;
 
-   function cons (car : in sexpr; cdr : in sexpr) return sexpr is
+   function cons (car, cdr : in sexpr) return sexpr is
+      node : node_access := new node_record (kind_pair);
    begin
-      return res : sexpr do
-         res.ptr := new node_record (kind_pair);
-         res.ptr.car_val := car;
-         res.ptr.cdr_val := cdr;
-      end return;
+      node.car_val := car;
+      node.cdr_val := cdr;
+      return make_sexpr (node);
    end cons;
 
    function make_list (source : in sexpr_array) return sexpr is
@@ -721,97 +828,101 @@ package body sexpressions is
    end make_circular_list;
 
    function make_vector (source : in sexpr_array) return sexpr is
+      node : node_access := new node_record (kind_vector);
    begin
-      return res : sexpr do
-         res.ptr := new node_record (kind_vector);
-         res.ptr.vector_val := new sexpr_array (1 .. source'length);
-         for idx in source'range loop
-            res.ptr.vector_val (idx - source'first + 1) := source (idx);
-         end loop;
-      end return;
+      node.vector_val := new sexpr_array (1 .. source'length);
+      for idx in source'range loop
+         node.vector_val (idx - source'first + 1) := source (idx);
+      end loop;
+      return make_sexpr (node);
    end make_vector;
 
    function make_bytevector (source : in byte_array) return sexpr is
+      node : node_access := new node_record (kind_bytevector);
    begin
-      return res : sexpr do
-         res.ptr := new node_record (kind_bytevector);
-         res.ptr.bytevector_val := new byte_array (1 .. source'length);
-         for idx in source'range loop
-            res.ptr.bytevector_val (idx - source'first + 1) :=
-              source (idx);
-         end loop;
-      end return;
+      node.bytevector_val := new byte_array (1 .. source'length);
+      for idx in source'range loop
+         node.bytevector_val (idx - source'first + 1) := source (idx);
+      end loop;
+      return make_sexpr (node);
    end make_bytevector;
 
    function kind (item : in sexpr) return sexpr_kind is
    begin
-      return (if item.ptr /= null then item.ptr.kind else kind_null);
+      return
+        (if item.ptr = null then kind_null else get_node (item).kind);
    end kind;
 
    function is_null (item : in sexpr) return boolean is
    begin
-      return (item.ptr = null or else item.ptr.kind = kind_null);
+      return (item.ptr = null);
    end is_null;
 
    function is_boolean (item : in sexpr) return boolean is
    begin
-      return (item.ptr /= null and then item.ptr.kind = kind_boolean);
+      return (kind (item) = kind_boolean);
    end is_boolean;
 
    function is_integer (item : in sexpr) return boolean is
    begin
-      return (item.ptr /= null and then item.ptr.kind = kind_integer);
+      return (kind (item) = kind_integer);
    end is_integer;
 
    function is_inexact (item : in sexpr) return boolean is
    begin
-      return (item.ptr /= null and then item.ptr.kind = kind_inexact);
+      return (kind (item) = kind_inexact);
    end is_inexact;
 
    function is_exact (item : in sexpr) return boolean is
    begin
-      return (item.ptr /= null and then item.ptr.kind = kind_rational);
+      return (kind (item) = kind_rational);
    end is_exact;
 
    function is_number (item : in sexpr) return boolean is
-      res : boolean := false;
    begin
-      if item.ptr /= null then
-         res :=
-           (item.ptr.kind
-            in kind_integer | kind_inexact | kind_rational);
-      end if;
-      return res;
+      return
+        (kind (item) in kind_integer | kind_inexact | kind_rational);
    end is_number;
 
    function is_character (item : in sexpr) return boolean is
    begin
-      return (item.ptr /= null and then item.ptr.kind = kind_character);
+      return (kind (item) = kind_character);
    end is_character;
 
    function is_string (item : in sexpr) return boolean is
    begin
-      return (item.ptr /= null and then item.ptr.kind = kind_string);
+      return (kind (item) = kind_string);
    end is_string;
 
    function is_symbol (item : in sexpr) return boolean is
    begin
-      return (item.ptr /= null and then item.ptr.kind = kind_symbol);
+      return (kind (item) = kind_symbol);
    end is_symbol;
 
    function is_pair (item : in sexpr) return boolean is
    begin
-      return (item.ptr /= null and then item.ptr.kind = kind_pair);
+      return (kind (item) = kind_pair);
    end is_pair;
 
    function is_list (item : in sexpr) return boolean is
+      -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+      -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+      -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+      -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+      -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+      -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+      --
+      -- This is a naive method for detecting a circular list. Anyway,
+      -- we want to do the SRFI-1 classification into the three types
+      -- of list.
+      --
       cur : sexpr := item;
       res : boolean := false;
       cnt : natural := 0;
    begin
       while is_pair (cur) and cnt < 1000000 loop
-         cur := cur.ptr.cdr_val;
-         cnt := cnt + 1;
+         cur := cdr (cur);
+         cnt := @ + 1;
       end loop;
       res := is_null (cur);
       return res;
@@ -819,92 +930,71 @@ package body sexpressions is
 
    function is_vector (item : in sexpr) return boolean is
    begin
-      return (item.ptr /= null and then item.ptr.kind = kind_vector);
+      return (kind (item) = kind_vector);
    end is_vector;
 
    function is_bytevector (item : in sexpr) return boolean is
    begin
-      return
-        (item.ptr /= null and then item.ptr.kind = kind_bytevector);
+      return (kind (item) = kind_bytevector);
    end is_bytevector;
 
+   ---------------------------------------------------------------------
+
    function get_boolean (item : in sexpr) return boolean is
-      res : boolean := false;
    begin
-      if item.ptr /= null and then item.ptr.kind = kind_boolean then
-         res := item.ptr.boolean_val;
-      else
+      if kind (item) /= kind_boolean then
          raise type_error with "expected boolean s-expression";
       end if;
-      return res;
+      return get_node (item).boolean_val;
    end get_boolean;
 
    function get_integer (item : in sexpr) return bignum_integer is
-      res : bignum_integer := 0;
    begin
-      if item.ptr /= null and then item.ptr.kind = kind_integer then
-         res := item.ptr.integer_val;
-      else
+      if kind (item) /= kind_integer then
          raise type_error with "expected integer s-expression";
       end if;
-      return res;
+      return get_node (item).integer_val;
    end get_integer;
 
    function get_inexact (item : in sexpr) return inexact_real is
-      procedure err is
-      begin
-         -- FIXME: NEED A BETTER ERROR MESSAGE.
-         raise type_error with "expected real s-expression";
-      end err;
-      res : inexact_real;
+      result : inexact_real;
    begin
-      if item.ptr = null then
-         err;
-      else
-         case item.ptr.kind is
-            when kind_inexact  =>
-               res := item.ptr.inexact_val;
+      case kind (item) is
+         when kind_inexact  =>
+            result := get_node (item).inexact_val;
 
-            when kind_integer  =>
-               res :=
-                 from_big_real (to_big_real (item.ptr.integer_val));
+         when kind_integer  =>
+            result :=
+              from_big_real (to_big_real (get_node (item).integer_val));
 
-            when kind_rational =>
-               res := from_big_real (item.ptr.rational_val);
+         when kind_rational =>
+            result := from_big_real (get_node (item).rational_val);
 
-            when others        =>
-               err;
-         end case;
-      end if;
-      return res;
+         when others        =>
+            -- FIXME: NEED A BETTER ERROR MESSAGE.
+            raise type_error with "expected real s-expression";
+      end case;
+      return result;
    end get_inexact;
 
    function get_exact (item : in sexpr) return exact_real is
-      procedure err is
-      begin
-         -- FIXME: NEED A BETTER ERROR MESSAGE.
-         raise type_error with "expected real s-expression";
-      end err;
-      res : exact_real;
+      result : exact_real;
    begin
-      if item.ptr = null then
-         err;
-      else
-         case item.ptr.kind is
-            when kind_inexact  =>
-               res := to_big_real (item.ptr.inexact_val);
+      case kind (item) is
+         when kind_inexact  =>
+            result := to_big_real (get_node (item).inexact_val);
 
-            when kind_integer  =>
-               res := to_big_real (item.ptr.integer_val);
+         when kind_integer  =>
+            result := to_big_real (get_node (item).integer_val);
 
-            when kind_rational =>
-               res := item.ptr.rational_val;
+         when kind_rational =>
+            result := get_node (item).rational_val;
 
-            when others        =>
-               err;
-         end case;
-      end if;
-      return res;
+         when others        =>
+            -- FIXME: NEED A BETTER ERROR MESSAGE.
+            raise type_error with "expected real s-expression";
+      end case;
+      return result;
    end get_exact;
 
    --
@@ -913,31 +1003,24 @@ package body sexpressions is
    -- This is a permissive implementation that does type conversions.
    --
    function get_numerator (item : in sexpr) return bignum_integer is
-      procedure err is
-      begin
-         -- FIXME: NEED A BETTER ERROR MESSAGE.
-         raise type_error with "expected real s-expression";
-      end err;
-      res : bignum_integer;
+      result : bignum_integer;
    begin
-      if item.ptr = null then
-         err;
-      else
-         case item.ptr.kind is
-            when kind_inexact  =>
-               res := numerator (to_big_real (item.ptr.inexact_val));
+      case kind (item) is
+         when kind_inexact  =>
+            result :=
+              numerator (to_big_real (get_node (item).inexact_val));
 
-            when kind_integer  =>
-               res := item.ptr.integer_val;
+         when kind_integer  =>
+            result := get_node (item).integer_val;
 
-            when kind_rational =>
-               res := numerator (item.ptr.rational_val);
+         when kind_rational =>
+            result := numerator (get_node (item).rational_val);
 
-            when others        =>
-               err;
-         end case;
-      end if;
-      return res;
+         when others        =>
+            -- FIXME: NEED A BETTER ERROR MESSAGE.
+            raise type_error with "expected real s-expression";
+      end case;
+      return result;
    end get_numerator;
 
    --
@@ -946,86 +1029,64 @@ package body sexpressions is
    -- This is a permissive implementation that does type conversions.
    --
    function get_denominator (item : in sexpr) return bignum_integer is
-      procedure err is
-      begin
-         -- FIXME: NEED A BETTER ERROR MESSAGE.
-         raise type_error with "expected real s-expression";
-      end err;
-      res : bignum_integer;
+      result : bignum_integer;
    begin
-      if item.ptr = null then
-         err;
-      else
-         case item.ptr.kind is
-            when kind_inexact  =>
-               res := denominator (to_big_real (item.ptr.inexact_val));
+      case kind (item) is
+         when kind_inexact  =>
+            result :=
+              denominator (to_big_real (get_node (item).inexact_val));
 
-            when kind_integer  =>
-               res := 1;
+         when kind_integer  =>
+            result := 1;
 
-            when kind_rational =>
-               res := denominator (item.ptr.rational_val);
+         when kind_rational =>
+            result := denominator (get_node (item).rational_val);
 
-            when others        =>
-               err;
-         end case;
-      end if;
-      return res;
+         when others        =>
+            -- FIXME: NEED A BETTER ERROR MESSAGE.
+            raise type_error with "expected real s-expression";
+      end case;
+      return result;
    end get_denominator;
 
    function get_character (item : in sexpr) return sexpr_character is
-      res : sexpr_character := ' ';
    begin
-      if item.ptr /= null and then item.ptr.kind = kind_character then
-         res := item.ptr.character_val;
-      else
+      if kind (item) /= kind_character then
          raise type_error with "expected character s-expression";
       end if;
-      return res;
+      return get_node (item).character_val;
    end get_character;
 
    function get_string (item : in sexpr) return sexpr_string is
-      res : sexpr_string := null_sexpr_string;
    begin
-      if item.ptr /= null and then item.ptr.kind = kind_string then
-         res := item.ptr.string_val;
-      else
+      if kind (item) /= kind_string then
          raise type_error with "expected string s-expression";
       end if;
-      return res;
+      return get_node (item).string_val;
    end get_string;
 
    function get_symbol (item : in sexpr) return sexpr_string is
-      res : sexpr_string := null_sexpr_string;
    begin
-      if item.ptr /= null and then item.ptr.kind = kind_symbol then
-         res := item.ptr.symbol_val;
-      else
+      if kind (item) /= kind_symbol then
          raise type_error with "expected symbol s-expression";
       end if;
-      return res;
+      return get_node (item).symbol_val;
    end get_symbol;
 
    function car (item : in sexpr) return sexpr is
-      res : sexpr;
    begin
-      if item.ptr /= null and then item.ptr.kind = kind_pair then
-         res := item.ptr.car_val;
-      else
-         raise type_error with "expected pair for car";
+      if kind (item) /= kind_pair then
+         raise type_error with "expected pair s-expression";
       end if;
-      return res;
+      return get_node (item).car_val;
    end car;
 
    function cdr (item : in sexpr) return sexpr is
-      res : sexpr;
    begin
-      if item.ptr /= null and then item.ptr.kind = kind_pair then
-         res := item.ptr.cdr_val;
-      else
-         raise type_error with "expected pair for cdr";
+      if kind (item) /= kind_pair then
+         raise type_error with "expected pair s-expression";
       end if;
-      return res;
+      return get_node (item).cdr_val;
    end cdr;
 
    function caar (item : in sexpr) return sexpr is
@@ -1054,7 +1115,7 @@ package body sexpressions is
    begin
       while is_pair (cur) loop
          cnt := cnt + 1;
-         cur := cur.ptr.cdr_val;
+         cur := cdr (cur);
       end loop;
       return cnt;
    end length;
@@ -1066,100 +1127,108 @@ package body sexpressions is
       res : sexpr;
    begin
       while pos < index and then is_pair (cur) loop
-         cur := cur.ptr.cdr_val;
+         cur := cdr (cur);
          pos := pos + 1;
       end loop;
       if is_pair (cur) then
-         res := cur.ptr.car_val;
+         res := car (cur);
       else
          raise type_error with "list_ref index out of bounds";
       end if;
       return res;
    end list_ref;
 
-   procedure set_car (pair : sexpr; value : sexpr) is
+   procedure set_car (pair, value : sexpr) is
    begin
-      if pair.ptr = null or else pair.ptr.kind /= kind_pair then
+      if kind (pair) /= kind_pair then
          -- FIXME: PROVIDE BETTER CONTEXT
          raise type_error with "cannot set_car a non-pair";
       else
-         pair.ptr.car_val := value;
+         get_node (pair).car_val := value;
       end if;
    end set_car;
 
-   procedure set_cdr (pair : sexpr; value : sexpr) is
+   procedure set_cdr (pair, value : sexpr) is
    begin
-      if pair.ptr = null or else pair.ptr.kind /= kind_pair then
+      if kind (pair) /= kind_pair then
          -- FIXME: PROVIDE BETTER CONTEXT
          raise type_error with "cannot set_cdr a non-pair";
       else
-         pair.ptr.cdr_val := value;
+         get_node (pair).cdr_val := value;
       end if;
    end set_cdr;
 
    function vector_length (item : in sexpr) return natural is
-      res : natural := 0;
+      node : node_access;
    begin
-      if item.ptr /= null
-        and then item.ptr.kind = kind_vector
-        and then item.ptr.vector_val /= null
-      then
-         res := item.ptr.vector_val'length;
+      if kind (item) /= kind_vector then
+         -- FIXME: PROVIDE BETTER CONTEXT
+         raise type_error with "vector_length called on a non-vector";
       end if;
-      return res;
+      node := get_node (item);
+      return
+        (if node.vector_val = null then 0 else node.vector_val'length);
    end vector_length;
 
    function vector_ref
      (item : in sexpr; index : in positive) return sexpr
    is
-      res : sexpr;
+      node : node_access;
    begin
-      if item.ptr /= null
-        and then item.ptr.kind = kind_vector
-        and then item.ptr.vector_val /= null
-        and then index in item.ptr.vector_val'range
-      then
-         res := item.ptr.vector_val (index);
-      else
-         raise type_error with "vector_ref index out of bounds";
+      if kind (item) /= kind_vector then
+         -- FIXME: PROVIDE BETTER CONTEXT
+         raise type_error with "vector_ref called on a non-vector";
       end if;
-      return res;
+      node := get_node (item);
+      if node.vector_val = null
+        or else not (index in node.vector_val'range)
+      then
+         raise type_error
+           with "vector_ref index out of bounds:" & index'img;
+      end if;
+      return node.vector_val (index);
    end vector_ref;
 
    function bytevector_length (item : in sexpr) return natural is
-      res : natural := 0;
+      node : node_access;
    begin
-      if item.ptr /= null
-        and then item.ptr.kind = kind_bytevector
-        and then item.ptr.bytevector_val /= null
-      then
-         res := item.ptr.bytevector_val'length;
+      if kind (item) /= kind_bytevector then
+         -- FIXME: PROVIDE BETTER CONTEXT
+         raise type_error
+           with "bytevector_length called on a non-bytevector";
       end if;
-      return res;
+      node := get_node (item);
+      return
+        (if node.bytevector_val = null
+         then 0
+         else node.bytevector_val'length);
    end bytevector_length;
 
    function bytevector_ref
      (item : in sexpr; index : in positive) return interfaces.unsigned_8
    is
-      res : interfaces.unsigned_8 := 0;
+      node : node_access;
    begin
-      if item.ptr /= null
-        and then item.ptr.kind = kind_bytevector
-        and then item.ptr.bytevector_val /= null
-        and then index in item.ptr.bytevector_val'range
-      then
-         res := item.ptr.bytevector_val (index);
-      else
-         raise type_error with "bytevector_ref index out of bounds";
+      if kind (item) /= kind_bytevector then
+         -- FIXME: PROVIDE BETTER CONTEXT
+         raise type_error
+           with "bytevector_ref called on a non-bytevector";
       end if;
-      return res;
+      node := get_node (item);
+      if node.bytevector_val = null
+        or else not (index in node.bytevector_val'range)
+      then
+         raise type_error
+           with "bytevector_ref index out of bounds:" & index'img;
+      end if;
+      return node.bytevector_val (index);
    end bytevector_ref;
 
-   function equal_pairs (a : in sexpr; b : in sexpr) return boolean is
-      res : boolean := false;
+   function equal_pairs (left, right : in sexpr) return boolean is
    begin
-      res := equal (car (a), car (b)) and then equal (cdr (a), cdr (b));
-      return res;
+      return
+        equal (car (left), car (right))
+        and then equal (cdr (left), cdr (right));
    end equal_pairs;
 
    function equal_vectors (a : in sexpr; b : in sexpr) return boolean is
@@ -1207,28 +1276,28 @@ package body sexpressions is
       kb : in sexpr_kind) return boolean
    with
      pre =>
-       a.ptr /= null
-       and b.ptr /= null
-       and ka in kind_integer | kind_inexact | kind_rational
+       ka in kind_integer | kind_inexact | kind_rational
        and kb in kind_integer | kind_inexact | kind_rational
    is
-      res : boolean;
+      node_a : node_access := get_node (a);
+      node_b : node_access := get_node (b);
+      result : boolean;
    begin
       case ka is
          when kind_integer  =>
             case kb is
                when kind_integer  =>
-                  res := (a.ptr.integer_val = b.ptr.integer_val);
+                  result := (node_a.integer_val = node_b.integer_val);
 
                when kind_inexact  =>
-                  res :=
-                    (to_big_real (a.ptr.integer_val)
-                     = to_big_real (b.ptr.inexact_val));
+                  result :=
+                    (to_big_real (node_a.integer_val)
+                     = to_big_real (node_b.inexact_val));
 
                when kind_rational =>
-                  res :=
-                    (to_big_real (a.ptr.integer_val)
-                     = b.ptr.rational_val);
+                  result :=
+                    (to_big_real (node_a.integer_val)
+                     = node_b.rational_val);
 
                when others        =>
                   raise type_error with "internal error";
@@ -1237,17 +1306,17 @@ package body sexpressions is
          when kind_inexact  =>
             case kb is
                when kind_integer  =>
-                  res :=
-                    (to_big_real (a.ptr.inexact_val)
-                     = to_big_real (b.ptr.integer_val));
+                  result :=
+                    (to_big_real (node_a.inexact_val)
+                     = to_big_real (node_b.integer_val));
 
                when kind_inexact  =>
-                  res := (a.ptr.inexact_val = b.ptr.inexact_val);
+                  result := (node_a.inexact_val = node_b.inexact_val);
 
                when kind_rational =>
-                  res :=
-                    (to_big_real (a.ptr.inexact_val)
-                     = b.ptr.rational_val);
+                  result :=
+                    (to_big_real (node_a.inexact_val)
+                     = node_b.rational_val);
 
                when others        =>
                   raise type_error with "internal error";
@@ -1256,17 +1325,17 @@ package body sexpressions is
          when kind_rational =>
             case kb is
                when kind_integer  =>
-                  res :=
-                    (a.ptr.rational_val
-                     = to_big_real (b.ptr.integer_val));
+                  result :=
+                    (node_a.rational_val
+                     = to_big_real (node_b.integer_val));
 
                when kind_inexact  =>
-                  res :=
-                    (a.ptr.rational_val
-                     = to_big_real (b.ptr.inexact_val));
+                  result :=
+                    (node_a.rational_val
+                     = to_big_real (node_b.inexact_val));
 
                when kind_rational =>
-                  res := (a.ptr.rational_val = b.ptr.rational_val);
+                  result := (node_a.rational_val = node_b.rational_val);
 
                when others        =>
                   raise type_error with "internal error";
@@ -1275,56 +1344,65 @@ package body sexpressions is
          when others        =>
             raise type_error with "internal error";
       end case;
-      return res;
+      return result;
    end real_numbers_are_equal;
 
-   function equal (left : in sexpr; right : in sexpr) return boolean is
+   function equal (left, right : in sexpr) return boolean is
       kleft  : sexpr_kind := kind (left);
       kright : sexpr_kind := kind (right);
-      res    : boolean := false;
+      result : boolean := false;
    begin
-      if is_null (left) and is_null (right) then
-         res := true;
-      elsif (kleft in kind_integer | kind_inexact | kind_rational)
+      if (kleft in kind_integer | kind_inexact | kind_rational)
         and (kright in kind_integer | kind_inexact | kind_rational)
       then
-         res := real_numbers_are_equal (left, kleft, right, kright);
+         result := real_numbers_are_equal (left, kleft, right, kright);
       elsif kleft /= kright then
-         res := false;
+         result := false;
       else
          case kleft is
             when kind_null                                   =>
-               res := true;
+               result := true;
 
             when kind_boolean                                =>
-               res := (left.ptr.boolean_val = right.ptr.boolean_val);
+               result :=
+                 (get_node (left).boolean_val
+                  = get_node (right).boolean_val);
 
             when kind_character                              =>
-               res :=
-                 (left.ptr.character_val = right.ptr.character_val);
+               result :=
+                 (get_node (left).character_val
+                  = get_node (right).character_val);
 
             when kind_string                                 =>
-               res := (left.ptr.string_val = right.ptr.string_val);
+               result :=
+                 (get_node (left).string_val
+                  = get_node (right).string_val);
 
             when kind_symbol                                 =>
-               res := (left.ptr.symbol_val = right.ptr.symbol_val);
+               result :=
+                 (get_node (left).symbol_val
+                  = get_node (right).symbol_val);
 
             when kind_pair                                   =>
-               res := equal_pairs (left, right);
+               result := equal_pairs (left, right);
 
             when kind_vector                                 =>
-               res := equal_vectors (left, right);
+               result := equal_vectors (left, right);
 
             when kind_bytevector                             =>
-               res := equal_bytevectors (left, right);
+               result := equal_bytevectors (left, right);
 
             when kind_integer | kind_inexact | kind_rational =>
                raise type_error with "internal error";
          end case;
       end if;
-      return res;
+      return result;
    end equal;
 
+   --
+   -- FIXME: CHECK THAT THIS IS DOING THE CORRECT THING. I do not use
+   -- eqv much, if ever, so would have to look this up.
+   --
    function eqv (left : in sexpr; right : in sexpr) return boolean is
    begin
       return equal (left, right);
@@ -2413,8 +2491,8 @@ package body sexpressions is
       result  : in out sexpr_string);
 
    function shared_count
-     (shared_counts : sexpr_to_natural_map;
-      item : in sexpr) return natural is
+     (shared_counts : sexpr_to_natural_map; item : in sexpr)
+      return natural is
    begin
       return
         (if shared_counts.contains (item)
@@ -2428,46 +2506,42 @@ package body sexpressions is
    -- Find shared structure, for serialization with datum labels
    -- (SRFI-38).
    --
-   -- **********************************************************
-   -- **  THIS IMPLEMENTATION ASSUMES OBJECTS HAVE ADDRESSES  **
-   -- **                THAT DO NOT CHANGE                    **
-   -- **********************************************************
-   --
    procedure find_shared_structure
-     (shared_counts : in out sexpr_to_natural_map;
-      item          : in sexpr)
+     (shared_counts : in out sexpr_to_natural_map; item : in sexpr)
    is
       count    : natural;
       workload : sexpr_vector;
       subject  : sexpr;
+      node     : node_access;
    begin
       if not is_null (item) then
          workload.append (item);
          while workload.length /= 0 loop
             subject := workload.last_element;
+            node := get_node (subject);
             workload.delete_last;
-            case subject.ptr.kind is
+            case node.kind is
                when kind_pair       =>
                   count := shared_count (shared_counts, subject);
                   shared_counts.include (subject, count + 1);
                   if count = 0 then
-                     workload.append (subject.ptr.car_val);
-                     workload.append (subject.ptr.cdr_val);
+                     workload.append (node.car_val);
+                     workload.append (node.cdr_val);
                   end if;
 
                when kind_vector     =>
-                  if subject.ptr.vector_val /= null then
+                  if node.vector_val /= null then
                      count := shared_count (shared_counts, subject);
                      shared_counts.include (subject, count + 1);
                      if count = 0 then
-                        for i in subject.ptr.vector_val'range loop
-                           workload.append (subject.ptr.vector_val (i));
+                        for i in node.vector_val'range loop
+                           workload.append (node.vector_val (i));
                         end loop;
                      end if;
                   end if;
 
                when kind_bytevector =>
-                  if subject.ptr.bytevector_val /= null then
+                  if node.bytevector_val /= null then
                      count := shared_count (shared_counts, subject);
                      shared_counts.include (subject, count + 1);
                   end if;
@@ -2499,9 +2573,7 @@ package body sexpressions is
       display       : in boolean;
       result        : out sexpr_string)
    is
-      procedure serialize_pair_contents
-        (car_val, cdr_val : in sexpr)
-      is
+      procedure serialize_pair_contents (car_val, cdr_val : in sexpr) is
          done   : boolean;
          tail   : sexpr;
          tcount : natural;
@@ -2517,7 +2589,7 @@ package body sexpressions is
          while not done and not is_null (tail) loop
             tcount := shared_count (shared_counts, tail);
             if is_shared_or_circular
-                 (kind => tail.ptr.kind, count => tcount)
+                 (kind => get_node (tail).kind, count => tcount)
               or not is_pair (tail)
             then
                result := @ & " . ";
@@ -2590,16 +2662,20 @@ package body sexpressions is
 
       procedure serialize_item (item : in sexpr) is
       begin
-         case item.ptr.kind is
+         case kind (item) is
             when kind_pair       =>
-               serialize_pair_contents
-                 (item.ptr.car_val, item.ptr.cdr_val);
+               declare
+                  node : node_access := get_node (item);
+               begin
+                  serialize_pair_contents (node.car_val, node.cdr_val);
+               end;
 
             when kind_vector     =>
-               serialize_vector_contents (item.ptr.vector_val);
+               serialize_vector_contents (get_node (item).vector_val);
 
             when kind_bytevector =>
-               serialize_bytevector_contents (item.ptr.bytevector_val);
+               serialize_bytevector_contents
+                 (get_node (item).bytevector_val);
 
             when others          =>
                serialize_without_datum_labels
@@ -2610,9 +2686,7 @@ package body sexpressions is
       label_counter : natural := 0;
       label_map     : sexpr_to_natural_map;
 
-      function label_for_assignment
-        (item : sexpr) return natural
-      is
+      function label_for_assignment (item : sexpr) return natural is
          label : natural;
       begin
          if label_map.contains (item) then
@@ -2634,7 +2708,7 @@ package body sexpressions is
       else
          count := shared_count (shared_counts, item);
          if is_shared_or_circular
-              (kind => item.ptr.kind, count => count)
+              (kind => get_node (item).kind, count => count)
          then
             if printed_set.contains (item) then
                --
@@ -2838,12 +2912,12 @@ package body sexpressions is
       if is_null (item) then
          append (result, "()");
       else
-         case item.ptr.kind is
+         case kind (item) is
             when kind_null       =>
                append (result, "()");
 
             when kind_boolean    =>
-               if item.ptr.boolean_val then
+               if get_node (item).boolean_val then
                   append (result, "#t");
                else
                   append (result, "#f");
@@ -2853,40 +2927,43 @@ package body sexpressions is
                result :=
                  @
                  & to_sexpr_string
-                     (trim_left (to_string (item.ptr.integer_val)));
+                     (trim_left
+                        (to_string (get_node (item).integer_val)));
 
             when kind_inexact    =>
                result :=
                  @
                  & to_sexpr_string
-                     (trim_left (item.ptr.inexact_val'img));
+                     (trim_left (get_node (item).inexact_val'img));
 
             when kind_rational   =>
                result :=
                  @
                  & to_sexpr_string
                      (trim_left
-                        (to_string (numerator (item.ptr.rational_val))))
+                        (to_string
+                           (numerator (get_node (item).rational_val))))
                  & '/'
                  & to_sexpr_string
                      (trim_left
                         (to_string
-                           (denominator (item.ptr.rational_val))));
+                           (denominator
+                              (get_node (item).rational_val))));
 
             when kind_character  =>
                serialize_character
-                 (item    => item.ptr.character_val,
+                 (item    => get_node (item).character_val,
                   display => display,
                   result  => result);
 
             when kind_string     =>
                serialize_string
-                 (item    => item.ptr.string_val,
+                 (item    => get_node (item).string_val,
                   display => display,
                   result  => result);
 
             when kind_symbol     =>
-               append (result, item.ptr.symbol_val);
+               append (result, get_node (item).symbol_val);
 
             when kind_pair       =>
                serialize_list
