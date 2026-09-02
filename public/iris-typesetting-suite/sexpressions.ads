@@ -2,10 +2,6 @@
 --
 --  SPDX-License-Identifier: MIT
 
---
--- FIXME: RENAME ARGUMENTS TO BE LIKE THOSE OF STANDARD ADA LIBRARIES.
---
-
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
@@ -15,12 +11,18 @@ with ada.wide_wide_characters;
 with ada.wide_wide_characters.handling;
 with ada.strings.wide_wide_unbounded;
 with ada.strings.wide_wide_hash;
-with ada.containers;
-with ada.finalization;
-with interfaces;
-with sequential_identifiers;
+with ada.containers.vectors;
+with ada.containers.indefinite_vectors;
+with ada.containers;         use ada.containers;
+with ada.finalization;       use ada.finalization;
+with interfaces;             use interfaces;
+with sequential_identifiers; use sequential_identifiers;
 
 package sexpressions is
+
+   parse_error : exception;
+   type_error  : exception;
+   io_error    : exception;
 
    package bignum_integers renames
      ada.numerics.big_numbers.big_integers;
@@ -92,35 +94,79 @@ package sexpressions is
    function to_upper (item : in sexpr_string) return sexpr_string
    with global => null;
 
-   function hash (key : in sexpr_fixstr) return ada.containers.hash_type
+   function hash_sexpr_fixstr (key : in sexpr_fixstr) return hash_type
    renames ada.strings.wide_wide_hash;
-   function hash
-     (key : in sexpr_string) return ada.containers.hash_type;
+   function hash_sexpr_string (key : in sexpr_string) return hash_type;
+
+   ---------------------------------------------------------------------
 
    type sexpr_kind is
-     (kind_null,                -- FIXME: MAKE THESE START sexpr_kind_
-      kind_boolean,
-      kind_integer,
-      kind_inexact,
-      kind_rational,
-      kind_character,
-      kind_string,
-      kind_symbol,
-      kind_pair,
-      kind_vector,
-      kind_bytevector);
+     (sexpr_kind_null,
+      sexpr_kind_boolean,
+      sexpr_kind_integer,
+      sexpr_kind_inexact,
+      sexpr_kind_rational,
+      sexpr_kind_character,
+      sexpr_kind_string,
+      sexpr_kind_symbol,
+      sexpr_kind_pair,
+      sexpr_kind_vector,
+      sexpr_kind_bytevector);
 
-   type byte_array is
-     array (positive range <>) of interfaces.unsigned_8;
+   ---------------------------------------------------------------------
 
-   type sexpr is private;
-   type sexpr_array is array (positive range <>) of sexpr;
+   subtype sexpr_identifier is sequential_identifier;
 
-   parse_error : exception;
-   type_error  : exception;
-   io_error    : exception;
+   function hash_sexpr_identifier
+     (key : in sexpr_identifier) return hash_type
+   renames hash_sequential_identifier;
+
+   function sexpr_identifier_equivalents
+     (left, right : in sexpr_identifier) return boolean
+   renames sequential_identifiers."=";
+
+   package sexpr_identifier_vectors is new
+     indefinite_vectors
+       (index_type   => positive,
+        element_type => sexpr_identifier,
+        "="          => "=");
+   subtype sexpr_identifier_vector is sexpr_identifier_vectors.vector;
+
+   ---------------------------------------------------------------------
+
+   type sexpr is new controlled with record
+      identifier : sexpr_identifier;
+   end record;
+
+   overriding
+   procedure adjust (object : in out sexpr);
+   overriding
+   procedure finalize (object : in out sexpr);
+
+   function hash_sexpr (key : in sexpr) return hash_type;
+   function sexpr_equivalents (left, right : in sexpr) return boolean;
+
+   package sexpr_vectors is new
+     indefinite_vectors
+       (index_type   => positive,
+        element_type => sexpr,
+        "="          => "=");
+   subtype sexpr_vector is sexpr_vectors.vector;
+
+   ---------------------------------------------------------------------
+
+   package unsigned_8_vectors is new
+     vectors
+       (index_type   => positive,
+        element_type => interfaces.unsigned_8,
+        "="          => "=");
+   subtype unsigned_8_vector is unsigned_8_vectors.vector;
+
+   ---------------------------------------------------------------------
 
    procedure ignore (item : sexpr);
+
+   ---------------------------------------------------------------------
 
    function make_null return sexpr;
    function make_boolean (item : in boolean) return sexpr;
@@ -137,10 +183,11 @@ package sexpressions is
    function to_exact (item : in sexpr) return sexpr;
    function to_inexact (item : in sexpr) return sexpr;
    function cons (car : in sexpr; cdr : in sexpr) return sexpr;
-   function make_list (source : in sexpr_array) return sexpr;
-   function make_circular_list (source : in sexpr_array) return sexpr;
-   function make_vector (source : in sexpr_array) return sexpr;
-   function make_bytevector (source : in byte_array) return sexpr;
+   function make_list (source : in sexpr_vector) return sexpr;
+   function make_circular_list (source : in sexpr_vector) return sexpr;
+   function make_vector (source : in sexpr_vector) return sexpr;
+   function make_bytevector
+     (source : in unsigned_8_vector) return sexpr;
    function kind (item : in sexpr) return sexpr_kind;
    function is_null (item : in sexpr) return boolean;
    function is_boolean (item : in sexpr) return boolean;
@@ -187,12 +234,18 @@ package sexpressions is
    function assoc (key, alist : in sexpr) return sexpr;
    function assq (key : in sexpr_fixstr; alist : in sexpr) return sexpr;
    function acons (key, val, alist : in sexpr) return sexpr;
+
+   ---------------------------------------------------------------------
+
    function read_from_string (source : in sexpr_string) return sexpr;
    function read_from_string (source : in sexpr_fixstr) return sexpr;
    function read (filename : in string) return sexpr;
    function read_all_from_string
-     (source : in sexpr_string) return sexpr_array;
-   function read_all (filename : in string) return sexpr_array;
+     (source : in sexpr_string) return sexpr_vector;
+   function read_all (filename : in string) return sexpr_vector;
+
+   ---------------------------------------------------------------------
+
    function write_to_string (item : in sexpr) return sexpr_string;
    function write_simple_to_string
      (item : in sexpr) return sexpr_string;
@@ -212,105 +265,5 @@ package sexpressions is
    procedure display (item : in sexpr; filename : in string);
 
    ---------------------------------------------------------------------
-   --
-   -- Tools for use of sexpr type as keys.
-   --
-
-   -- For equivalence testing. The "=" operation.
-   function sexpr_equivalents (left, right : in sexpr) return boolean;
-
-   -- For hashing. A hash function.
-   function hash_sexpr (key : in sexpr) return ada.containers.hash_type;
-
-   ---------------------------------------------------------------------
-
-private
-
-   use sequential_identifiers;
-
-   type sexpr_vector_access is access all sexpr_array;
-   type byte_vector_access is access all byte_array;
-
-   type node_record (kind : sexpr_kind) is record
-      reference_count : natural := 1;
-      case kind is
-         when kind_null =>
-            null;
-
-         when kind_boolean =>
-            boolean_val : boolean;
-
-         when kind_integer =>
-            integer_val : bignum_integer;
-
-         when kind_inexact =>
-            inexact_val : inexact_real;
-
-         when kind_rational =>
-            rational_val : exact_real;
-
-         when kind_character =>
-            character_val : sexpr_character;
-
-         when kind_string =>
-            string_val : sexpr_string;
-
-         when kind_symbol =>
-            symbol_val : sexpr_string;
-
-         when kind_pair =>
-            car_val : sexpr;
-            cdr_val : sexpr;
-
-         when kind_vector =>
-            vector_val : sexpr_vector_access;
-
-         when kind_bytevector =>
-            bytevector_val : byte_vector_access;
-      end case;
-   end record;
-
-   --
-   -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-   --
-   -- FIXME: A LOT OF THE LOGIC FOR node_record MANAGEMENT COULD BE
-   -- MOVED INTO THE REGISTRY. Thus reducing the number of
-   -- indirections.
-   --
-   -- FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-   --
-
-   type node_access is access all node_record;
-
-   type sexpr_element is new ada.finalization.controlled with record
-      ptr : node_access := null;
-   end record;
-
-   overriding
-   procedure adjust (object : in out sexpr_element);
-   overriding
-   procedure finalize (object : in out sexpr_element);
-
-   type sexpr_record is record
-      reference_count : natural := 1;
-      identifier      : sequential_identifier :=
-        next_sequential_identifier;
-   end record;
-
-   type sexpr_record_access is access all sexpr_record;
-
-   type sexpr is new ada.finalization.controlled with record
-      ptr : sexpr_record_access;
-   end record;
-
-   overriding
-   procedure adjust (object : in out sexpr);
-   overriding
-   procedure finalize (object : in out sexpr);
-
-   null_sexpr_record : aliased sexpr_record :=
-     (reference_count => 1, identifier => next_sequential_identifier);
-   null_sexpr        : sexpr :=
-     (ada.finalization.controlled with ptr => null_sexpr_record'access);
 
 end sexpressions;
