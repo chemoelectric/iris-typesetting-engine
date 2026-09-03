@@ -122,8 +122,7 @@ package body sexpressions is
             symbol_val : sexpr_string;
 
          when sexpr_kind_pair =>
-            car_val : sexpr_identifier;
-            cdr_val : sexpr_identifier;
+            pair_val : sexpr_identifier_vector;
 
          when sexpr_kind_vector =>
             vector_val : sexpr_identifier_vector;
@@ -214,8 +213,9 @@ package body sexpressions is
             begin
                case node.kind is
                   when sexpr_kind_pair   =>
-                     decrement_other_node (node.car_val);
-                     decrement_other_node (node.cdr_val);
+                     for each of node.pair_val loop
+                        decrement_other_node (each);
+                     end loop;
 
                   when sexpr_kind_vector =>
                      for each of node.vector_val loop
@@ -255,8 +255,14 @@ package body sexpressions is
 
    function make_sexpr (node : in node_record) return sexpr is
    begin
-      return (controlled with identifier => make_sexpr_identifier (node));
+      return
+        (controlled with identifier => make_sexpr_identifier (node));
    end make_sexpr;
+
+   function get_node (key : in sexpr) return node_record is
+   begin
+      return node_record (node_registry.element (key.identifier));
+   end get_node;
 
    overriding
    procedure adjust (object : in out sexpr) is
@@ -647,7 +653,8 @@ package body sexpressions is
    -- The unique null list.
    --
 
-   the_null_list : constant sexpr := make_sexpr (node => (kind => sexpr_kind_null));
+   the_null_list : constant sexpr :=
+     make_sexpr (node => (kind => sexpr_kind_null));
 
    function make_null return sexpr is
    begin
@@ -715,8 +722,8 @@ package body sexpressions is
 
    function register_new_symbol (source : in sexpr_string) return sexpr
    is
-      node : node_record := (kind => sexpr_kind_symbol,
-                             symbol_val => source);
+      node : node_record :=
+        (kind => sexpr_kind_symbol, symbol_val => source);
    begin
       return result : sexpr := make_sexpr (node) do
          symbol_registry.insert (to_sexpr_fixstr (source), result);
@@ -741,18 +748,21 @@ package body sexpressions is
 
    function make_integer (item : in bignum_integer) return sexpr is
    begin
-      return make_sexpr ((kind => sexpr_kind_integer,
-                          integer_val => item));
+      return
+        make_sexpr ((kind => sexpr_kind_integer, integer_val => item));
    end make_integer;
 
    function make_inexact (item : in inexact_real) return sexpr is
    begin
-      return make_sexpr ((kind => sexpr_kind_inexact, inexact_val => item));
+      return
+        make_sexpr ((kind => sexpr_kind_inexact, inexact_val => item));
    end make_inexact;
 
    function make_exact (item : in exact_real) return sexpr is
    begin
-      return make_sexpr ((kind => sexpr_kind_rational, rational_val => item));
+      return
+        make_sexpr
+          ((kind => sexpr_kind_rational, rational_val => item));
    end make_exact;
 
    function make_exact
@@ -763,12 +773,15 @@ package body sexpressions is
 
    function make_character (item : in sexpr_character) return sexpr is
    begin
-      return make_sexpr ((kind => sexpr_kind_character, character_val => item));
+      return
+        make_sexpr
+          ((kind => sexpr_kind_character, character_val => item));
    end make_character;
 
    function make_string (source : in sexpr_string) return sexpr is
    begin
-      return make_sexpr ((kind => sexpr_kind_string, string_val => source));
+      return
+        make_sexpr ((kind => sexpr_kind_string, string_val => source));
    end make_string;
 
    function make_string (source : in sexpr_fixstr) return sexpr is
@@ -813,73 +826,88 @@ package body sexpressions is
 
    function cons (car, cdr : in sexpr) return sexpr is
    begin
-      return make_sexpr ((kind => sexpr_kind_pair, car_val => car.identifier, cdr_val => cdr.identifier));
+      node_registry.increment_reference_count (car.identifier);
+      node_registry.increment_reference_count (cdr.identifier);
+      return
+        make_sexpr
+          ((kind     => sexpr_kind_pair,
+            pair_val => [car.identifier, cdr.identifier]));
    end cons;
 
-   function make_list (source : in sexpr_vector) return sexpr is
+   function make_list (source : in sexpr_vector'class) return sexpr is
    begin
-      return res : sexpr := make_null do
-         for idx in reverse source'range loop
-            res := cons (source (idx), res);
+      return result : sexpr := make_null do
+         for each of reverse source loop
+            result := cons (each, result);
          end loop;
       end return;
    end make_list;
 
-   function make_circular_list (source : in sexpr_array) return sexpr is
-      res  : sexpr;
-      last : sexpr;
+   function make_circular_list
+     (source : in sexpr_vector'class) return sexpr
+   is
+      result : sexpr;
+      last   : sexpr;
    begin
-      case source'length is
+      case source.length is
          when 0      =>
             raise type_error
               with "attempt to make an empty circular list";
 
          when 1      =>
-            res := cons (source (source'first), make_null);
-            set_cdr (last, res);
+            result := cons (source.first_element, make_null);
+            set_cdr (result, result);
 
          when others =>
-            last := cons (source (source'last), make_null);
-            res := last;
-            for idx in reverse source'first .. source'last - 1 loop
-               res := cons (source (idx), res);
+            last := cons (source.last_element, make_null);
+            result := last;
+            for i in reverse source.first_index .. source.last_index - 1
+            loop
+               result := cons (source (i), result);
             end loop;
-            set_cdr (last, res);
+            set_cdr (last, result);
       end case;
-      return res;
+      return result;
    end make_circular_list;
 
-   function make_vector (source : in sexpr_array) return sexpr is
-      node : node_access := new node_record (sexpr_kind_vector);
+   function make_vector (source : in sexpr_vector'class) return sexpr is
+      node_data : sexpr_identifier_vector;
    begin
-      node.vector_val := new sexpr_array (1 .. source'length);
-      for idx in source'range loop
-         node.vector_val (idx - source'first + 1) := source (idx);
+      for each of source loop
+         node_registry.increment_reference_count (each.identifier);
+         node_data.append (each.identifier);
       end loop;
-      return make_sexpr (node);
+      return
+        make_sexpr
+          ((kind => sexpr_kind_vector, vector_val => node_data));
    end make_vector;
 
-   function make_bytevector (source : in byte_array) return sexpr is
-      node : node_access := new node_record (sexpr_kind_bytevector);
+   function make_bytevector (source : in unsigned_8_vector) return sexpr
+   is
+      node_data : unsigned_8_vector;
    begin
-      node.bytevector_val := new byte_array (1 .. source'length);
-      for idx in source'range loop
-         node.bytevector_val (idx - source'first + 1) := source (idx);
+      --
+      -- Make a COPY of the data.
+      --
+      for each of source loop
+         node_data.append (each);
       end loop;
-      return make_sexpr (node);
+      return
+        make_sexpr
+          ((kind           => sexpr_kind_bytevector,
+            bytevector_val => node_data));
    end make_bytevector;
+
+   ---------------------------------------------------------------------
 
    function kind (item : in sexpr) return sexpr_kind is
    begin
-      return
-        (if item.ptr = null
-         then sexpr_kind_null
-         else get_node (item).kind);
+      return get_node (item).kind;
    end kind;
 
    function is_null (item : in sexpr) return boolean is
    begin
-      return (item.ptr = null);
+      return kind (item) = sexpr_kind_null;
    end is_null;
 
    function is_boolean (item : in sexpr) return boolean is
@@ -943,16 +971,16 @@ package body sexpressions is
       -- we want to do the SRFI-1 classification into the three types
       -- of list.
       --
-      cur : sexpr := item;
-      res : boolean := false;
-      cnt : natural := 0;
+      cur    : sexpr := item;
+      result : boolean := false;
+      cnt    : natural := 0;
    begin
       while is_pair (cur) and cnt < 1000000 loop
          cur := cdr (cur);
          cnt := @ + 1;
       end loop;
-      res := is_null (cur);
-      return res;
+      result := is_null (cur);
+      return result;
    end is_list;
 
    function is_vector (item : in sexpr) return boolean is
@@ -1101,19 +1129,27 @@ package body sexpressions is
    end get_symbol;
 
    function car (item : in sexpr) return sexpr is
+      identifier : sexpr_identifier;
    begin
       if kind (item) /= sexpr_kind_pair then
          raise type_error with "expected pair s-expression";
       end if;
-      return get_node (item).car_val;
+      identifier := get_node (item).pair_val.first_element;
+      node_registry.increment_reference_count (identifier);
+      return (controlled with identifier => identifier);
    end car;
 
    function cdr (item : in sexpr) return sexpr is
+      identifier : sexpr_identifier;
+      vec        : sexpr_identifier_vector;
    begin
       if kind (item) /= sexpr_kind_pair then
          raise type_error with "expected pair s-expression";
       end if;
-      return get_node (item).cdr_val;
+      vec := get_node (item).pair_val;
+      identifier := vec.element (vec.first_index + 1);
+      node_registry.increment_reference_count (identifier);
+      return (controlled with identifier => identifier);
    end cdr;
 
    function caar (item : in sexpr) return sexpr is
@@ -1136,119 +1172,103 @@ package body sexpressions is
       return cdr (cdr (item));
    end cddr;
 
-   function length (item : in sexpr) return natural is
-      cur : sexpr := item;
-      cnt : natural := 0;
+   function length (item : in sexpr) return count_type is
+      current : sexpr := item;
+      count   : count_type := 0;
    begin
-      while is_pair (cur) loop
-         cnt := cnt + 1;
-         cur := cdr (cur);
+      while is_pair (current) loop
+         count := @ + 1;
+         current := cdr (@);
       end loop;
-      return cnt;
+      return count;
    end length;
 
    function list_ref (item : in sexpr; index : in positive) return sexpr
    is
-      cur : sexpr := item;
-      pos : positive := 1;
-      res : sexpr;
+      current  : sexpr := item;
+      position : positive := 1;
+      result   : sexpr;
    begin
-      while pos < index and then is_pair (cur) loop
-         cur := cdr (cur);
-         pos := pos + 1;
+      while position < index and then is_pair (current) loop
+         current := cdr (@);
+         position := @ + 1;
       end loop;
-      if is_pair (cur) then
-         res := car (cur);
+      if is_pair (current) then
+         result := car (current);
       else
          raise type_error with "list_ref index out of bounds";
       end if;
-      return res;
+      return result;
    end list_ref;
 
-   procedure set_car (pair, value : sexpr) is
+   procedure set_car_or_cdr (pair, value : in sexpr; index : in integer)
+   with pre => index in 1 | 2
+   is
+      vec            : sexpr_identifier_vector;
+      old_identifier : sexpr_identifier;
    begin
       if kind (pair) /= sexpr_kind_pair then
-         -- FIXME: PROVIDE BETTER CONTEXT
-         raise type_error with "cannot set_car a non-pair";
+         raise type_error with "cannot set_car or set_cdr a non-pair";
       else
-         get_node (pair).car_val := value;
+         vec := get_node (pair).pair_val;
+         old_identifier := vec.element (index);
+         if value.identifier /= old_identifier then
+            node_registry.increment_reference_count (value.identifier);
+            vec.insert (index, value.identifier);
+            node_registry.decrement_reference_count (old_identifier);
+         end if;
       end if;
+   end set_car_or_cdr;
+
+   procedure set_car (pair, value : in sexpr) is
+   begin
+      set_car_or_cdr (pair, value, 1);
    end set_car;
 
-   procedure set_cdr (pair, value : sexpr) is
+   procedure set_cdr (pair, value : in sexpr) is
    begin
-      if kind (pair) /= sexpr_kind_pair then
-         -- FIXME: PROVIDE BETTER CONTEXT
-         raise type_error with "cannot set_cdr a non-pair";
-      else
-         get_node (pair).cdr_val := value;
-      end if;
+      set_car_or_cdr (pair, value, 2);
    end set_cdr;
 
-   function vector_length (item : in sexpr) return natural is
-      node : node_access;
+   function vector_length (item : in sexpr) return count_type is
    begin
       if kind (item) /= sexpr_kind_vector then
-         -- FIXME: PROVIDE BETTER CONTEXT
          raise type_error with "vector_length called on a non-vector";
       end if;
-      node := get_node (item);
-      return
-        (if node.vector_val = null then 0 else node.vector_val'length);
+      return get_node (item).vector_val.length;
    end vector_length;
 
    function vector_ref
      (item : in sexpr; index : in positive) return sexpr
    is
-      node : node_access;
+      identifier : sexpr_identifier;
    begin
       if kind (item) /= sexpr_kind_vector then
-         -- FIXME: PROVIDE BETTER CONTEXT
          raise type_error with "vector_ref called on a non-vector";
       end if;
-      node := get_node (item);
-      if node.vector_val = null
-        or else not (index in node.vector_val'range)
-      then
-         raise type_error
-           with "vector_ref index out of bounds:" & index'img;
-      end if;
-      return node.vector_val (index);
+      identifier := get_node (item).vector_val.element (index);
+      node_registry.increment_reference_count (identifier);
+      return (controlled with identifier => identifier);
    end vector_ref;
 
-   function bytevector_length (item : in sexpr) return natural is
-      node : node_access;
+   function bytevector_length (item : in sexpr) return count_type is
    begin
       if kind (item) /= sexpr_kind_bytevector then
-         -- FIXME: PROVIDE BETTER CONTEXT
          raise type_error
            with "bytevector_length called on a non-bytevector";
       end if;
-      node := get_node (item);
-      return
-        (if node.bytevector_val = null
-         then 0
-         else node.bytevector_val'length);
+      return get_node (item).bytevector_val.length;
    end bytevector_length;
 
    function bytevector_ref
      (item : in sexpr; index : in positive) return interfaces.unsigned_8
    is
-      node : node_access;
    begin
       if kind (item) /= sexpr_kind_bytevector then
-         -- FIXME: PROVIDE BETTER CONTEXT
          raise type_error
            with "bytevector_ref called on a non-bytevector";
       end if;
-      node := get_node (item);
-      if node.bytevector_val = null
-        or else not (index in node.bytevector_val'range)
-      then
-         raise type_error
-           with "bytevector_ref index out of bounds:" & index'img;
-      end if;
-      return node.bytevector_val (index);
+      return get_node (item).bytevector_val.element (index);
    end bytevector_ref;
 
    function equal_pairs (left, right : in sexpr) return boolean is
@@ -1258,42 +1278,45 @@ package body sexpressions is
         and then equal (cdr (left), cdr (right));
    end equal_pairs;
 
-   function equal_vectors (a : in sexpr; b : in sexpr) return boolean is
-      len : natural := vector_length (a);
-      res : boolean := true;
-      idx : positive := 1;
+   function equal_vectors (left, right : in sexpr) return boolean is
+      len    : count_type := vector_length (left);
+      result : boolean := true;
+      index  : positive := 1;
    begin
-      if len /= vector_length (b) then
-         res := false;
+      if len /= vector_length (right) then
+         result := false;
       else
-         while idx <= len and res loop
-            if not equal (vector_ref (a, idx), vector_ref (b, idx)) then
-               res := false;
+         while index <= integer (len) and result loop
+            if not equal
+                     (vector_ref (left, index),
+                      vector_ref (right, index))
+            then
+               result := false;
             end if;
-            idx := idx + 1;
+            index := @ + 1;
          end loop;
       end if;
-      return res;
+      return result;
    end equal_vectors;
 
-   function equal_bytevectors
-     (a : in sexpr; b : in sexpr) return boolean
-   is
-      len : natural := bytevector_length (a);
-      res : boolean := true;
-      idx : positive := 1;
+   function equal_bytevectors (left, right : in sexpr) return boolean is
+      len    : count_type := vector_length (left);
+      result : boolean := true;
+      index  : positive := 1;
    begin
-      if len /= bytevector_length (b) then
-         res := false;
+      if len /= vector_length (right) then
+         result := false;
       else
-         while idx <= len and res loop
-            if bytevector_ref (a, idx) /= bytevector_ref (b, idx) then
-               res := false;
+         while index <= integer (len) and result loop
+            if bytevector_ref (left, index)
+              /= bytevector_ref (right, index)
+            then
+               result := false;
             end if;
-            idx := idx + 1;
+            index := @ + 1;
          end loop;
       end if;
-      return res;
+      return result;
    end equal_bytevectors;
 
    function real_numbers_are_equal
@@ -1310,8 +1333,8 @@ package body sexpressions is
             | sexpr_kind_inexact
             | sexpr_kind_rational
    is
-      node_a : node_access := get_node (a);
-      node_b : node_access := get_node (b);
+      node_a : node_record := get_node (a);
+      node_b : node_record := get_node (b);
       result : boolean;
    begin
       case ka is
@@ -1775,7 +1798,7 @@ package body sexpressions is
 
    function parse_list_items (ctx : in out parse_context) return sexpr
    is
-      res : sexpr := make_null;
+      result : sexpr := make_null;
    begin
       skip_whitespace_and_comments (ctx);
       if is_eof (ctx) then
@@ -1784,13 +1807,13 @@ package body sexpressions is
 
       if peek_char (ctx) = ')' then
          adv_char (ctx); -- consume ')'
-         res := make_null;
+         result := make_null;
       elsif peek_char (ctx) = '.'
         and then is_delimiter (peek_next_char (ctx))
       then
          adv_char (ctx); -- consume '.'
          skip_whitespace_and_comments (ctx);
-         res := parse_datum (ctx);
+         result := parse_datum (ctx);
          skip_whitespace_and_comments (ctx);
          if peek_char (ctx) /= ')' then
             raise parse_error with "expected ')' after dotted cdr";
@@ -1801,40 +1824,34 @@ package body sexpressions is
             head : sexpr := parse_datum (ctx);
             tail : sexpr := parse_list_items (ctx);
          begin
-            res := cons (head, tail);
+            result := cons (head, tail);
          end;
       end if;
-      return res;
+      return result;
    end parse_list_items;
 
    function make_vector_sexpr (ctx : in out parse_context) return sexpr
    is
       temp_list : sexpr;
-      vec_count : natural := 0;
-      cur       : sexpr;
-      res       : sexpr;
+      vec_count : count_type := 0;
+      current   : sexpr;
+      items     : sexpr_vector;
+      index     : positive := 1;
    begin
       adv_char (ctx); -- skip '('
       temp_list := parse_list_items (ctx);
       vec_count := length (temp_list);
-
-      declare
-         items : sexpr_array (1 .. vec_count);
-         idx   : positive := 1;
-      begin
-         cur := temp_list;
-         while is_pair (cur) loop
-            items (idx) := car (cur);
-            idx := idx + 1;
-            cur := cdr (cur);
-         end loop;
-         if not is_null (cur) then
-            -- FIXME: PROVIDE CONTEXT
-            raise parse_error with "a vector cannot be dotted";
-         end if;
-         res := make_vector (items);
-      end;
-      return res;
+      items.set_length (vec_count);
+      current := temp_list;
+      while is_pair (current) loop
+         items (index) := car (current);
+         index := @ + 1;
+         current := cdr (@);
+      end loop;
+      if not is_null (current) then
+         raise parse_error with "a vector cannot be dotted";
+      end if;
+      return make_vector (items);
    end make_vector_sexpr;
 
    function is_valid_integer
@@ -1843,48 +1860,49 @@ package body sexpressions is
         access function (item : in sexpr_character) return boolean)
       return boolean
    is
-      res : boolean;
-      i_1 : constant integer := source'first;
-      i_n : constant integer := source'last;
-      st  : integer range i_1 .. i_n + 1;
+      result : boolean;
+      i_1    : constant integer := source'first;
+      i_n    : constant integer := source'last;
+      st     : integer range i_1 .. i_n + 1;
    begin
       if i_n < i_1 then
-         res := false;
+         result := false;
       else
          st := (if source (i_1) in '-' | '+' then i_1 + 1 else i_1);
          if i_n < st then
-            res := false;
+            result := false;
          else
-            res := (for all ch of source (st .. i_n) => predicate (ch));
+            result :=
+              (for all ch of source (st .. i_n) => predicate (ch));
          end if;
       end if;
-      return res;
+      return result;
    end is_valid_integer;
 
    function is_valid_integer
      (source : in sexpr_fixstr; radix : in positive) return boolean
    with pre => is_radix (radix)
    is
-      res : boolean;
+      result : boolean;
    begin
       case radix is
          when 2      =>
-            res := is_valid_integer (source, is_binary_digit'access);
+            result := is_valid_integer (source, is_binary_digit'access);
 
          when 8      =>
-            res := is_valid_integer (source, is_octal_digit'access);
+            result := is_valid_integer (source, is_octal_digit'access);
 
          when 10     =>
-            res := is_valid_integer (source, is_ascii_digit'access);
+            result := is_valid_integer (source, is_ascii_digit'access);
 
          when 16     =>
-            res :=
+            result :=
               is_valid_integer (source, is_hexadecimal_digit'access);
 
          when others =>
             raise parse_error with "internal error";
       end case;
-      return res;
+      return result;
    end is_valid_integer;
 
    function is_valid_integer
@@ -1948,21 +1966,21 @@ package body sexpressions is
       num_str : sexpr_string;
       den_str : sexpr_string;
       n, d    : bignum_integer;
-      res     : sexpr;
+      result  : sexpr;
    begin
       split_fraction (tok, radix, num_str, den_str);
       if length (num_str) /= 0 then
          n := parse_integer_val (num_str, radix);
          d := parse_integer_val (den_str, radix);
          if 0 < d then
-            res := make_exact (n, d);
+            result := make_exact (n, d);
          else
-            res := make_symbol (tok);
+            result := make_symbol (tok);
          end if;
       else
-         res := make_symbol (tok);
+         result := make_symbol (tok);
       end if;
-      return res;
+      return result;
    end parse_what_contains_slash;
 
    function is_inf_or_nan (tok : in sexpr_string) return boolean is
@@ -1980,19 +1998,19 @@ package body sexpressions is
    with pre => is_radix (radix)
    is
       use ada.exceptions;
-      res : sexpr;
+      result : sexpr;
    begin
       if is_inf_or_nan (source) then
          raise parse_error
            with to_string (source) & " is not yet implemented";
       elsif is_valid_integer (source, radix) then
-         res := make_integer (parse_integer_val (source, radix));
+         result := make_integer (parse_integer_val (source, radix));
       elsif contains_slash (source) then
-         res := parse_what_contains_slash (source, radix);
+         result := parse_what_contains_slash (source, radix);
       else
          begin
             if radix = 10 then
-               res := make_inexact (to_inexact_real (source));
+               result := make_inexact (to_inexact_real (source));
             else
                raise parse_error
                  with
@@ -2004,13 +2022,13 @@ package body sexpressions is
          exception
             when exc : others =>
                if allow_symbol then
-                  res := make_symbol (source);
+                  result := make_symbol (source);
                else
                   reraise_occurrence (exc);
                end if;
          end;
       end if;
-      return res;
+      return result;
    end parse_number_or_symbol;
 
    function make_character_from_hash_token
@@ -2084,16 +2102,16 @@ package body sexpressions is
       long_form  : in sexpr_fixstr;
       value      : in boolean) return sexpr
    is
-      res     : sexpr;
+      result  : sexpr;
       s       : constant sexpr_string := collect_identifier (ctx);
       s_lower : constant sexpr_string := to_lower (s);
    begin
       if s_lower = short_form or s_lower = long_form then
-         res := make_boolean (value);
+         result := make_boolean (value);
       else
          raise parse_error with unrecognized_hash_token_message (s);
       end if;
-      return res;
+      return result;
    end make_boolean_sexpr;
 
    --
@@ -2113,56 +2131,47 @@ package body sexpressions is
    function collect_bytevector (ctx : in out parse_context) return sexpr
    is
       temp_list : sexpr;
-      bv_count  : natural := 0;
-      cur       : sexpr;
-      res       : sexpr;
+      current   : sexpr;
+      bytes     : unsigned_8_vector;
+      index     : positive := 1;
+      val       : bignum_integer;
    begin
       if is_eof (ctx) or else peek_char (ctx) /= '(' then
          raise parse_error with "expected '(' after #u8";
-      else
-         adv_char (ctx); -- skip '('
-         temp_list := parse_list_items (ctx);
-         bv_count := length (temp_list);
-
-         declare
-            bytes : byte_array (1 .. bv_count);
-            idx   : positive := 1;
-            val   : bignum_integer;
-         begin
-            cur := temp_list;
-            while is_pair (cur) loop
-               val := get_integer (car (cur));
-               if val < 0 or 255 < val then
-                  raise parse_error
-                    with "bytevector element out of range: " & val'img;
-               end if;
-               bytes (idx) := interfaces.unsigned_8 (to_integer (val));
-               idx := idx + 1;
-               cur := cdr (cur);
-            end loop;
-            if not is_null (cur) then
-               -- FIXME: PROVIDE CONTEXT
-               raise parse_error with "a bytevector cannot be dotted";
-            end if;
-            res := make_bytevector (bytes);
-         end;
       end if;
-      return res;
+      adv_char (ctx); -- skip '('
+      temp_list := parse_list_items (ctx);
+      bytes.set_length (length (temp_list));
+      current := temp_list;
+      while is_pair (current) loop
+         val := get_integer (car (current));
+         if val < 0 or 255 < val then
+            raise parse_error
+              with "bytevector element out of range: " & val'img;
+         end if;
+         bytes (index) := interfaces.unsigned_8 (to_integer (val));
+         index := @ + 1;
+         current := cdr (@);
+      end loop;
+      if not is_null (current) then
+         raise parse_error with "a bytevector cannot be dotted";
+      end if;
+      return make_bytevector (bytes);
    end collect_bytevector;
 
    function make_homogeneous_vector_sexpr
      (ctx : in out parse_context) return sexpr
    is
-      res     : sexpr;
+      result  : sexpr;
       s       : constant sexpr_string := collect_identifier (ctx);
       s_lower : constant sexpr_string := to_lower (s);
    begin
       if s_lower = "u8" then
-         res := collect_bytevector (ctx);
+         result := collect_bytevector (ctx);
       else
          raise parse_error with unrecognized_hash_token_message (s);
       end if;
-      return res;
+      return result;
    end make_homogeneous_vector_sexpr;
 
    procedure analyze_hash_numeral_tag
@@ -2278,12 +2287,12 @@ package body sexpressions is
    function make_hash_numeral_sexpr
      (ctx : in out parse_context) return sexpr
    is
-      res       : sexpr;
+      result    : sexpr;
       radix     : integer;
       exactness : numerical_exactness;
    begin
       analyze_hash_numeral_tag (ctx, radix, exactness);
-      res :=
+      result :=
         parse_number_or_symbol
           (ctx,
            source       => collect_until_delimiter (ctx),
@@ -2294,12 +2303,12 @@ package body sexpressions is
             null;
 
          when numerically_exact               =>
-            res := to_exact (res);
+            result := to_exact (result);
 
          when numerically_inexact             =>
-            res := to_inexact (res);
+            result := to_inexact (result);
       end case;
-      return res;
+      return result;
    end make_hash_numeral_sexpr;
 
    function make_datum_label_sexpr
@@ -2311,7 +2320,7 @@ package body sexpressions is
 
    function parse_hash_prefix (ctx : in out parse_context) return sexpr
    is
-      res : sexpr;
+      result : sexpr;
    begin
       adv_char (ctx); -- skip '#'
       if is_eof (ctx) then
@@ -2319,25 +2328,25 @@ package body sexpressions is
       else
          case to_lower (peek_char (ctx)) is
             when '\'                               =>
-               res := make_character_from_hash_token (ctx);
+               result := make_character_from_hash_token (ctx);
 
             when '('                               =>
-               res := make_vector_sexpr (ctx);
+               result := make_vector_sexpr (ctx);
 
             when 't'                               =>
-               res := make_boolean_sexpr (ctx, "t", "true", true);
+               result := make_boolean_sexpr (ctx, "t", "true", true);
 
             when 'f'                               =>
-               res := make_boolean_sexpr (ctx, "f", "false", false);
+               result := make_boolean_sexpr (ctx, "f", "false", false);
 
             when 'u'                               =>
-               res := make_homogeneous_vector_sexpr (ctx);
+               result := make_homogeneous_vector_sexpr (ctx);
 
             when 'b' | 'o' | 'd' | 'x' | 'e' | 'i' =>
-               res := make_hash_numeral_sexpr (ctx);
+               result := make_hash_numeral_sexpr (ctx);
 
             when '0' .. '9'                        =>
-               res := make_datum_label_sexpr (ctx);
+               result := make_datum_label_sexpr (ctx);
 
             when others                            =>
                raise parse_error
@@ -2346,11 +2355,11 @@ package body sexpressions is
                      (null_sexpr_string & peek_char (ctx));
          end case;
       end if;
-      return res;
+      return result;
    end parse_hash_prefix;
 
    function parse_datum (ctx : in out parse_context) return sexpr is
-      res : sexpr := make_null;
+      result : sexpr := make_null;
    begin
       skip_whitespace_and_comments (ctx);
       if is_eof (ctx) then
@@ -2362,19 +2371,19 @@ package body sexpressions is
       begin
          if c = sexpr_character'('(') then
             adv_char (ctx);
-            res := parse_list_items (ctx);
+            result := parse_list_items (ctx);
          elsif c = sexpr_character'('"') then
-            res := parse_string_literal (ctx);
+            result := parse_string_literal (ctx);
          elsif c = sexpr_character'('|') then
-            res := parse_vertical_symbol (ctx);
+            result := parse_vertical_symbol (ctx);
          elsif c = sexpr_character'('#') then
-            res := parse_hash_prefix (ctx);
+            result := parse_hash_prefix (ctx);
          elsif c = sexpr_character'(''') then
             adv_char (ctx);
             declare
                sub : sexpr := parse_datum (ctx);
             begin
-               res :=
+               result :=
                  cons (make_symbol ("quote"), cons (sub, make_null));
             end;
          elsif c = sexpr_character'('`') then
@@ -2382,7 +2391,7 @@ package body sexpressions is
             declare
                sub : sexpr := parse_datum (ctx);
             begin
-               res :=
+               result :=
                  cons
                    (make_symbol ("quasiquote"), cons (sub, make_null));
             end;
@@ -2395,7 +2404,7 @@ package body sexpressions is
                declare
                   sub : sexpr := parse_datum (ctx);
                begin
-                  res :=
+                  result :=
                     cons
                       (make_symbol ("unquote-splicing"),
                        cons (sub, make_null));
@@ -2404,7 +2413,7 @@ package body sexpressions is
                declare
                   sub : sexpr := parse_datum (ctx);
                begin
-                  res :=
+                  result :=
                     cons
                       (make_symbol ("unquote"), cons (sub, make_null));
                end;
@@ -2419,11 +2428,11 @@ package body sexpressions is
                   append (tok, peek_char (ctx));
                   adv_char (ctx);
                end loop;
-               res := parse_number_or_symbol (ctx, tok);
+               result := parse_number_or_symbol (ctx, tok);
             end;
          end if;
       end;
-      return res;
+      return result;
    end parse_datum;
 
    ---------------------------------------------------------------------
@@ -2432,14 +2441,14 @@ package body sexpressions is
    --
 
    function read_from_string (source : in sexpr_string) return sexpr is
-      ctx : parse_context;
-      res : sexpr;
+      ctx    : parse_context;
+      result : sexpr;
    begin
       ctx.src := source;
       ctx.pos := 1;
       ctx.len := length (ctx.src);
-      res := parse_datum (ctx);
-      return res;
+      result := parse_datum (ctx);
+      return result;
    end read_from_string;
 
    function read_from_string (source : in sexpr_fixstr) return sexpr is
@@ -2448,11 +2457,13 @@ package body sexpressions is
    end read_from_string;
 
    function read_all_from_string
-     (source : in sexpr_string) return sexpr_array
+     (source : in sexpr_string) return sexpr_vector
    is
       ctx       : parse_context;
       temp_list : sexpr := make_null;
-      cnt       : natural := 0;
+      count     : natural := 0;
+      current   : sexpr;
+      result    : sexpr_vector;
    begin
       ctx.src := source;
       ctx.pos := 1;
@@ -2460,25 +2471,19 @@ package body sexpressions is
 
       skip_whitespace_and_comments (ctx);
       while not is_eof (ctx) loop
-         declare
-            d : sexpr := parse_datum (ctx);
-         begin
-            temp_list := cons (d, temp_list);
-            cnt := cnt + 1;
-         end;
+         temp_list := cons (parse_datum (ctx), temp_list);
+         count := @ + 1;
          skip_whitespace_and_comments (ctx);
       end loop;
 
-      declare
-         arr : sexpr_array (1 .. cnt);
-         cur : sexpr := temp_list;
-      begin
-         for i in reverse 1 .. cnt loop
-            arr (i) := car (cur);
-            cur := cdr (cur);
-         end loop;
-         return arr;
-      end;
+      result.set_length (count_type (count));
+      current := temp_list;
+      for i in reverse 1 .. count loop
+         result.insert (i, car (current));
+         current := cdr (@);
+      end loop;
+
+      return result;
    end read_all_from_string;
 
    function read_file_content (filename : in string) return sexpr_string
@@ -2508,9 +2513,9 @@ package body sexpressions is
 
    function read (filename : in string) return sexpr is
       content : sexpr_string := read_file_content (filename);
-      res     : sexpr := read_from_string (content);
+      result  : sexpr := read_from_string (content);
    begin
-      return res;
+      return result;
    end read;
 
    function read_all (filename : in string) return sexpr_array is
@@ -2884,24 +2889,26 @@ package body sexpressions is
       display : in boolean;
       result  : in out sexpr_string)
    is
-      cur   : sexpr := item;
-      first : boolean := true;
+      current : sexpr := item;
+      first   : boolean := true;
    begin
       append (result, '(');
-      while is_pair (cur) loop
+      while is_pair (current) loop
          if not first then
             append (result, ' ');
          end if;
          first := false;
          serialize_without_datum_labels
-           (item => car (cur), display => display, result => result);
-         cur := cdr (cur);
+           (item    => car (current),
+            display => display,
+            result  => result);
+         current := cdr (current);
       end loop;
 
-      if not is_null (cur) then
+      if not is_null (current) then
          append (result, " . ");
          serialize_without_datum_labels
-           (item => cur, display => display, result => result);
+           (item => current, display => display, result => result);
       end if;
       append (result, ')');
    end serialize_list;
@@ -2914,12 +2921,12 @@ package body sexpressions is
       len : natural := vector_length (item);
    begin
       append (result, "#(");
-      for idx in 1 .. len loop
-         if idx > 1 then
+      for index in 1 .. len loop
+         if index > 1 then
             append (result, ' ');
          end if;
          serialize_without_datum_labels
-           (item    => vector_ref (item, idx),
+           (item    => vector_ref (item, index),
             display => display,
             result  => result);
       end loop;
@@ -2932,12 +2939,13 @@ package body sexpressions is
       len : natural := bytevector_length (item);
    begin
       append (result, "#u8(");
-      for idx in 1 .. len loop
-         if idx > 1 then
+      for index in 1 .. len loop
+         if index > 1 then
             append (result, ' ');
          end if;
          declare
-            b_val : interfaces.unsigned_8 := bytevector_ref (item, idx);
+            b_val : interfaces.unsigned_8 :=
+              bytevector_ref (item, index);
             s_val : sexpr_string := to_sexpr_string (b_val'img);
          begin
             result := @ & unbounded_slice (s_val, 2, length (s_val));

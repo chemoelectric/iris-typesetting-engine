@@ -28,6 +28,7 @@ package sexpressions is
      ada.numerics.big_numbers.big_integers;
    package exact_reals renames ada.numerics.big_numbers.big_reals;
 
+   subtype count_type is ada.containers.count_type;
    subtype fixnum_integer is long_long_integer;
    subtype bignum_integer is bignum_integers.big_integer;
    subtype exact_real is exact_reals.big_real;
@@ -146,12 +147,7 @@ package sexpressions is
    function hash_sexpr (key : in sexpr) return hash_type;
    function sexpr_equivalents (left, right : in sexpr) return boolean;
 
-   package sexpr_vectors is new
-     indefinite_vectors
-       (index_type   => positive,
-        element_type => sexpr,
-        "="          => "=");
-   subtype sexpr_vector is sexpr_vectors.vector;
+   type sexpr_vector;
 
    ---------------------------------------------------------------------
 
@@ -160,6 +156,7 @@ package sexpressions is
        (index_type   => positive,
         element_type => interfaces.unsigned_8,
         "="          => "=");
+
    subtype unsigned_8_vector is unsigned_8_vectors.vector;
 
    ---------------------------------------------------------------------
@@ -183,9 +180,10 @@ package sexpressions is
    function to_exact (item : in sexpr) return sexpr;
    function to_inexact (item : in sexpr) return sexpr;
    function cons (car : in sexpr; cdr : in sexpr) return sexpr;
-   function make_list (source : in sexpr_vector) return sexpr;
-   function make_circular_list (source : in sexpr_vector) return sexpr;
-   function make_vector (source : in sexpr_vector) return sexpr;
+   function make_list (source : in sexpr_vector'class) return sexpr;
+   function make_circular_list
+     (source : in sexpr_vector'class) return sexpr;
+   function make_vector (source : in sexpr_vector'class) return sexpr;
    function make_bytevector
      (source : in unsigned_8_vector) return sexpr;
    function kind (item : in sexpr) return sexpr_kind;
@@ -217,15 +215,15 @@ package sexpressions is
    function cadr (item : in sexpr) return sexpr;
    function cdar (item : in sexpr) return sexpr;
    function cddr (item : in sexpr) return sexpr;
-   function length (item : in sexpr) return natural;
+   function length (item : in sexpr) return count_type;
    function list_ref
      (item : in sexpr; index : in positive) return sexpr;
    procedure set_car (pair, value : sexpr);
    procedure set_cdr (pair, value : sexpr);
-   function vector_length (item : in sexpr) return natural;
+   function vector_length (item : in sexpr) return count_type;
    function vector_ref
      (item : in sexpr; index : in positive) return sexpr;
-   function bytevector_length (item : in sexpr) return natural;
+   function bytevector_length (item : in sexpr) return count_type;
    function bytevector_ref
      (item : in sexpr; index : in positive)
       return interfaces.unsigned_8;
@@ -263,6 +261,18 @@ package sexpressions is
    -- FIXME: display requires detection of circular lists.
    --
    procedure display (item : in sexpr; filename : in string);
+
+   ---------------------------------------------------------------------
+
+   package sexpr_vectors is new
+     indefinite_vectors
+       (index_type   => positive,
+        element_type => sexpr,
+        "="          => "=");
+
+   type sexpr_vector is new sexpr_vectors.vector with record
+      null;
+   end record;
 
    ---------------------------------------------------------------------
 
