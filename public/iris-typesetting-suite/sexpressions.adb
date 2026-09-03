@@ -61,8 +61,17 @@ package body sexpressions is
        (key_type        => sexpr,
         element_type    => natural,
         hash            => hash_sexpr,
-        equivalent_keys => "=");
+        equivalent_keys => sexpr_equivalents);
    subtype sexpr_to_natural_map is sexpr_to_natural_maps.map;
+
+   package sexpr_identifier_to_natural_maps is new
+     indefinite_hashed_maps
+       (key_type        => sexpr_identifier,
+        element_type    => natural,
+        hash            => hash_sexpr_identifier,
+        equivalent_keys => sexpr_identifier_equivalents);
+   subtype sexpr_identifier_to_natural_map is
+     sexpr_identifier_to_natural_maps.map;
 
    ---------------------------------------------------------------------
 
@@ -258,6 +267,11 @@ package body sexpressions is
       return
         (controlled with identifier => make_sexpr_identifier (node));
    end make_sexpr;
+
+   function get_node (key : in sexpr_identifier) return node_record is
+   begin
+      return node_record (node_registry.element (key));
+   end get_node;
 
    function get_node (key : in sexpr) return node_record is
    begin
@@ -900,6 +914,11 @@ package body sexpressions is
 
    ---------------------------------------------------------------------
 
+   function kind (item : in sexpr_identifier) return sexpr_kind is
+   begin
+      return get_node (item).kind;
+   end kind;
+
    function kind (item : in sexpr) return sexpr_kind is
    begin
       return get_node (item).kind;
@@ -976,7 +995,7 @@ package body sexpressions is
       cnt    : natural := 0;
    begin
       while is_pair (cur) and cnt < 1000000 loop
-         cur := cdr (cur);
+         cur := cdr (@);
          cnt := @ + 1;
       end loop;
       result := is_null (cur);
@@ -1482,7 +1501,7 @@ package body sexpressions is
             res := elem;
             found := true;
          end if;
-         cur := cdr (cur);
+         cur := cdr (@);
       end loop;
       return res;
    end assoc;
@@ -2518,7 +2537,7 @@ package body sexpressions is
       return result;
    end read;
 
-   function read_all (filename : in string) return sexpr_array is
+   function read_all (filename : in string) return sexpr_vector is
       content : sexpr_string := read_file_content (filename);
    begin
       return read_all_from_string (content);
@@ -2529,13 +2548,15 @@ package body sexpressions is
    -- Output and serialization
    --
 
+   subtype shared_counts_type is sexpr_identifier_to_natural_map;
+
    procedure serialize_without_datum_labels
      (item    : in sexpr;
       display : in boolean;
       result  : in out sexpr_string);
 
    function shared_count
-     (shared_counts : sexpr_to_natural_map; item : in sexpr)
+     (shared_counts : shared_counts_type; item : in sexpr_identifier)
       return natural is
    begin
       return
@@ -2551,50 +2572,48 @@ package body sexpressions is
    -- (SRFI-38).
    --
    procedure find_shared_structure
-     (shared_counts : in out sexpr_to_natural_map; item : in sexpr)
+     (shared_counts : in out shared_counts_type;
+      item          : in sexpr_identifier)
    is
       count    : natural;
-      workload : sexpr_vector;
-      subject  : sexpr;
-      node     : node_access;
+      workload : sexpr_identifier_vector;
+      subject  : sexpr_identifier;
    begin
-      if not is_null (item) then
-         workload.append (item);
-         while workload.length /= 0 loop
-            subject := workload.last_element;
-            node := get_node (subject);
+      workload.append (item);
+      while workload.length /= 0 loop
+         subject := workload.last_element;
+         declare
+            node : node_record := get_node (subject);
+
+            procedure provide_more_work
+              (more_work : in sexpr_identifier_vector) is
+            begin
+               count := shared_count (shared_counts, subject);
+               shared_counts.include (subject, count + 1);
+               if count = 0 then
+                  for each of more_work loop
+                     workload.append (each);
+                  end loop;
+               end if;
+            end provide_more_work;
+         begin
             workload.delete_last;
             case node.kind is
                when sexpr_kind_pair       =>
-                  count := shared_count (shared_counts, subject);
-                  shared_counts.include (subject, count + 1);
-                  if count = 0 then
-                     workload.append (node.car_val);
-                     workload.append (node.cdr_val);
-                  end if;
+                  provide_more_work (node.pair_val);
 
                when sexpr_kind_vector     =>
-                  if node.vector_val /= null then
-                     count := shared_count (shared_counts, subject);
-                     shared_counts.include (subject, count + 1);
-                     if count = 0 then
-                        for i in node.vector_val'range loop
-                           workload.append (node.vector_val (i));
-                        end loop;
-                     end if;
-                  end if;
+                  provide_more_work (node.vector_val);
 
                when sexpr_kind_bytevector =>
-                  if node.bytevector_val /= null then
-                     count := shared_count (shared_counts, subject);
-                     shared_counts.include (subject, count + 1);
-                  end if;
+                  count := shared_count (shared_counts, subject);
+                  shared_counts.include (subject, count + 1);
 
                when others                =>
                   null;
             end case;
-         end loop;
-      end if;
+         end;
+      end loop;
    end find_shared_structure;
 
    function is_shared_or_circular
@@ -2615,14 +2634,14 @@ package body sexpressions is
    -- Serialization in the style of SRFI-38
    --
    procedure serialize_with_datum_labels
-     (shared_counts : in out sexpr_to_natural_map;
-      item          : in sexpr;
+     (shared_counts : in out shared_counts_type;
+      item          : in sexpr_identifier;
       display       : in boolean;
       result        : out sexpr_string)
    is
-      procedure serialize_pair_contents (car_val, cdr_val : in sexpr) is
+      procedure serialize_pair_contents (car_val, cdr_val : in sexpr_identifier) is
          done   : boolean;
-         tail   : sexpr;
+         tail   : sexpr_identifier;
          tcount : natural;
       begin
          result := @ & "(";
@@ -2633,11 +2652,11 @@ package body sexpressions is
             result        => result);
          done := false;
          tail := cdr_val;
-         while not done and not is_null (tail) loop
+         while not done and kind (tail) /= sexpr_kind_null loop
             tcount := shared_count (shared_counts, tail);
             if is_shared_or_circular
-                 (kind => get_node (tail).kind, count => tcount)
-              or not is_pair (tail)
+              (kind => get_node (tail).kind, count => tcount)
+               or kind (tail) /= sexpr_kind_pair
             then
                result := @ & " . ";
                serialize_with_datum_labels
@@ -2653,58 +2672,48 @@ package body sexpressions is
                   item          => tail,
                   display       => display,
                   result        => result);
-               tail := cdr (tail);
+
+               -- The right hand side here is the cdr.
+               tail := get_node (@).pair_val.element (2);
             end if;
          end loop;
          result := @ & ")";
       end serialize_pair_contents;
 
       procedure serialize_vector_contents
-        (vector_val : in sexpr_vector_access)
+        (vector_val : in sexpr_identifier_vector)
       is
          separator       : sexpr_string := null_sexpr_string;
          separator_space : constant sexpr_string :=
            to_sexpr_string (sexpr_fixstr'(" "));
       begin
-         if vector_val = null then
-            -- FIXME: I think this is never run.
-            result := @ & "#()";
-         else
-            result := @ & "#(";
-            for i in vector_val'range loop
-               result := @ & separator;
-               serialize_with_datum_labels
-                 (shared_counts => shared_counts,
-                  item          => vector_val (i),
-                  display       => display,
-                  result        => result);
-               separator := separator_space;
-            end loop;
-            result := @ & ")";
-         end if;
+         result := @ & "#(";
+         for each of vector_val loop
+            result := @ & separator;
+            serialize_with_datum_labels
+              (shared_counts => shared_counts,
+               item          => each,
+               display       => display,
+               result        => result);
+            separator := separator_space;
+         end loop;
+         result := @ & ")";
       end serialize_vector_contents;
 
       procedure serialize_bytevector_contents
-        (bytevector_val : in byte_vector_access)
+        (bytevector_val : in unsigned_8_vector)
       is
          separator : sexpr_string := null_sexpr_string;
       begin
-         if bytevector_val = null then
-            -- FIXME: I think this is never run.
-            result := @ & "#u8()";
-         else
-            result := @ & "#u8(";
-            for i in bytevector_val'range loop
-               result :=
-                 @
-                 & separator
-                 & to_sexpr_string
-                     (trim_left
-                        (unsigned_8'image (bytevector_val (i))));
-               separator := separator_space;
-            end loop;
-            result := @ & ")";
-         end if;
+         result := @ & "#u8(";
+         for each of bytevector_val loop
+            result :=
+              @
+              & separator
+              & to_sexpr_string (trim_left (unsigned_8'image (each)));
+            separator := separator_space;
+         end loop;
+         result := @ & ")";
       end serialize_bytevector_contents;
 
       procedure serialize_item (item : in sexpr) is
@@ -2712,9 +2721,10 @@ package body sexpressions is
          case kind (item) is
             when sexpr_kind_pair       =>
                declare
-                  node : node_access := get_node (item);
+                  node : node_record := get_node (item);
                begin
-                  serialize_pair_contents (node.car_val, node.cdr_val);
+                  serialize_pair_contents (node.pair_val.element (1),
+                                           node.pair_val.element (2));
                end;
 
             when sexpr_kind_vector     =>
@@ -2755,7 +2765,7 @@ package body sexpressions is
       else
          count := shared_count (shared_counts, item);
          if is_shared_or_circular
-              (kind => get_node (item).kind, count => count)
+           (kind => get_node (item).kind, count => count)
          then
             if printed_set.contains (item) then
                --
@@ -2902,7 +2912,7 @@ package body sexpressions is
            (item    => car (current),
             display => display,
             result  => result);
-         current := cdr (current);
+         current := cdr (@);
       end loop;
 
       if not is_null (current) then
