@@ -28,7 +28,6 @@ package sexpressions is
      ada.numerics.big_numbers.big_integers;
    package exact_reals renames ada.numerics.big_numbers.big_reals;
 
-   subtype count_type is ada.containers.count_type;
    subtype fixnum_integer is long_long_integer;
    subtype bignum_integer is bignum_integers.big_integer;
    subtype exact_real is exact_reals.big_real;

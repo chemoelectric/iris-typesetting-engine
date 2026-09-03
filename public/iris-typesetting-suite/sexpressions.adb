@@ -13,8 +13,8 @@ with ada.strings.fixed;
 with ada.strings.wide_wide_hash;
 with ada.wide_wide_text_io;
 with ada.containers.indefinite_vectors;
-with ada.containers.indefinite_hashed_sets;
 with ada.containers.indefinite_hashed_maps;
+with ada.containers.hashed_sets;
 with ada.containers.hashed_maps;
 with sequential_identifiers;
 
@@ -49,20 +49,12 @@ package body sexpressions is
         equivalent_keys => "=");
    subtype sexpr_fixstr_to_sexpr_map is sexpr_fixstr_to_sexpr_maps.map;
 
-   package sexpr_sets is new
-     indefinite_hashed_sets
-       (element_type        => sexpr,
-        hash                => hash_sexpr,
-        equivalent_elements => sexpr_equivalents);
-   subtype sexpr_set is sexpr_sets.set;
-
-   package sexpr_to_natural_maps is new
-     indefinite_hashed_maps
-       (key_type        => sexpr,
-        element_type    => natural,
-        hash            => hash_sexpr,
-        equivalent_keys => sexpr_equivalents);
-   subtype sexpr_to_natural_map is sexpr_to_natural_maps.map;
+   package sexpr_identifier_sets is new
+     hashed_sets
+       (element_type        => sexpr_identifier,
+        hash                => hash_sexpr_identifier,
+        equivalent_elements => sexpr_identifier_equivalents);
+   subtype sexpr_identifier_set is sexpr_identifier_sets.set;
 
    package sexpr_identifier_to_natural_maps is new
      indefinite_hashed_maps
@@ -164,9 +156,11 @@ package body sexpressions is
    protected type node_registry_type is
       procedure insert
         (key : in sexpr_identifier; value : in node_registry_record);
-      function contains (key : in sexpr_identifier) return boolean;
+      function contains (key : in sexpr_identifier) return boolean
+      with unreferenced;
       function reference_count
-        (key : in sexpr_identifier) return natural;
+        (key : in sexpr_identifier) return natural
+      with unreferenced;
       procedure increment_reference_count (key : in sexpr_identifier);
       procedure decrement_reference_count (key : in sexpr_identifier);
       function element
@@ -2549,9 +2543,10 @@ package body sexpressions is
    --
 
    subtype shared_counts_type is sexpr_identifier_to_natural_map;
+   subtype label_map_type is sexpr_identifier_to_natural_map;
 
    procedure serialize_without_datum_labels
-     (item    : in sexpr;
+     (item    : in sexpr_identifier;
       display : in boolean;
       result  : in out sexpr_string);
 
@@ -2639,7 +2634,9 @@ package body sexpressions is
       display       : in boolean;
       result        : out sexpr_string)
    is
-      procedure serialize_pair_contents (car_val, cdr_val : in sexpr_identifier) is
+      procedure serialize_pair_contents
+        (car_val, cdr_val : in sexpr_identifier)
+      is
          done   : boolean;
          tail   : sexpr_identifier;
          tcount : natural;
@@ -2655,8 +2652,8 @@ package body sexpressions is
          while not done and kind (tail) /= sexpr_kind_null loop
             tcount := shared_count (shared_counts, tail);
             if is_shared_or_circular
-              (kind => get_node (tail).kind, count => tcount)
-               or kind (tail) /= sexpr_kind_pair
+                 (kind => get_node (tail).kind, count => tcount)
+              or kind (tail) /= sexpr_kind_pair
             then
                result := @ & " . ";
                serialize_with_datum_labels
@@ -2716,15 +2713,16 @@ package body sexpressions is
          result := @ & ")";
       end serialize_bytevector_contents;
 
-      procedure serialize_item (item : in sexpr) is
+      procedure serialize_item (item : in sexpr_identifier) is
       begin
          case kind (item) is
             when sexpr_kind_pair       =>
                declare
                   node : node_record := get_node (item);
                begin
-                  serialize_pair_contents (node.pair_val.element (1),
-                                           node.pair_val.element (2));
+                  serialize_pair_contents
+                    (node.pair_val.element (1),
+                     node.pair_val.element (2));
                end;
 
             when sexpr_kind_vector     =>
@@ -2741,9 +2739,11 @@ package body sexpressions is
       end serialize_item;
 
       label_counter : natural := 0;
-      label_map     : sexpr_to_natural_map;
+      label_map     : label_map_type;
 
-      function label_for_assignment (item : sexpr) return natural is
+      function label_for_assignment
+        (item : sexpr_identifier) return natural
+      is
          label : natural;
       begin
          if label_map.contains (item) then
@@ -2756,16 +2756,16 @@ package body sexpressions is
          return label;
       end label_for_assignment;
 
-      printed_set : sexpr_set;
+      printed_set : sexpr_identifier_set;
       label       : natural;
       count       : natural;
    begin
-      if is_null (item) then
+      if kind (item) = sexpr_kind_null then
          result := @ & "()";
       else
          count := shared_count (shared_counts, item);
          if is_shared_or_circular
-           (kind => get_node (item).kind, count => count)
+              (kind => get_node (item).kind, count => count)
          then
             if printed_set.contains (item) then
                --
@@ -2895,27 +2895,31 @@ package body sexpressions is
    end serialize_character;
 
    procedure serialize_list
-     (item    : in sexpr;
+     (item    : in sexpr_identifier;
       display : in boolean;
       result  : in out sexpr_string)
    is
-      current : sexpr := item;
+      current : sexpr_identifier := item;
       first   : boolean := true;
    begin
       append (result, '(');
-      while is_pair (current) loop
+      while kind (current) = sexpr_kind_pair loop
          if not first then
             append (result, ' ');
          end if;
          first := false;
-         serialize_without_datum_labels
-           (item    => car (current),
-            display => display,
-            result  => result);
-         current := cdr (@);
+         declare
+            node : node_record := get_node (current);
+         begin
+            serialize_without_datum_labels
+              (item    => node.pair_val (1),
+               display => display,
+               result  => result);
+            current := node.pair_val (2);
+         end;
       end loop;
 
-      if not is_null (current) then
+      if kind (current) /= sexpr_kind_null then
          append (result, " . ");
          serialize_without_datum_labels
            (item => current, display => display, result => result);
@@ -2924,11 +2928,11 @@ package body sexpressions is
    end serialize_list;
 
    procedure serialize_vector
-     (item    : in sexpr;
+     (item    : in sexpr_identifier_vector;
       display : in boolean;
       result  : in out sexpr_string)
    is
-      len : natural := vector_length (item);
+      len : natural := natural (item.length);
    begin
       append (result, "#(");
       for index in 1 .. len loop
@@ -2936,7 +2940,7 @@ package body sexpressions is
             append (result, ' ');
          end if;
          serialize_without_datum_labels
-           (item    => vector_ref (item, index),
+           (item    => item.element (index),
             display => display,
             result  => result);
       end loop;
@@ -2944,9 +2948,9 @@ package body sexpressions is
    end serialize_vector;
 
    procedure serialize_bytevector
-     (item : in sexpr; result : in out sexpr_string)
+     (item : in unsigned_8_vector; result : in out sexpr_string)
    is
-      len : natural := bytevector_length (item);
+      len : natural := natural (item.length);
    begin
       append (result, "#u8(");
       for index in 1 .. len loop
@@ -2954,8 +2958,7 @@ package body sexpressions is
             append (result, ' ');
          end if;
          declare
-            b_val : interfaces.unsigned_8 :=
-              bytevector_ref (item, index);
+            b_val : interfaces.unsigned_8 := item.element (index);
             s_val : sexpr_string := to_sexpr_string (b_val'img);
          begin
             result := @ & unbounded_slice (s_val, 2, length (s_val));
@@ -2965,11 +2968,11 @@ package body sexpressions is
    end serialize_bytevector;
 
    procedure serialize_without_datum_labels
-     (item    : in sexpr;
+     (item    : in sexpr_identifier;
       display : in boolean;
       result  : in out sexpr_string) is
    begin
-      if is_null (item) then
+      if kind (item) = sexpr_kind_null then
          append (result, "()");
       else
          case kind (item) is
@@ -3031,23 +3034,27 @@ package body sexpressions is
 
             when sexpr_kind_vector     =>
                serialize_vector
-                 (item => item, display => display, result => result);
+                 (item    => get_node (item).vector_val,
+                  display => display,
+                  result  => result);
 
             when sexpr_kind_bytevector =>
-               serialize_bytevector (item => item, result => result);
+               serialize_bytevector
+                 (item   => get_node (item).bytevector_val,
+                  result => result);
          end case;
       end if;
    end serialize_without_datum_labels;
 
    function write_to_string (item : in sexpr) return sexpr_string is
-      shared_counts : sexpr_to_natural_map;
+      shared_counts : shared_counts_type;
       result        : sexpr_string := null_sexpr_string;
    begin
       find_shared_structure
-        (shared_counts => shared_counts, item => item);
+        (shared_counts => shared_counts, item => item.identifier);
       serialize_with_datum_labels
         (shared_counts => shared_counts,
-         item          => item,
+         item          => item.identifier,
          display       => false,
          result        => result);
       return result;
@@ -3058,7 +3065,7 @@ package body sexpressions is
       result : sexpr_string := null_sexpr_string;
    begin
       serialize_without_datum_labels
-        (item => item, display => false, result => result);
+        (item => item.identifier, display => false, result => result);
       return result;
    end write_simple_to_string;
 
@@ -3066,14 +3073,14 @@ package body sexpressions is
    -- FIXME:  PRINT USING FLOYD’S METHOD WITH ... instead of using datum labels.
    --
    function display_to_string (item : in sexpr) return sexpr_string is
-      shared_counts : sexpr_to_natural_map;
+      shared_counts : shared_counts_type;
       result        : sexpr_string := null_sexpr_string;
    begin
       find_shared_structure
-        (shared_counts => shared_counts, item => item);
+        (shared_counts => shared_counts, item => item.identifier);
       serialize_with_datum_labels
         (shared_counts => shared_counts,
-         item          => item,
+         item          => item.identifier,
          display       => true,
          result        => result);
       return result;
