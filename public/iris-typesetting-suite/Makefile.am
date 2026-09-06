@@ -29,9 +29,11 @@ indent:
 	gnatformat -w 72 --charset utf-8 \
 	$(addprefix $(srcdir)/, \
 	pdf.ad[bs] \
+	hash_tables.ad[bs] \
 	font_finders.ad[bs] \
 	sexpressions.ad[bs] \
 	sequential_identifiers.ad[bs] \
+	test_hash_tables.adb \
 	test_pdf_[0-9][0-9].adb \
 	test_find*fonts.adb \
 	test_sexpressions*.adb)

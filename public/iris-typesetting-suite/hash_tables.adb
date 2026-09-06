@@ -11,30 +11,30 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
+with ada.finalization;
 with ada.unchecked_deallocation;
 
 package body hash_tables is
 
-   procedure free_node is new ada.unchecked_deallocation
-     (object => node,
-      name   => node_access);
+   use ada.finalization;
 
-   procedure free_buckets is new ada.unchecked_deallocation
-     (object => bucket_array,
-      name   => bucket_array_access);
+   procedure free_node is new
+     ada.unchecked_deallocation (object => node, name => node_access);
 
-   procedure resize
-     (m            : in out map;
-      new_capacity : in positive);
+   procedure free_buckets is new
+     ada.unchecked_deallocation
+       (object => bucket_array,
+        name   => bucket_array_access);
+
+   procedure resize (m : in out map; new_capacity : in positive);
 
    function bucket_index
-     (key        : in key_type;
-      table_size : in positive) return natural is
-     (hash (key) mod table_size);
+     (key : in key_type; table_size : in positive) return natural
+   is (hash (key) mod table_size);
 
    function make
      (initial_capacity : in positive := default_initial_capacity)
-     return map is
+      return map is
    begin
       return result : map do
          result.min_capacity := initial_capacity;
@@ -43,14 +43,12 @@ package body hash_tables is
       end return;
    end make;
 
-   function length
-     (m : in map) return natural is
+   function length (m : in map) return natural is
    begin
       return m.element_count;
    end length;
 
-   function capacity
-     (m : in map) return positive is
+   function capacity (m : in map) return positive is
    begin
       if m.buckets = null then
          return m.min_capacity;
@@ -58,15 +56,12 @@ package body hash_tables is
       return m.buckets'length;
    end capacity;
 
-   function is_empty
-     (m : in map) return boolean is
+   function is_empty (m : in map) return boolean is
    begin
       return m.element_count = 0;
    end is_empty;
 
-   function contains
-     (m   : in map;
-      key : in key_type) return boolean is
+   function contains (m : in map; key : in key_type) return boolean is
       curr : node_access;
       idx  : natural;
       res  : boolean := false;
@@ -85,9 +80,7 @@ package body hash_tables is
       return res;
    end contains;
 
-   function get
-     (m   : in map;
-      key : in key_type) return element_type is
+   function get (m : in map; key : in key_type) return element_type is
       curr  : node_access;
       res   : element_type;
       idx   : natural;
@@ -113,9 +106,8 @@ package body hash_tables is
    end get;
 
    procedure insert
-     (m       : in out map;
-      key     : in key_type;
-      element : in element_type) is
+     (m : in out map; key : in key_type; element : in element_type)
+   is
       idx     : natural;
       curr    : node_access;
       updated : boolean := false;
@@ -136,9 +128,9 @@ package body hash_tables is
       end loop;
 
       if not updated then
-         m.buckets (idx) := new node'(key     => key,
-                                      element => element,
-                                      next    => m.buckets (idx));
+         m.buckets (idx) :=
+           new node'
+             (key => key, element => element, next => m.buckets (idx));
          m.element_count := m.element_count + 1;
 
          if (m.element_count * 100) >= (m.buckets'length * m.expand_pct)
@@ -148,9 +140,7 @@ package body hash_tables is
       end if;
    end insert;
 
-   procedure delete
-     (m   : in out map;
-      key : in key_type) is
+   procedure delete (m : in out map; key : in key_type) is
       idx       : natural;
       curr      : node_access;
       prev      : node_access := null;
@@ -181,8 +171,9 @@ package body hash_tables is
          free_node (to_delete);
          m.element_count := m.element_count - 1;
 
-         if m.buckets'length > m.min_capacity and then
-            (m.element_count * 100) < (m.buckets'length * m.shrink_pct)
+         if m.buckets'length > m.min_capacity
+           and then (m.element_count * 100)
+                    < (m.buckets'length * m.shrink_pct)
          then
             new_cap := m.buckets'length / 2;
             if new_cap < m.min_capacity then
@@ -195,9 +186,7 @@ package body hash_tables is
       end if;
    end delete;
 
-   procedure resize
-     (m            : in out map;
-      new_capacity : in positive) is
+   procedure resize (m : in out map; new_capacity : in positive) is
       old_buckets : bucket_array_access := m.buckets;
       b_idx       : natural;
       curr        : node_access;
@@ -222,16 +211,14 @@ package body hash_tables is
       end if;
    end resize;
 
-   procedure clear
-     (m : in out map) is
+   procedure clear (m : in out map) is
    begin
       release (m);
       m.buckets := new bucket_array (0 .. m.min_capacity - 1);
       m.element_count := 0;
    end clear;
 
-   procedure release
-     (m : in out map) is
+   procedure release (m : in out map) is
    begin
       if m.buckets /= null then
          declare
@@ -254,5 +241,11 @@ package body hash_tables is
       end if;
       m.element_count := 0;
    end release;
+
+   overriding
+   procedure finalize (m : in out map) is
+   begin
+      release (m);
+   end finalize;
 
 end hash_tables;
