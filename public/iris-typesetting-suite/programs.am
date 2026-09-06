@@ -10,6 +10,18 @@ iris_DEPENDENCIES = iris.lo iris.ali
 DEP_FILES += .deps/iris.adbdep
 CLEANFILES += iris$(EXEEXT)
 
+test_hash_tables$(EXEEXT): test_hash_tables.lo test_hash_tables.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
+
+check_PROGRAMS += test_hash_tables
+test_hash_tables_SOURCES = test_hash_tables.adb
+test_hash_tables_LDADD = .libs/test_hash_tables.$(OBJEXT)
+test_hash_tables_LDADD += libiris.la
+test_hash_tables_DEPENDENCIES = test_hash_tables.lo test_hash_tables.ali
+
+DEP_FILES += .deps/test_hash_tables.adbdep
+CLEANFILES += test_hash_tables$(EXEEXT)
+
 test_pdf_01$(EXEEXT): test_pdf_01.lo test_pdf_01.ali libiris.la
 	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 

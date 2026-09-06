@@ -121,7 +121,7 @@ build_triplet = @build@
 host_triplet = @host@
 EXTRA_PROGRAMS =
 bin_PROGRAMS = iris$(EXEEXT)
-check_PROGRAMS = test_pdf_01$(EXEEXT) \
+check_PROGRAMS = test_hash_tables$(EXEEXT) test_pdf_01$(EXEEXT) \
 	test_find_main_system_fonts$(EXEEXT) \
 	test_find_tex_fonts$(EXEEXT) test_sexpressions$(EXEEXT) \
 	test_sexpressions_equal$(EXEEXT) \
@@ -195,6 +195,8 @@ test_find_main_system_fonts_OBJECTS =  \
 	$(am_test_find_main_system_fonts_OBJECTS)
 am_test_find_tex_fonts_OBJECTS =
 test_find_tex_fonts_OBJECTS = $(am_test_find_tex_fonts_OBJECTS)
+am_test_hash_tables_OBJECTS =
+test_hash_tables_OBJECTS = $(am_test_hash_tables_OBJECTS)
 am_test_pdf_01_OBJECTS =
 test_pdf_01_OBJECTS = $(am_test_pdf_01_OBJECTS)
 am_test_sexpressions_OBJECTS =
@@ -246,15 +248,15 @@ am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(libiris_la_SOURCES) $(nodist_libiris_la_SOURCES) \
 	$(iris_SOURCES) $(test_find_main_system_fonts_SOURCES) \
-	$(test_find_tex_fonts_SOURCES) $(test_pdf_01_SOURCES) \
-	$(test_sexpressions_SOURCES) \
+	$(test_find_tex_fonts_SOURCES) $(test_hash_tables_SOURCES) \
+	$(test_pdf_01_SOURCES) $(test_sexpressions_SOURCES) \
 	$(test_sexpressions_equal_SOURCES) \
 	$(test_sexpressions_read_write_SOURCES) \
 	$(test_spookyhash_SOURCES)
 DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
 	$(test_find_main_system_fonts_SOURCES) \
-	$(test_find_tex_fonts_SOURCES) $(test_pdf_01_SOURCES) \
-	$(test_sexpressions_SOURCES) \
+	$(test_find_tex_fonts_SOURCES) $(test_hash_tables_SOURCES) \
+	$(test_pdf_01_SOURCES) $(test_sexpressions_SOURCES) \
 	$(test_sexpressions_equal_SOURCES) \
 	$(test_sexpressions_read_write_SOURCES) \
 	$(test_spookyhash_SOURCES)
@@ -455,15 +457,15 @@ top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4 --install
 DEP_FILES = $(LIBIRIS_ADB_FILES:%.adb=.deps/%.adbdep) \
 	$(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep) .deps/iris.adbdep \
-	.deps/test_pdf_01.adbdep \
+	.deps/test_hash_tables.adbdep .deps/test_pdf_01.adbdep \
 	.deps/test_find_main_system_fonts.adbdep \
 	.deps/test_find_tex_fonts.adbdep \
 	.deps/test_sexpressions.adbdep \
 	.deps/test_sexpressions_equal.adbdep \
 	.deps/test_sexpressions_read_write.adbdep
 MOSTLYCLEANFILES = 
-CLEANFILES = iris$(EXEEXT) test_pdf_01$(EXEEXT) \
-	test_find_main_system_fonts$(EXEEXT) \
+CLEANFILES = iris$(EXEEXT) test_hash_tables$(EXEEXT) \
+	test_pdf_01$(EXEEXT) test_find_main_system_fonts$(EXEEXT) \
 	test_find_tex_fonts$(EXEEXT) test_sexpressions$(EXEEXT) \
 	test_sexpressions_equal$(EXEEXT) \
 	test_sexpressions_read_write$(EXEEXT)
@@ -475,9 +477,9 @@ lib_LTLIBRARIES = libiris.la
 AM_ADAFLAGS = -gnatwu -gnatW8 -gnat2022 -I$(call get-adainclude) \
 	-I$(builddir) -I$(srcdir)
 LIBIRIS_ADB_FILES = pdf.adb font_finders.adb sexpressions.adb \
-	sequential_identifiers.adb
+	sequential_identifiers.adb hash_tables.adb
 LIBIRIS_ADS_FILES = pdf.ads font_finders.ads sexpressions.ads \
-	sequential_identifiers.ads alloca_h.ads \
+	sequential_identifiers.ads hash_tables.ads alloca_h.ads \
 	bits_atomic_wide_counter_h.ads bits_byteswap_h.ads \
 	bits_pthreadtypes_h.ads bits_stdint_intn_h.ads \
 	bits_stdint_least_h.ads bits_stdint_uintn_h.ads \
@@ -517,6 +519,9 @@ libiris_la_DEPENDENCIES = $(LIBIRIS_ADB_FILES:%.adb=%.lo) $(filter-out \
 iris_SOURCES = iris.adb
 iris_LDADD = .libs/iris.$(OBJEXT) libiris.la
 iris_DEPENDENCIES = iris.lo iris.ali
+test_hash_tables_SOURCES = test_hash_tables.adb
+test_hash_tables_LDADD = .libs/test_hash_tables.$(OBJEXT) libiris.la
+test_hash_tables_DEPENDENCIES = test_hash_tables.lo test_hash_tables.ali
 test_pdf_01_SOURCES = test_pdf_01.adb
 test_pdf_01_LDADD = .libs/test_pdf_01.$(OBJEXT) libiris.la
 test_pdf_01_DEPENDENCIES = test_pdf_01.lo test_pdf_01.ali
@@ -1239,6 +1244,9 @@ distclean-local::
 # tab-width: 4
 # end:
 iris$(EXEEXT): iris.lo iris.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
+
+test_hash_tables$(EXEEXT): test_hash_tables.lo test_hash_tables.ali libiris.la
 	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 
 test_pdf_01$(EXEEXT): test_pdf_01.lo test_pdf_01.ali libiris.la

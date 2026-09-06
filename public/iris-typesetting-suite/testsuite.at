@@ -15,6 +15,11 @@ AT_KEYWORDS([spookyhash hash hashtable hashmap])
 AT_CHECK(["${abs_builddir}"/test_spookyhash],[0])
 AT_CLEANUP
 
+AT_SETUP([hash_tables])
+AT_KEYWORDS([hash_tables hashtable hash])
+AT_CHECK(["${abs_builddir}"/test_hash_tables],[0],[ignore])
+AT_CLEANUP
+
 #---------------------------------------------------------------------
 AT_BANNER([document formats])
 

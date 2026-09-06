@@ -10,4 +10,7 @@ LIBIRIS_ADB_FILES += sexpressions.adb
 LIBIRIS_ADS_FILES += sequential_identifiers.ads
 LIBIRIS_ADB_FILES += sequential_identifiers.adb
 
+LIBIRIS_ADS_FILES += hash_tables.ads
+LIBIRIS_ADB_FILES += hash_tables.adb
+
 LIBIRIS_C_FILES += spookyhash.c spookyhash.h
