@@ -11,18 +11,18 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
-with ada.text_io; use ada.text_io;
+with ada.text_io;    use ada.text_io;
+with ada.containers; use ada.containers;
 with hash_tables;
 
 procedure test_hash_tables is
 
-   function int_hash (k : in integer) return natural is
+   function int_hash (key : in integer) return hash_type is
    begin
-      return natural (abs (k));
+      return hash_type (abs (key));
    end int_hash;
 
-   function int_equal
-     (left : in integer; right : in integer) return boolean is
+   function int_equal (left, right : in integer) return boolean is
    begin
       return left = right;
    end int_equal;

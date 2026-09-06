@@ -3,9 +3,10 @@
 --
 --  Hash tables for vector parallel processors.
 --
---  Search is brute-force vectorized linear search. Empty slots are
---  identified by a sentinel value that is “stolen” from the hash
---  value space.
+--  Search is brute-force vectorized linear search.
+
+--  NOT TRUE YET!!! --->>> Empty slots are identified by a sentinel
+--  value that is “stolen” from the hash value space.
 --
 
 pragma wide_character_encoding (utf8);
@@ -13,10 +14,12 @@ pragma ada_2022;
 
 with ada.finalization;
 with ada.unchecked_deallocation;
+with ada.containers;
 
 package body hash_tables is
 
    use ada.finalization;
+   use ada.containers;
 
    procedure free_node is new
      ada.unchecked_deallocation (object => node, name => node_access);
@@ -26,11 +29,12 @@ package body hash_tables is
        (object => bucket_array,
         name   => bucket_array_access);
 
-   procedure resize (m : in out map; new_capacity : in positive);
+   procedure resize
+     (container : in out map; new_capacity : in positive);
 
    function bucket_index
      (key : in key_type; table_size : in positive) return natural
-   is (hash (key) mod table_size);
+   is (natural (hash (key) mod hash_type (table_size)));
 
    function make
      (initial_capacity : in positive := default_initial_capacity)
@@ -43,32 +47,35 @@ package body hash_tables is
       end return;
    end make;
 
-   function length (m : in map) return natural is
+   function length (container : in map) return natural is
    begin
-      return m.element_count;
+      return container.element_count;
    end length;
 
-   function capacity (m : in map) return positive is
+   function capacity (container : in map) return positive is
    begin
-      if m.buckets = null then
-         return m.min_capacity;
+      if container.buckets = null then
+         return container.min_capacity;
       end if;
-      return m.buckets'length;
+      return container.buckets'length;
    end capacity;
 
-   function is_empty (m : in map) return boolean is
+   function is_empty (container : in map) return boolean is
    begin
-      return m.element_count = 0;
+      return container.element_count = 0;
    end is_empty;
 
-   function contains (m : in map; key : in key_type) return boolean is
+   function contains
+     (container : in map; key : in key_type) return boolean
+   is
       curr : node_access;
       idx  : natural;
       res  : boolean := false;
    begin
-      if m.buckets /= null and then m.element_count > 0 then
-         idx := bucket_index (key, m.buckets'length);
-         curr := m.buckets (idx);
+      if container.buckets /= null and then container.element_count > 0
+      then
+         idx := bucket_index (key, container.buckets'length);
+         curr := container.buckets (idx);
          while curr /= null and then not res loop
             if are_keys_equal (curr.key, key) then
                res := true;
@@ -80,15 +87,17 @@ package body hash_tables is
       return res;
    end contains;
 
-   function get (m : in map; key : in key_type) return element_type is
+   function get
+     (container : in map; key : in key_type) return element_type
+   is
       curr  : node_access;
       res   : element_type;
       idx   : natural;
       found : boolean := false;
    begin
-      if m.buckets /= null then
-         idx := bucket_index (key, m.buckets'length);
-         curr := m.buckets (idx);
+      if container.buckets /= null then
+         idx := bucket_index (key, container.buckets'length);
+         curr := container.buckets (idx);
          while curr /= null loop
             if are_keys_equal (curr.key, key) then
                res := curr.element;
@@ -106,18 +115,21 @@ package body hash_tables is
    end get;
 
    procedure insert
-     (m : in out map; key : in key_type; element : in element_type)
+     (container : in out map;
+      key       : in key_type;
+      element   : in element_type)
    is
       idx     : natural;
       curr    : node_access;
       updated : boolean := false;
    begin
-      if m.buckets = null then
-         m.buckets := new bucket_array (0 .. m.min_capacity - 1);
+      if container.buckets = null then
+         container.buckets :=
+           new bucket_array (0 .. container.min_capacity - 1);
       end if;
 
-      idx := bucket_index (key, m.buckets'length);
-      curr := m.buckets (idx);
+      idx := bucket_index (key, container.buckets'length);
+      curr := container.buckets (idx);
       while curr /= null and then not updated loop
          if are_keys_equal (curr.key, key) then
             curr.element := element;
@@ -128,31 +140,35 @@ package body hash_tables is
       end loop;
 
       if not updated then
-         m.buckets (idx) :=
+         container.buckets (idx) :=
            new node'
-             (key => key, element => element, next => m.buckets (idx));
-         m.element_count := m.element_count + 1;
+             (key     => key,
+              element => element,
+              next    => container.buckets (idx));
+         container.element_count := container.element_count + 1;
 
-         if (m.element_count * 100) >= (m.buckets'length * m.expand_pct)
+         if (container.element_count * 100)
+           >= (container.buckets'length * container.expand_pct)
          then
-            resize (m, m.buckets'length * 2);
+            resize (container, container.buckets'length * 2);
          end if;
       end if;
    end insert;
 
-   procedure delete (m : in out map; key : in key_type) is
+   procedure delete (container : in out map; key : in key_type) is
       idx       : natural;
       curr      : node_access;
       prev      : node_access := null;
       to_delete : node_access := null;
       new_cap   : positive;
    begin
-      if m.buckets = null or else m.element_count = 0 then
+      if container.buckets = null or else container.element_count = 0
+      then
          return;
       end if;
 
-      idx := bucket_index (key, m.buckets'length);
-      curr := m.buckets (idx);
+      idx := bucket_index (key, container.buckets'length);
+      curr := container.buckets (idx);
       while curr /= null and then to_delete = null loop
          if are_keys_equal (curr.key, key) then
             to_delete := curr;
@@ -164,36 +180,37 @@ package body hash_tables is
 
       if to_delete /= null then
          if prev = null then
-            m.buckets (idx) := to_delete.next;
+            container.buckets (idx) := to_delete.next;
          else
             prev.next := to_delete.next;
          end if;
          free_node (to_delete);
-         m.element_count := m.element_count - 1;
+         container.element_count := container.element_count - 1;
 
-         if m.buckets'length > m.min_capacity
-           and then (m.element_count * 100)
-                    < (m.buckets'length * m.shrink_pct)
+         if container.buckets'length > container.min_capacity
+           and then (container.element_count * 100)
+                    < (container.buckets'length * container.shrink_pct)
          then
-            new_cap := m.buckets'length / 2;
-            if new_cap < m.min_capacity then
-               new_cap := m.min_capacity;
+            new_cap := container.buckets'length / 2;
+            if new_cap < container.min_capacity then
+               new_cap := container.min_capacity;
             end if;
-            if new_cap /= m.buckets'length then
-               resize (m, new_cap);
+            if new_cap /= container.buckets'length then
+               resize (container, new_cap);
             end if;
          end if;
       end if;
    end delete;
 
-   procedure resize (m : in out map; new_capacity : in positive) is
-      old_buckets : bucket_array_access := m.buckets;
+   procedure resize (container : in out map; new_capacity : in positive)
+   is
+      old_buckets : bucket_array_access := container.buckets;
       b_idx       : natural;
       curr        : node_access;
       next_node   : node_access;
       target_idx  : natural;
    begin
-      m.buckets := new bucket_array (0 .. new_capacity - 1);
+      container.buckets := new bucket_array (0 .. new_capacity - 1);
       if old_buckets /= null then
          b_idx := 0;
          while b_idx <= old_buckets'last loop
@@ -201,8 +218,8 @@ package body hash_tables is
             while curr /= null loop
                next_node := curr.next;
                target_idx := bucket_index (curr.key, new_capacity);
-               curr.next := m.buckets (target_idx);
-               m.buckets (target_idx) := curr;
+               curr.next := container.buckets (target_idx);
+               container.buckets (target_idx) := curr;
                curr := next_node;
             end loop;
             b_idx := b_idx + 1;
@@ -211,41 +228,42 @@ package body hash_tables is
       end if;
    end resize;
 
-   procedure clear (m : in out map) is
+   procedure clear (container : in out map) is
    begin
-      release (m);
-      m.buckets := new bucket_array (0 .. m.min_capacity - 1);
-      m.element_count := 0;
+      release (container);
+      container.buckets :=
+        new bucket_array (0 .. container.min_capacity - 1);
+      container.element_count := 0;
    end clear;
 
-   procedure release (m : in out map) is
+   procedure release (container : in out map) is
    begin
-      if m.buckets /= null then
+      if container.buckets /= null then
          declare
-            i : natural := m.buckets'first;
+            i : natural := container.buckets'first;
          begin
-            while i <= m.buckets'last loop
-               while m.buckets (i) /= null loop
+            while i <= container.buckets'last loop
+               while container.buckets (i) /= null loop
                   declare
-                     tmp : node_access := m.buckets (i);
+                     tmp : node_access := container.buckets (i);
                   begin
-                     m.buckets (i) := tmp.next;
+                     container.buckets (i) := tmp.next;
                      free_node (tmp);
                   end;
                end loop;
                i := i + 1;
             end loop;
          end;
-         free_buckets (m.buckets);
-         m.buckets := null;
+         free_buckets (container.buckets);
+         container.buckets := null;
       end if;
-      m.element_count := 0;
+      container.element_count := 0;
    end release;
 
    overriding
-   procedure finalize (m : in out map) is
+   procedure finalize (container : in out map) is
    begin
-      release (m);
+      release (container);
    end finalize;
 
 end hash_tables;

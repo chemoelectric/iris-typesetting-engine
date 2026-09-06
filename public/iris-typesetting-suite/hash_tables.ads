@@ -3,23 +3,27 @@
 --
 --  Hash tables for vector parallel processors.
 --
---  Search is brute-force vectorized linear search. Empty slots are
---  identified by a sentinel value that is “stolen” from the hash
---  value space.
+--  Search is brute-force vectorized linear search.
+
+--  NOT TRUE YET!!! --->>> Empty slots are identified by a sentinel
+--  value that is “stolen” from the hash value space.
 --
 
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
+with ada.containers;
 with ada.finalization;
 
 generic
    type key_type is private;
    type element_type is private;
-   with function hash (key : in key_type) return natural is <>;
    with
-     function are_keys_equal
-       (left : in key_type; right : in key_type) return boolean is <>;
+   function hash (key : in key_type) return ada.containers.hash_type
+   is <>;
+   with
+   function are_keys_equal (left, right : in key_type) return boolean
+   is <>;
    default_initial_capacity : positive := 16;
    expand_threshold_percent : positive := 100;
    shrink_threshold_percent : natural := 25;
@@ -31,35 +35,42 @@ package hash_tables is
 
    function make
      (initial_capacity : in positive := default_initial_capacity)
-      return map
-   with
-     post =>
-       length (make'result) = 0
-       and then capacity (make'result) >= initial_capacity;
+     return map
+     with
+       post =>
+         length (make'result) = 0
+         and then capacity (make'result) >= initial_capacity;
 
-   function length (m : in map) return natural;
+   function length (container : in map) return natural;
 
-   function capacity (m : in map) return positive;
+   function capacity (container : in map) return positive;
 
-   function is_empty (m : in map) return boolean
-   with post => is_empty'result = (length (m) = 0);
+   function is_empty (container : in map) return boolean
+     with post => is_empty'result = (length (container) = 0);
 
-   function contains (m : in map; key : in key_type) return boolean;
+   function contains
+     (container : in map; key : in key_type) return boolean;
 
-   function get (m : in map; key : in key_type) return element_type
-   with pre => contains (m, key);
+   function get
+     (container : in map; key : in key_type) return element_type
+     with pre => contains (container, key);
 
    procedure insert
-     (m : in out map; key : in key_type; element : in element_type)
-   with post => contains (m, key) and then get (m, key) = element;
+     (container : in out map;
+      key       : in key_type;
+      element   : in element_type)
+     with
+       post =>
+         contains (container, key)
+         and then get (container, key) = element;
 
-   procedure delete (m : in out map; key : in key_type)
-   with post => not contains (m, key);
+   procedure delete (container : in out map; key : in key_type)
+     with post => not contains (container, key);
 
-   procedure clear (m : in out map)
-   with post => length (m) = 0;
+   procedure clear (container : in out map)
+     with post => length (container) = 0;
 
-   procedure release (m : in out map);
+   procedure release (container : in out map);
 
 private
 
@@ -86,7 +97,7 @@ private
    end record;
 
    overriding
-   procedure finalize (m : in out map);
+   procedure finalize (container : in out map);
 
    use type node_access;
 
