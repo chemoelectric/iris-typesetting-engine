@@ -12,19 +12,19 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
-with ada.containers;
+with ada.containers; use ada.containers;
 with ada.finalization;
 
 generic
    type key_type is private;
    type element_type is private;
    with
-   function hash (key : in key_type) return ada.containers.hash_type
-   is <>;
+     function hash (key : in key_type) return ada.containers.hash_type
+     is <>;
    with
-   function are_keys_equal (left, right : in key_type) return boolean
-   is <>;
-   default_initial_capacity : positive := 16;
+     function are_keys_equal (left, right : in key_type) return boolean
+     is <>;
+   default_initial_capacity : count_type := 16;
    expand_threshold_percent : positive := 100;
    shrink_threshold_percent : natural := 25;
 package hash_tables is
@@ -34,41 +34,43 @@ package hash_tables is
    key_error : exception;
 
    function make
-     (initial_capacity : in positive := default_initial_capacity)
-     return map
-     with
-       post =>
-         length (make'result) = 0
-         and then capacity (make'result) >= initial_capacity;
+     (initial_capacity : in count_type := default_initial_capacity)
+      return map
+   with
+     pre  => (1 <= initial_capacity),
+     post =>
+       length (make'result) = 0
+       and then capacity (make'result) >= initial_capacity;
 
-   function length (container : in map) return natural;
+   function length (container : in map) return count_type;
 
-   function capacity (container : in map) return positive;
+   function capacity (container : in map) return count_type
+   with post => (1 <= capacity'result);
 
    function is_empty (container : in map) return boolean
-     with post => is_empty'result = (length (container) = 0);
+   with post => is_empty'result = (length (container) = 0);
 
    function contains
      (container : in map; key : in key_type) return boolean;
 
    function get
      (container : in map; key : in key_type) return element_type
-     with pre => contains (container, key);
+   with pre => contains (container, key);
 
    procedure insert
      (container : in out map;
       key       : in key_type;
       element   : in element_type)
-     with
-       post =>
-         contains (container, key)
-         and then get (container, key) = element;
+   with
+     post =>
+       contains (container, key)
+       and then get (container, key) = element;
 
    procedure delete (container : in out map; key : in key_type)
-     with post => not contains (container, key);
+   with post => not contains (container, key);
 
    procedure clear (container : in out map)
-     with post => length (container) = 0;
+   with post => length (container) = 0;
 
    procedure release (container : in out map);
 
@@ -91,7 +93,7 @@ private
    type map is new limited_controlled with record
       buckets       : bucket_array_access := null;
       element_count : natural := 0;
-      min_capacity  : positive := default_initial_capacity;
+      min_capacity  : count_type := default_initial_capacity;
       expand_pct    : positive := expand_threshold_percent;
       shrink_pct    : natural := shrink_threshold_percent;
    end record;

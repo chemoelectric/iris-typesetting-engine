@@ -30,40 +30,34 @@ package body hash_tables is
         name   => bucket_array_access);
 
    procedure resize
-     (container : in out map; new_capacity : in positive);
+     (container : in out map; new_capacity : in count_type);
 
    function bucket_index
-     (key : in key_type; table_size : in positive) return natural
+     (key : in key_type; table_size : in count_type) return natural
    is (natural (hash (key) mod hash_type (table_size)));
 
    function make
-     (initial_capacity : in positive := default_initial_capacity)
+     (initial_capacity : in count_type := default_initial_capacity)
       return map is
    begin
       return result : map do
          result.min_capacity := initial_capacity;
-         result.buckets := new bucket_array (0 .. initial_capacity - 1);
+         result.buckets :=
+           new bucket_array (0 .. positive (initial_capacity) - 1);
          result.element_count := 0;
       end return;
    end make;
 
-   function length (container : in map) return natural is
-   begin
-      return container.element_count;
-   end length;
+   function length (container : in map) return count_type is
+     (count_type (container.element_count));
 
-   function capacity (container : in map) return positive is
-   begin
-      if container.buckets = null then
-         return container.min_capacity;
-      end if;
-      return container.buckets'length;
-   end capacity;
+   function capacity (container : in map) return count_type
+   is (if container.buckets = null
+       then count_type (container.min_capacity)
+       else count_type (container.buckets'length));
 
    function is_empty (container : in map) return boolean is
-   begin
-      return container.element_count = 0;
-   end is_empty;
+     (container.element_count = 0);
 
    function contains
      (container : in map; key : in key_type) return boolean
@@ -125,7 +119,8 @@ package body hash_tables is
    begin
       if container.buckets = null then
          container.buckets :=
-           new bucket_array (0 .. container.min_capacity - 1);
+           new bucket_array
+                 (0 .. positive (container.min_capacity) - 1);
       end if;
 
       idx := bucket_index (key, container.buckets'length);
@@ -160,49 +155,50 @@ package body hash_tables is
       curr      : node_access;
       prev      : node_access := null;
       to_delete : node_access := null;
-      new_cap   : positive;
+      new_cap   : count_type;
    begin
-      if container.buckets = null or else container.element_count = 0
-      then
-         return;
-      end if;
-
-      idx := bucket_index (key, container.buckets'length);
-      curr := container.buckets (idx);
-      while curr /= null and then to_delete = null loop
-         if are_keys_equal (curr.key, key) then
-            to_delete := curr;
-         else
-            prev := curr;
-            curr := curr.next;
-         end if;
-      end loop;
-
-      if to_delete /= null then
-         if prev = null then
-            container.buckets (idx) := to_delete.next;
-         else
-            prev.next := to_delete.next;
-         end if;
-         free_node (to_delete);
-         container.element_count := container.element_count - 1;
-
-         if container.buckets'length > container.min_capacity
-           and then (container.element_count * 100)
-                    < (container.buckets'length * container.shrink_pct)
-         then
-            new_cap := container.buckets'length / 2;
-            if new_cap < container.min_capacity then
-               new_cap := container.min_capacity;
+      if container.buckets = null or container.element_count = 0 then
+         null;
+      else
+         idx := bucket_index (key, container.buckets'length);
+         curr := container.buckets (idx);
+         while curr /= null and to_delete = null loop
+            if are_keys_equal (curr.key, key) then
+               to_delete := curr;
+            else
+               prev := curr;
+               curr := curr.next;
             end if;
-            if new_cap /= container.buckets'length then
-               resize (container, new_cap);
+         end loop;
+
+         if to_delete /= null then
+            if prev = null then
+               container.buckets (idx) := to_delete.next;
+            else
+               prev.next := to_delete.next;
+            end if;
+            free_node (to_delete);
+            container.element_count := container.element_count - 1;
+
+            if container.buckets'length > container.min_capacity
+              and then (container.element_count * 100)
+                       < (container.buckets'length
+                          * container.shrink_pct)
+            then
+               new_cap := container.buckets'length / 2;
+               if new_cap < container.min_capacity then
+                  new_cap := container.min_capacity;
+               end if;
+               if new_cap /= container.buckets'length then
+                  resize (container, new_cap);
+               end if;
             end if;
          end if;
       end if;
    end delete;
 
-   procedure resize (container : in out map; new_capacity : in positive)
+   procedure resize
+     (container : in out map; new_capacity : in count_type)
    is
       old_buckets : bucket_array_access := container.buckets;
       b_idx       : natural;
@@ -210,7 +206,8 @@ package body hash_tables is
       next_node   : node_access;
       target_idx  : natural;
    begin
-      container.buckets := new bucket_array (0 .. new_capacity - 1);
+      container.buckets :=
+        new bucket_array (0 .. positive (new_capacity) - 1);
       if old_buckets /= null then
          b_idx := 0;
          while b_idx <= old_buckets'last loop
@@ -222,7 +219,7 @@ package body hash_tables is
                container.buckets (target_idx) := curr;
                curr := next_node;
             end loop;
-            b_idx := b_idx + 1;
+            b_idx := @ + 1;
          end loop;
          free_buckets (old_buckets);
       end if;
@@ -232,7 +229,7 @@ package body hash_tables is
    begin
       release (container);
       container.buckets :=
-        new bucket_array (0 .. container.min_capacity - 1);
+        new bucket_array (0 .. positive (container.min_capacity) - 1);
       container.element_count := 0;
    end clear;
 
@@ -251,7 +248,7 @@ package body hash_tables is
                      free_node (tmp);
                   end;
                end loop;
-               i := i + 1;
+               i := @ + 1;
             end loop;
          end;
          free_buckets (container.buckets);

@@ -92,7 +92,7 @@ procedure test_hash_tables is
    begin
       put ("test 3: contraction triggering after deletions ... ");
       declare
-         peak_cap : constant positive := capacity (table);
+         peak_cap : constant count_type := capacity (table);
       begin
          idx := 10;
          while idx <= 20 loop
