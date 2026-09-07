@@ -12,18 +12,18 @@
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
-with ada.containers; use ada.containers;
-with ada.finalization;
+with ada.containers;   use ada.containers;
+with ada.finalization; use ada.finalization;
 
 generic
    type key_type is private;
    type element_type is private;
-   with
-     function hash (key : in key_type) return ada.containers.hash_type
-     is <>;
+   with function hash (key : in key_type) return hash_type is <>;
    with
      function are_keys_equal (left, right : in key_type) return boolean
      is <>;
+   sentinel_key : in key_type;
+   sentinel_element : in element_type;
    default_initial_capacity : count_type := 16;
    expand_threshold_percent : positive := 100;
    shrink_threshold_percent : natural := 25;
@@ -88,8 +88,6 @@ private
    type bucket_array is array (natural range <>) of node_access;
    type bucket_array_access is access bucket_array;
 
-   use ada.finalization;
-
    type map is new limited_controlled with record
       buckets       : bucket_array_access := null;
       element_count : natural := 0;
@@ -100,7 +98,5 @@ private
 
    overriding
    procedure finalize (container : in out map);
-
-   use type node_access;
 
 end hash_tables;

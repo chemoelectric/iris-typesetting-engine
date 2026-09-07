@@ -33,6 +33,8 @@ procedure test_hash_tables is
         element_type             => integer,
         hash                     => int_hash,
         are_keys_equal           => int_equal,
+        sentinel_key             => 0,
+        sentinel_element         => 0,
         default_initial_capacity => 8,
         expand_threshold_percent => 100,
         shrink_threshold_percent => 25);

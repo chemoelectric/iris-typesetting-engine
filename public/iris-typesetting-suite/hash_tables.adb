@@ -18,9 +18,6 @@ with ada.containers;
 
 package body hash_tables is
 
-   use ada.finalization;
-   use ada.containers;
-
    procedure free_node is new
      ada.unchecked_deallocation (object => node, name => node_access);
 
@@ -48,64 +45,63 @@ package body hash_tables is
       end return;
    end make;
 
-   function length (container : in map) return count_type is
-     (count_type (container.element_count));
+   function length (container : in map) return count_type
+   is (count_type (container.element_count));
 
    function capacity (container : in map) return count_type
    is (if container.buckets = null
        then count_type (container.min_capacity)
        else count_type (container.buckets'length));
 
-   function is_empty (container : in map) return boolean is
-     (container.element_count = 0);
+   function is_empty (container : in map) return boolean
+   is (container.element_count = 0);
 
    function contains
      (container : in map; key : in key_type) return boolean
    is
-      curr : node_access;
-      idx  : natural;
-      res  : boolean := false;
+      current : node_access;
+      index   : natural;
+      result  : boolean := false;
    begin
-      if container.buckets /= null and then container.element_count > 0
-      then
-         idx := bucket_index (key, container.buckets'length);
-         curr := container.buckets (idx);
-         while curr /= null and then not res loop
-            if are_keys_equal (curr.key, key) then
-               res := true;
+      if container.buckets /= null and container.element_count > 0 then
+         index := bucket_index (key, container.buckets'length);
+         current := container.buckets (index);
+         while current /= null and not result loop
+            if are_keys_equal (current.key, key) then
+               result := true;
             else
-               curr := curr.next;
+               current := current.next;
             end if;
          end loop;
       end if;
-      return res;
+      return result;
    end contains;
 
    function get
      (container : in map; key : in key_type) return element_type
    is
-      curr  : node_access;
-      res   : element_type;
-      idx   : natural;
-      found : boolean := false;
+      current : node_access;
+      result  : element_type;
+      index   : natural;
+      found   : boolean := false;
    begin
       if container.buckets /= null then
-         idx := bucket_index (key, container.buckets'length);
-         curr := container.buckets (idx);
-         while curr /= null loop
-            if are_keys_equal (curr.key, key) then
-               res := curr.element;
+         index := bucket_index (key, container.buckets'length);
+         current := container.buckets (index);
+         while current /= null loop
+            if are_keys_equal (current.key, key) then
+               result := current.element;
                found := true;
-               curr := null;
+               current := null;
             else
-               curr := curr.next;
+               current := current.next;
             end if;
          end loop;
       end if;
       if not found then
          raise key_error with "key not present in hash table";
       end if;
-      return res;
+      return result;
    end get;
 
    procedure insert
@@ -113,8 +109,8 @@ package body hash_tables is
       key       : in key_type;
       element   : in element_type)
    is
-      idx     : natural;
-      curr    : node_access;
+      index   : natural;
+      current : node_access;
       updated : boolean := false;
    begin
       if container.buckets = null then
@@ -123,23 +119,23 @@ package body hash_tables is
                  (0 .. positive (container.min_capacity) - 1);
       end if;
 
-      idx := bucket_index (key, container.buckets'length);
-      curr := container.buckets (idx);
-      while curr /= null and then not updated loop
-         if are_keys_equal (curr.key, key) then
-            curr.element := element;
+      index := bucket_index (key, container.buckets'length);
+      current := container.buckets (index);
+      while current /= null and then not updated loop
+         if are_keys_equal (current.key, key) then
+            current.element := element;
             updated := true;
          else
-            curr := curr.next;
+            current := current.next;
          end if;
       end loop;
 
       if not updated then
-         container.buckets (idx) :=
+         container.buckets (index) :=
            new node'
              (key     => key,
               element => element,
-              next    => container.buckets (idx));
+              next    => container.buckets (index));
          container.element_count := container.element_count + 1;
 
          if (container.element_count * 100)
@@ -151,8 +147,8 @@ package body hash_tables is
    end insert;
 
    procedure delete (container : in out map; key : in key_type) is
-      idx       : natural;
-      curr      : node_access;
+      index     : natural;
+      current   : node_access;
       prev      : node_access := null;
       to_delete : node_access := null;
       new_cap   : count_type;
@@ -160,20 +156,20 @@ package body hash_tables is
       if container.buckets = null or container.element_count = 0 then
          null;
       else
-         idx := bucket_index (key, container.buckets'length);
-         curr := container.buckets (idx);
-         while curr /= null and to_delete = null loop
-            if are_keys_equal (curr.key, key) then
-               to_delete := curr;
+         index := bucket_index (key, container.buckets'length);
+         current := container.buckets (index);
+         while current /= null and to_delete = null loop
+            if are_keys_equal (current.key, key) then
+               to_delete := current;
             else
-               prev := curr;
-               curr := curr.next;
+               prev := current;
+               current := current.next;
             end if;
          end loop;
 
          if to_delete /= null then
             if prev = null then
-               container.buckets (idx) := to_delete.next;
+               container.buckets (index) := to_delete.next;
             else
                prev.next := to_delete.next;
             end if;
@@ -200,26 +196,26 @@ package body hash_tables is
    procedure resize
      (container : in out map; new_capacity : in count_type)
    is
-      old_buckets : bucket_array_access := container.buckets;
-      b_idx       : natural;
-      curr        : node_access;
-      next_node   : node_access;
-      target_idx  : natural;
+      old_buckets  : bucket_array_access := container.buckets;
+      b_index      : natural;
+      current      : node_access;
+      next_node    : node_access;
+      target_index : natural;
    begin
       container.buckets :=
         new bucket_array (0 .. positive (new_capacity) - 1);
       if old_buckets /= null then
-         b_idx := 0;
-         while b_idx <= old_buckets'last loop
-            curr := old_buckets (b_idx);
-            while curr /= null loop
-               next_node := curr.next;
-               target_idx := bucket_index (curr.key, new_capacity);
-               curr.next := container.buckets (target_idx);
-               container.buckets (target_idx) := curr;
-               curr := next_node;
+         b_index := 0;
+         while b_index <= old_buckets'last loop
+            current := old_buckets (b_index);
+            while current /= null loop
+               next_node := current.next;
+               target_index := bucket_index (current.key, new_capacity);
+               current.next := container.buckets (target_index);
+               container.buckets (target_index) := current;
+               current := next_node;
             end loop;
-            b_idx := @ + 1;
+            b_index := @ + 1;
          end loop;
          free_buckets (old_buckets);
       end if;
