@@ -2,6 +2,10 @@
 --  SPDX-License-Identifier: MIT
 --
 
+--
+-- Maps from unsigned 32-bit integers to elements.
+--
+
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
@@ -35,6 +39,7 @@ package body radix_tries is
    procedure initialize (container : in out radix_trie) is
    begin
       container.root := new radix_node;
+      container.count := 0;
    end initialize;
 
    procedure recursive_wipe (current : in out radix_node_access) is
@@ -58,17 +63,22 @@ package body radix_tries is
       key       : in unsigned_32;
       new_item  : in element_type)
    is
-      current : radix_node_access := container.root;
-      index   : natural;
+      current         : radix_node_access := container.root;
+      index           : natural;
+      increment_count : boolean := false;
    begin
       for step in reverse 0 .. total_steps - 1 loop
          index := key_nibble (key, step);
          if current.children (index) = null then
             current.children (index) := new radix_node;
+            increment_count := true;
          end if;
          current := current.children (index);
       end loop;
       current.element := new_item;
+      if increment_count then
+         container.count := @ + 1;
+      end if;
    end include;
 
    function contains
@@ -120,7 +130,10 @@ package body radix_tries is
       index : natural;
    begin
       return result : radix_node_access do
-         if step < 0 then
+         if current = null then
+            result := null;
+         elsif step < 0 then
+            deleted := true;
             if has_no_children (current) then
                free_node (current);
                result := null;
@@ -142,15 +155,38 @@ package body radix_tries is
       end return;
    end delete_helper;
 
-   function delete
-     (container : in out radix_trie; key : unsigned_32) return boolean
+   procedure delete
+     (container : in out radix_trie; key : in unsigned_32)
    is
-      success : boolean := false;
+      deleted : boolean := false;
       dummy   : radix_node_access;
    begin
       dummy :=
-        delete_helper (container.root, key, total_steps - 1, success);
-      return success;
+        delete_helper (container.root, key, total_steps - 1, deleted);
+      if deleted then
+         container.count := @ - 1;
+      else
+         raise key_error with "key not found: " & key'img;
+      end if;
    end delete;
+
+   procedure exclude
+     (container : in out radix_trie; key : in unsigned_32)
+   is
+      deleted : boolean := false;
+      dummy   : radix_node_access;
+   begin
+      dummy :=
+        delete_helper (container.root, key, total_steps - 1, deleted);
+      if deleted then
+         container.count := @ - 1;
+      end if;
+   end exclude;
+
+   function length (container : in radix_trie) return count_type
+   is (container.count);
+
+   function is_empty (container : in radix_trie) return boolean
+   is (container.count = 0);
 
 end radix_tries;

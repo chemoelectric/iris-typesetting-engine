@@ -2,26 +2,53 @@
 --  SPDX-License-Identifier: MIT
 --
 
+--
+-- Maps from unsigned 32-bit integers to elements.
+--
+
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
-with interfaces; use interfaces;
+with interfaces;     use interfaces;
+with ada.containers; use ada.containers;
 with ada.finalization;
 
 generic
    type element_type is private;
 package radix_tries is
 
+   key_error : exception;
+
    type radix_trie is limited private;
 
    procedure include
      (container : in out radix_trie;
       key       : in unsigned_32;
-      new_item  : in element_type);
+      new_item  : in element_type)
+   with
+     contract_cases =>
+       (contains (container, key)     =>
+          length (container) = length (container)'old,
+        not contains (container, key) =>
+          length (container) = length (container)'old + 1);
 
-   function delete
+   procedure delete
      (container : in out radix_trie; key : in unsigned_32)
-      return boolean;
+     with
+       warnings => off,
+       contract_cases =>
+         (contains (container, key)     =>
+            length (container) = length (container)'old - 1,
+          not contains (container, key) => raise key_error);
+
+   procedure exclude
+     (container : in out radix_trie; key : in unsigned_32)
+   with
+     contract_cases =>
+       (contains (container, key)     =>
+          length (container) = length (container)'old - 1,
+        not contains (container, key) =>
+          length (container) = length (container)'old);
 
    function contains
      (container : in radix_trie; key : in unsigned_32) return boolean;
@@ -30,6 +57,11 @@ package radix_tries is
      (container : in radix_trie; key : in unsigned_32)
       return element_type
    with pre => contains (container, key);
+
+   function length (container : in radix_trie) return count_type;
+
+   function is_empty (container : in radix_trie) return boolean
+   with post => is_empty'result = (length (container) = 0);
 
 private
 
@@ -45,7 +77,8 @@ private
 
    type radix_trie is new ada.finalization.limited_controlled
    with record
-      root : radix_node_access;
+      root  : radix_node_access;
+      count : count_type;
    end record
    with dynamic_predicate => root /= null;
 
