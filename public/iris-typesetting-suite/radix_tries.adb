@@ -13,20 +13,20 @@ with unchecked_deallocation;
 
 package body radix_tries is
 
-   procedure deallocate is new
-     unchecked_deallocation (radix_node, radix_node_access);
-
    -- 32-bit integers four bits at a time.
    bits_per_step    : constant := 4;
    bits_per_integer : constant := 32;
    total_steps      : constant := bits_per_integer / bits_per_step;
 
    subtype total_steps_divides_bits_per_integer is boolean
-     with
-       unreferenced,
-       warnings => off,
-       static_predicate =>
-         (total_steps * bits_per_step = bits_per_integer);
+   with
+     unreferenced,
+     warnings         => off,
+     static_predicate =>
+       (total_steps * bits_per_step = bits_per_integer);
+
+   procedure deallocate is new
+     unchecked_deallocation (radix_node, radix_node_access);
 
    function key_not_found (key : in unsigned_32) return string
    is ("key not found: " & key'img);
@@ -39,6 +39,13 @@ package body radix_tries is
    is (natural
          ((key / (2**(i * bits_per_step))) mod (2**bits_per_step)))
    with pre => (0 <= i and i <= total_steps - 1);
+
+   function empty_radix_trie return radix_trie is
+   begin
+      return result : radix_trie do
+         null;
+      end return;
+   end empty_radix_trie;
 
    procedure insert
      (container : in out radix_trie;
@@ -240,6 +247,29 @@ package body radix_tries is
       container.count := 0;
    end start_up;
 
+   procedure deep_copy (container : in out radix_trie) is
+      function copy_node
+        (old_node : in radix_node_access) return radix_node_access is
+      begin
+         return node : radix_node_access do
+            if old_node = null then
+               node := null;
+            elsif old_node.is_leaf then
+               node := new radix_node (is_leaf => true);
+               node.element := old_node.element;
+            else
+               node := new radix_node (is_leaf => false);
+               for j in node.children'range loop
+                  node.children (j) :=
+                    copy_node (old_node.children (j));
+               end loop;
+            end if;
+         end return;
+      end copy_node;
+   begin
+      container.root := copy_node (container.root);
+   end deep_copy;
+
    procedure clear (container : in out radix_trie) is
    begin
       empty_out (container);
@@ -251,6 +281,16 @@ package body radix_tries is
    begin
       start_up (container);
    end initialize;
+
+   overriding
+   procedure adjust (container : in out radix_trie) is
+   begin
+      --
+      -- There is no attempt to share structure. A full deep copy is
+      -- done.
+      --
+      deep_copy (container);
+   end adjust;
 
    overriding
    procedure finalize (container : in out radix_trie) is

@@ -17,7 +17,14 @@ generic
    type element_type is private;
 package radix_tries is
 
-   type radix_trie is limited private;
+   type radix_trie is tagged private
+     with aggregate => (empty => empty_radix_trie, add_named => insert),
+          constant_indexing => element;
+          --variable_indexing => include;
+
+   function empty_radix_trie return radix_trie
+     with
+       post => is_empty (empty_radix_trie'result);
 
    procedure insert
      (container : in out radix_trie;
@@ -103,8 +110,7 @@ private
       end case;
    end record;
 
-   type radix_trie is new ada.finalization.limited_controlled
-   with record
+   type radix_trie is new ada.finalization.controlled with record
       root  : radix_node_access;
       count : count_type;
    end record
@@ -112,6 +118,8 @@ private
 
    overriding
    procedure initialize (container : in out radix_trie);
+   overriding
+   procedure adjust (container : in out radix_trie);
    overriding
    procedure finalize (container : in out radix_trie);
 
