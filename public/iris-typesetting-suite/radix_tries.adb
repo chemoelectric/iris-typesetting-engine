@@ -21,13 +21,12 @@ package body radix_tries is
    bits_per_integer : constant := 32;
    total_steps      : constant := bits_per_integer / bits_per_step;
 
-   pragma warnings (off, "*predicate is redundant*");
    subtype total_steps_divides_bits_per_integer is boolean
-   with
-     unreferenced,
-     static_predicate =>
-       (total_steps * bits_per_step = bits_per_integer);
-   pragma warnings (on, "*predicate is redundant*");
+     with
+       unreferenced,
+       warnings => off,
+       static_predicate =>
+         (total_steps * bits_per_step = bits_per_integer);
 
    function key_not_found (key : in unsigned_32) return string
    is ("key not found: " & key'img);
