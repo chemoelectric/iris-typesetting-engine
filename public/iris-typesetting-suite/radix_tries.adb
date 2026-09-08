@@ -233,7 +233,6 @@ package body radix_tries is
       end;
    begin
       delete_node (container.root);
-      initialize (container);
    end empty_out;
 
    procedure start_up (container : in out radix_trie) is
