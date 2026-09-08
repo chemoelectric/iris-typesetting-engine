@@ -17,8 +17,6 @@ generic
    type element_type is private;
 package radix_tries is
 
-   key_error : exception;
-
    type radix_trie is limited private;
 
    procedure insert
@@ -28,7 +26,7 @@ package radix_tries is
    with
      warnings       => off,
      contract_cases =>
-       (contains (container, key)     => raise key_error,
+       (contains (container, key)     => raise constraint_error,
         not contains (container, key) =>
           length (container) = length (container)'old + 1);
 
@@ -61,7 +59,7 @@ package radix_tries is
      contract_cases =>
        (contains (container, key)     =>
           length (container) = length (container)'old - 1,
-        not contains (container, key) => raise key_error);
+        not contains (container, key) => raise constraint_error);
 
    procedure exclude
      (container : in out radix_trie; key : in unsigned_32)

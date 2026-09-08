@@ -62,7 +62,7 @@ package body radix_tries is
          node.element := new_item;
          container.count := @ + 1;
       else
-         raise key_error with key_already_contained (key);
+         raise constraint_error with key_already_contained (key);
       end if;
    end insert;
 
@@ -104,7 +104,7 @@ package body radix_tries is
          i := @ - 1;
       end loop;
       if i /= -1 then
-         raise key_error with key_not_found (key);
+         raise constraint_error with key_not_found (key);
       else
          node.element := new_item;
       end if;
@@ -194,7 +194,7 @@ package body radix_tries is
       if deleted then
          container.count := @ - 1;
       else
-         raise key_error with key_not_found (key);
+         raise constraint_error with key_not_found (key);
       end if;
    end delete;
 
