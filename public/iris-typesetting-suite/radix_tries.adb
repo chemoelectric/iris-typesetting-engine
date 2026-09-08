@@ -72,10 +72,10 @@ package body radix_tries is
       end if;
    end insert;
 
-   procedure include
+   procedure include_helper
      (container : in out radix_trie;
       key       : in unsigned_32;
-      new_item  : in element_type)
+      node_out  : out radix_node_access)
    is
       node            : radix_node_access := container.root;
       index           : natural;
@@ -89,10 +89,21 @@ package body radix_tries is
          end if;
          node := node.children (index);
       end loop;
-      node.element := new_item;
       if increment_count then
          container.count := @ + 1;
       end if;
+      node_out := node;
+   end include_helper;
+
+   procedure include
+     (container : in out radix_trie;
+      key       : in unsigned_32;
+      new_item  : in element_type)
+   is
+      node : radix_node_access;
+   begin
+      include_helper (container, key, node);
+      node.element := new_item;
    end include;
 
    procedure replace
@@ -157,11 +168,9 @@ package body radix_tries is
      (container : in out radix_trie; key : in unsigned_32)
       return variable_element_reference
    is
-      node : radix_node_access := container.root;
+      node : radix_node_access;
    begin
-      for i in reverse 0 .. total_steps - 1 loop
-         node := node.children (key_nibble (key, i));
-      end loop;
+      include_helper (container, key, node);
       return (element => node.element'access);
    end variable_reference;
 
