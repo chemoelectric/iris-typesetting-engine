@@ -43,6 +43,17 @@ package radix_tries is
         not contains (container, key) =>
           length (container) = length (container)'old + 1);
 
+   procedure replace
+     (container : in out radix_trie;
+      key       : in unsigned_32;
+      new_item  : in element_type)
+   with
+     contract_cases =>
+       (contains (container, key)     =>
+          length (container) = length (container)'old,
+        not contains (container, key) =>
+          length (container) = length (container)'old + 1);
+
    procedure delete
      (container : in out radix_trie; key : in unsigned_32)
    with
@@ -60,6 +71,9 @@ package radix_tries is
           length (container) = length (container)'old - 1,
         not contains (container, key) =>
           length (container) = length (container)'old);
+
+   procedure clear (container : in out radix_trie)
+   with post => is_empty (container);
 
    function contains
      (container : in radix_trie; key : in unsigned_32) return boolean;
@@ -81,9 +95,14 @@ private
 
    type children_array is array (0 .. 15) of radix_node_access;
 
-   type radix_node is record
-      children : children_array;
-      element  : element_type;
+   type radix_node (is_leaf : boolean) is record
+      case is_leaf is
+         when false =>
+            children : children_array;
+
+         when true =>
+            element : element_type;
+      end case;
    end record;
 
    type radix_trie is new ada.finalization.limited_controlled
