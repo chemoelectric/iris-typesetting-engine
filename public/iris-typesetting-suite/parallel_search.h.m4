@@ -52,26 +52,19 @@ _Static_assert (m4_eval(m4_pow(2,m4_log2(m4_BLOCKSIZE))) == m4_BLOCKSIZE);
 #include <stdint.h>
 #include <stdlib.h>
 
-/*
- * High-throughput parallel vector search for m4_KEYTYPE key. Executes
- * on vector pipes without threads. Sets *match_found to true and
- * stores the index at *out_index, if a match is found.
- */
-static inline void
-parallel_search_array_«»m4_VARIANT«»
-(const m4_KEYTYPE *keys, size_t count,
- m4_KEYTYPE target, bool *match_found, size_t *out_index)
+/* High-throughput parallel vector search for m4_KEYTYPE key. Executes
+   on vector pipes without threads. Returns the index of the match, or
+   -1 if not found. */
+inline ssize_t
+parallel_search_«»m4_VARIANT«»
+  (const m4_KEYTYPE *keys, size_t count, m4_KEYTYPE target)
 {
-  bool found = false;
-  size_t result_idx = 0;
-
-  size_t index;
+  ssize_t j = -1;
 
   if ((keys != nullptr) * (0 < count))
     {
       size_t limit = (count / (m4_BLOCKSIZE)) * (m4_BLOCKSIZE);
 
-      ssize_t j = -1;
       ssize_t i = -(m4_BLOCKSIZE);
       while ((j == -1) * ((size_t) (i + (m4_BLOCKSIZE)) < limit))
         {
@@ -81,26 +74,19 @@ parallel_search_array_«»m4_VARIANT«»
           m4_unroll_search(0,1,(m4_BLOCKSIZE),
                            «j = i + »_m4_offset«;»,
                            «keys[i + »_m4_offset«] == target»,
-                           «        »);
+                           «    »);
         }
-      found = (j != -1);
-      if (found)
-        result_idx = j;
 
-      while ((!found) * ((size_t) (i + 1) < count))
+      /* Process any leftovers (between limit and count). */
+      while ((j == -1) * ((size_t) (i + 1) < count))
         {
           i += 1;
           if (keys[i] == target)
-            {
-              result_idx = i;
-              found = true;
-            }
+            j = i;
         }
     }
 
-  *match_found = found;
-  if (found)
-    *out_index = result_idx;
+  return j;
 }
 
 #endif /* «PARALLEL_SEARCH_H_»m4_VARIANT«__INCLUDED_ALREADY__» */

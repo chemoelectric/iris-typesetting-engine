@@ -1,4 +1,5 @@
 bin iris
+check test_radix_tries
 check test_hash_tables
 check test_pdf_01
 check test_find_main_system_fonts

@@ -286,7 +286,7 @@ write_programs_am() {
     done < ada-programs.list
 }
 
-expand_m4() {
+expand_ada_m4() {
     set -e
     printf 'm4 %s.prelude.m4 %s.m4 > %s' "$1" "$1" "$1"
     m4 "$1".prelude.m4 "$1".m4 > "$1"
@@ -297,6 +297,21 @@ expand_m4() {
     else
         printf '\n'
     fi
+}
+
+expand_parallel_search_h_m4() {
+    echo "Writing parallel_search_u32x16.{h,c}"
+    set -e
+    m4 -Dm4_VARIANT=u32x16 \
+       -Dm4_KEYTYPE=uint32_t \
+       -Dm4_BLOCKSIZE=16 \
+       parallel_search.h.m4 > parallel_search_u32x16.h
+    (
+        printf '#include <parallel_search_u32x16.h>\n'
+        printf 'extern inline ssize_t parallel_search_u32x16\n'
+        printf '  (const uint32_t *keys, size_t count, uint32_t target);\n'
+    ) \
+        > parallel_search_u32x16.c
 }
 
 # Run everything in a subshell, so the user does not get stuck in a
@@ -310,7 +325,9 @@ expand_m4() {
     write_ada_interfaces_am
     write_programs_am
 
-    expand_m4 pdf.adb
+    expand_ada_m4 pdf.adb
+
+    expand_parallel_search_h_m4
 
     need_sortsmill_tig && require_sortsmill_tig
     need_pkg_config && require_pkg_config

@@ -121,8 +121,8 @@ build_triplet = @build@
 host_triplet = @host@
 EXTRA_PROGRAMS =
 bin_PROGRAMS = iris$(EXEEXT)
-check_PROGRAMS = test_hash_tables$(EXEEXT) test_pdf_01$(EXEEXT) \
-	test_find_main_system_fonts$(EXEEXT) \
+check_PROGRAMS = test_radix_tries$(EXEEXT) test_hash_tables$(EXEEXT) \
+	test_pdf_01$(EXEEXT) test_find_main_system_fonts$(EXEEXT) \
 	test_find_tex_fonts$(EXEEXT) test_sexpressions$(EXEEXT) \
 	test_sexpressions_equal$(EXEEXT) \
 	test_sexpressions_read_write$(EXEEXT) test_spookyhash$(EXEEXT)
@@ -178,7 +178,7 @@ am__uninstall_files_from_dir = { \
   }
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am__objects_1 =
-am__objects_2 = spookyhash.lo
+am__objects_2 = parallel_search_u32x16.lo spookyhash.lo
 am_libiris_la_OBJECTS = $(am__objects_1) $(am__objects_1) \
 	$(am__objects_2)
 nodist_libiris_la_OBJECTS =
@@ -199,6 +199,8 @@ am_test_hash_tables_OBJECTS =
 test_hash_tables_OBJECTS = $(am_test_hash_tables_OBJECTS)
 am_test_pdf_01_OBJECTS =
 test_pdf_01_OBJECTS = $(am_test_pdf_01_OBJECTS)
+am_test_radix_tries_OBJECTS =
+test_radix_tries_OBJECTS = $(am_test_radix_tries_OBJECTS)
 am_test_sexpressions_OBJECTS =
 test_sexpressions_OBJECTS = $(am_test_sexpressions_OBJECTS)
 am_test_sexpressions_equal_OBJECTS =
@@ -225,8 +227,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/spookyhash.Plo \
-	./$(DEPDIR)/test_spookyhash.Po
+am__depfiles_remade = ./$(DEPDIR)/parallel_search_u32x16.Plo \
+	./$(DEPDIR)/spookyhash.Plo ./$(DEPDIR)/test_spookyhash.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -249,14 +251,16 @@ am__v_CCLD_1 =
 SOURCES = $(libiris_la_SOURCES) $(nodist_libiris_la_SOURCES) \
 	$(iris_SOURCES) $(test_find_main_system_fonts_SOURCES) \
 	$(test_find_tex_fonts_SOURCES) $(test_hash_tables_SOURCES) \
-	$(test_pdf_01_SOURCES) $(test_sexpressions_SOURCES) \
+	$(test_pdf_01_SOURCES) $(test_radix_tries_SOURCES) \
+	$(test_sexpressions_SOURCES) \
 	$(test_sexpressions_equal_SOURCES) \
 	$(test_sexpressions_read_write_SOURCES) \
 	$(test_spookyhash_SOURCES)
 DIST_SOURCES = $(libiris_la_SOURCES) $(iris_SOURCES) \
 	$(test_find_main_system_fonts_SOURCES) \
 	$(test_find_tex_fonts_SOURCES) $(test_hash_tables_SOURCES) \
-	$(test_pdf_01_SOURCES) $(test_sexpressions_SOURCES) \
+	$(test_pdf_01_SOURCES) $(test_radix_tries_SOURCES) \
+	$(test_sexpressions_SOURCES) \
 	$(test_sexpressions_equal_SOURCES) \
 	$(test_sexpressions_read_write_SOURCES) \
 	$(test_spookyhash_SOURCES)
@@ -457,15 +461,17 @@ top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4 --install
 DEP_FILES = $(LIBIRIS_ADB_FILES:%.adb=.deps/%.adbdep) \
 	$(LIBIRIS_ADS_FILES:%.ads=.deps/%.adsdep) .deps/iris.adbdep \
-	.deps/test_hash_tables.adbdep .deps/test_pdf_01.adbdep \
+	.deps/test_radix_tries.adbdep .deps/test_hash_tables.adbdep \
+	.deps/test_pdf_01.adbdep \
 	.deps/test_find_main_system_fonts.adbdep \
 	.deps/test_find_tex_fonts.adbdep \
 	.deps/test_sexpressions.adbdep \
 	.deps/test_sexpressions_equal.adbdep \
 	.deps/test_sexpressions_read_write.adbdep
 MOSTLYCLEANFILES = 
-CLEANFILES = iris$(EXEEXT) test_hash_tables$(EXEEXT) \
-	test_pdf_01$(EXEEXT) test_find_main_system_fonts$(EXEEXT) \
+CLEANFILES = iris$(EXEEXT) test_radix_tries$(EXEEXT) \
+	test_hash_tables$(EXEEXT) test_pdf_01$(EXEEXT) \
+	test_find_main_system_fonts$(EXEEXT) \
 	test_find_tex_fonts$(EXEEXT) test_sexpressions$(EXEEXT) \
 	test_sexpressions_equal$(EXEEXT) \
 	test_sexpressions_read_write$(EXEEXT)
@@ -477,24 +483,25 @@ lib_LTLIBRARIES = libiris.la
 AM_ADAFLAGS = -gnatwu -gnatW8 -gnat2022 -I$(call get-adainclude) \
 	-I$(builddir) -I$(srcdir)
 LIBIRIS_ADB_FILES = pdf.adb font_finders.adb sexpressions.adb \
-	sequential_identifiers.adb hash_tables.adb
+	sequential_identifiers.adb radix_tries.adb hash_tables.adb
 LIBIRIS_ADS_FILES = pdf.ads font_finders.ads sexpressions.ads \
-	sequential_identifiers.ads hash_tables.ads alloca_h.ads \
-	bits_atomic_wide_counter_h.ads bits_byteswap_h.ads \
-	bits_pthreadtypes_h.ads bits_stdint_intn_h.ads \
-	bits_stdint_least_h.ads bits_stdint_uintn_h.ads \
-	bits_struct_mutex_h.ads bits_struct_rwlock_h.ads \
-	bits_struct_stat_h.ads bits_thread_shared_types_h.ads \
-	bits_types_clockid_t_h.ads bits_types_clock_t_h.ads \
-	bits_types_h.ads bits_types_sigset_t_h.ads \
-	bits_types_struct_timespec_h.ads \
+	sequential_identifiers.ads radix_tries.ads hash_tables.ads \
+	alloca_h.ads bits_atomic_wide_counter_h.ads \
+	bits_byteswap_h.ads bits_pthreadtypes_h.ads \
+	bits_stdint_intn_h.ads bits_stdint_least_h.ads \
+	bits_stdint_uintn_h.ads bits_struct_mutex_h.ads \
+	bits_struct_rwlock_h.ads bits_struct_stat_h.ads \
+	bits_thread_shared_types_h.ads bits_types_clockid_t_h.ads \
+	bits_types_clock_t_h.ads bits_types_h.ads \
+	bits_types_sigset_t_h.ads bits_types_struct_timespec_h.ads \
 	bits_types_struct_timeval_h.ads bits_types_timer_t_h.ads \
 	bits_types_time_t_h.ads bits_types_u_sigset_t_h.ads \
 	bits_uintn_identity_h.ads capypdf_0_capypdf_h.ads \
 	fontconfig_fontconfig_h.ads stdarg_h.ads stddef_h.ads \
 	stdint_h.ads stdlib_h.ads sys_select_h.ads sys_stat_h.ads \
 	sys_types_h.ads tkrzw_langc_h.ads
-LIBIRIS_C_FILES = spookyhash.c spookyhash.h
+LIBIRIS_C_FILES = parallel_search_u32x16.c parallel_search_u32x16.h \
+	spookyhash.c spookyhash.h
 LIBIRIS_OBJEXT = 
 LIBIRIS_DEPENDS = 
 ADALD = $(ADA)
@@ -519,6 +526,9 @@ libiris_la_DEPENDENCIES = $(LIBIRIS_ADB_FILES:%.adb=%.lo) $(filter-out \
 iris_SOURCES = iris.adb
 iris_LDADD = .libs/iris.$(OBJEXT) libiris.la
 iris_DEPENDENCIES = iris.lo iris.ali
+test_radix_tries_SOURCES = test_radix_tries.adb
+test_radix_tries_LDADD = .libs/test_radix_tries.$(OBJEXT) libiris.la
+test_radix_tries_DEPENDENCIES = test_radix_tries.lo test_radix_tries.ali
 test_hash_tables_SOURCES = test_hash_tables.adb
 test_hash_tables_LDADD = .libs/test_hash_tables.$(OBJEXT) libiris.la
 test_hash_tables_DEPENDENCIES = test_hash_tables.lo test_hash_tables.ali
@@ -686,6 +696,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parallel_search_u32x16.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spookyhash.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_spookyhash.Po@am__quote@ # am--include-marker
 
@@ -1016,6 +1027,7 @@ clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
+	-rm -f ./$(DEPDIR)/parallel_search_u32x16.Plo
 	-rm -f ./$(DEPDIR)/spookyhash.Plo
 	-rm -f ./$(DEPDIR)/test_spookyhash.Po
 	-rm -f GNUmakefile
@@ -1065,6 +1077,7 @@ installcheck-am: installcheck-local
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
+	-rm -f ./$(DEPDIR)/parallel_search_u32x16.Plo
 	-rm -f ./$(DEPDIR)/spookyhash.Plo
 	-rm -f ./$(DEPDIR)/test_spookyhash.Po
 	-rm -f GNUmakefile
@@ -1246,6 +1259,9 @@ distclean-local::
 iris$(EXEEXT): iris.lo iris.ali libiris.la
 	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 
+test_radix_tries$(EXEEXT): test_radix_tries.lo test_radix_tries.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
+
 test_hash_tables$(EXEEXT): test_hash_tables.lo test_hash_tables.ali libiris.la
 	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 
@@ -1320,10 +1336,12 @@ indent:
 	gnatformat -w 72 --charset utf-8 \
 	$(addprefix $(srcdir)/, \
 	pdf.ad[bs] \
+	radix_tries.ad[bs] \
 	hash_tables.ad[bs] \
 	font_finders.ad[bs] \
 	sexpressions.ad[bs] \
 	sequential_identifiers.ad[bs] \
+	test_radix_tries.adb \
 	test_hash_tables.adb \
 	test_pdf_[0-9][0-9].adb \
 	test_find*fonts.adb \
