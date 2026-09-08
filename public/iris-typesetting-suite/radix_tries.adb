@@ -13,7 +13,7 @@ with unchecked_deallocation;
 
 package body radix_tries is
 
-   procedure free_node is new
+   procedure deallocate is new
      unchecked_deallocation (radix_node, radix_node_access);
 
    -- 32-bit integers four bits at a time.
@@ -163,7 +163,7 @@ package body radix_tries is
          elsif i < 0 then
             deleted := true;
             if has_no_children (node) then
-               free_node (node);
+               deallocate (node);
                result := null;
             else
                result := node;
@@ -174,7 +174,7 @@ package body radix_tries is
               delete_helper
                 (node.children (index), key, i - 1, deleted);
             if has_no_children (node) then
-               free_node (node);
+               deallocate (node);
                result := null;
             else
                result := node;
@@ -223,12 +223,12 @@ package body radix_tries is
          if node = null then
             null;
          elsif node.is_leaf then
-            free_node (node);
+            deallocate (node);
          else
             for j in node.children'range loop
                delete_node (node.children (j));
             end loop;
-            free_node (node);
+            deallocate (node);
          end if;
       end;
    begin
