@@ -224,7 +224,6 @@ package body radix_tries is
             null;
          elsif node.is_leaf then
             free_node (node);
-            null;
          else
             for j in node.children'range loop
                delete_node (node.children (j));
