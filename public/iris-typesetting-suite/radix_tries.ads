@@ -108,11 +108,13 @@ package radix_tries is
 
    function constant_reference
      (container : in radix_trie; key : in unsigned_32)
-      return constant_element_reference;
+      return constant_element_reference
+   with pre => contains (container, key);
 
    function variable_reference
      (container : in out radix_trie; key : in unsigned_32)
-      return variable_element_reference;
+      return variable_element_reference
+   with pre => contains (container, key);
 
 private
 
