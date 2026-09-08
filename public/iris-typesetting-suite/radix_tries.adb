@@ -133,15 +133,37 @@ package body radix_tries is
    function element
      (container : radix_trie; key : unsigned_32) return element_type
    is
-      node        : radix_node_access := container.root;
-      key_shifted : unsigned_32;
+      node : radix_node_access := container.root;
    begin
-      key_shifted := key;
       for i in reverse 0 .. total_steps - 1 loop
          node := node.children (key_nibble (key, i));
       end loop;
       return node.element;
    end element;
+
+   function constant_reference
+     (container : in radix_trie; key : in unsigned_32)
+      return constant_element_reference
+   is
+      node : radix_node_access := container.root;
+   begin
+      for i in reverse 0 .. total_steps - 1 loop
+         node := node.children (key_nibble (key, i));
+      end loop;
+      return (element => node.element'access);
+   end constant_reference;
+
+   function variable_reference
+     (container : in out radix_trie; key : in unsigned_32)
+      return variable_element_reference
+   is
+      node : radix_node_access := container.root;
+   begin
+      for i in reverse 0 .. total_steps - 1 loop
+         node := node.children (key_nibble (key, i));
+      end loop;
+      return (element => node.element'access);
+   end variable_reference;
 
    function has_no_children (node : radix_node_access) return boolean is
       i : integer;

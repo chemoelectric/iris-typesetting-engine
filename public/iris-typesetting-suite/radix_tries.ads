@@ -18,13 +18,26 @@ generic
 package radix_tries is
 
    type radix_trie is tagged private
-     with aggregate => (empty => empty_radix_trie, add_named => insert),
-          constant_indexing => element;
-          --variable_indexing => include;
+   with
+     aggregate         =>
+       (empty => empty_radix_trie, add_named => insert),
+     constant_indexing => constant_reference,
+     variable_indexing => variable_reference;
+
+   type constant_element_reference
+     (element : not null access constant element_type)
+   is
+     private
+   with implicit_dereference => element;
+
+   type variable_element_reference
+     (element : not null access element_type)
+   is
+     private
+   with implicit_dereference => element;
 
    function empty_radix_trie return radix_trie
-     with
-       post => is_empty (empty_radix_trie'result);
+   with post => is_empty (empty_radix_trie'result);
 
    procedure insert
      (container : in out radix_trie;
@@ -93,6 +106,14 @@ package radix_tries is
    function is_empty (container : in radix_trie) return boolean
    with post => is_empty'result = (length (container) = 0);
 
+   function constant_reference
+     (container : in radix_trie; key : in unsigned_32)
+      return constant_element_reference;
+
+   function variable_reference
+     (container : in out radix_trie; key : in unsigned_32)
+      return variable_element_reference;
+
 private
 
    type radix_node;
@@ -106,7 +127,7 @@ private
             children : children_array;
 
          when true =>
-            element : element_type;
+            element : aliased element_type;
       end case;
    end record;
 
@@ -122,5 +143,12 @@ private
    procedure adjust (container : in out radix_trie);
    overriding
    procedure finalize (container : in out radix_trie);
+
+   type constant_element_reference
+     (element : not null access constant element_type)
+   is null record;
+   type variable_element_reference
+     (element : not null access element_type)
+   is null record;
 
 end radix_tries;
