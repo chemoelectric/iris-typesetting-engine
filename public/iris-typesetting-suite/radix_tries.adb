@@ -47,24 +47,38 @@ package body radix_tries is
       end return;
    end empty_radix_trie;
 
-   procedure insert
-     (container : in out radix_trie;
-      key       : in unsigned_32;
-      new_item  : in element_type)
+   procedure insert_aux
+     (container           : in out radix_trie;
+      key                 : in unsigned_32;
+      node_out            : out radix_node_access;
+      increment_the_count : out boolean)
    is
-      node            : radix_node_access := container.root;
-      index           : natural;
-      increment_count : boolean := false;
+      index          : natural;
+      node           : radix_node_access := container.root;
+      incr_the_count : boolean := false;
    begin
       for i in reverse 0 .. total_steps - 1 loop
          index := key_nibble (key, i);
          if node.children (index) = null then
             node.children (index) := new radix_node (is_leaf => i = 0);
-            increment_count := true;
+            incr_the_count := true;
          end if;
          node := node.children (index);
       end loop;
-      if increment_count then
+      node_out := node;
+      increment_the_count := incr_the_count;
+   end insert_aux;
+
+   procedure insert
+     (container : in out radix_trie;
+      key       : in unsigned_32;
+      new_item  : in element_type)
+   is
+      node                : radix_node_access;
+      increment_the_count : boolean;
+   begin
+      insert_aux (container, key, node, increment_the_count);
+      if increment_the_count then
          node.element := new_item;
          container.count := @ + 1;
       else
@@ -72,28 +86,20 @@ package body radix_tries is
       end if;
    end insert;
 
-   procedure include_helper
+   procedure include_aux
      (container : in out radix_trie;
       key       : in unsigned_32;
       node_out  : out radix_node_access)
    is
-      node            : radix_node_access := container.root;
-      index           : natural;
-      increment_count : boolean := false;
+      node                : radix_node_access;
+      increment_the_count : boolean;
    begin
-      for i in reverse 0 .. total_steps - 1 loop
-         index := key_nibble (key, i);
-         if node.children (index) = null then
-            node.children (index) := new radix_node (is_leaf => i = 0);
-            increment_count := true;
-         end if;
-         node := node.children (index);
-      end loop;
-      if increment_count then
+      insert_aux (container, key, node, increment_the_count);
+      if increment_the_count then
          container.count := @ + 1;
       end if;
       node_out := node;
-   end include_helper;
+   end include_aux;
 
    procedure include
      (container : in out radix_trie;
@@ -102,7 +108,7 @@ package body radix_tries is
    is
       node : radix_node_access;
    begin
-      include_helper (container, key, node);
+      include_aux (container, key, node);
       node.element := new_item;
    end include;
 
@@ -170,7 +176,7 @@ package body radix_tries is
    is
       node : radix_node_access;
    begin
-      include_helper (container, key, node);
+      include_aux (container, key, node);
       return (element => node.element'access);
    end variable_reference;
 
@@ -186,48 +192,66 @@ package body radix_tries is
       return (i = node.children'last + 1);
    end has_no_children;
 
-   function delete_helper
+   procedure delete_aux
+     (node     : in out radix_node_access;
+      key      : unsigned_32;
+      i        : integer;
+      node_out : out radix_node_access;
+      deleted  : out boolean)
+   is
+      deletion_done : boolean;
+      child_deleted : boolean;
+      index         : natural;
+      new_child     : radix_node_access;
+   begin
+      deletion_done := false;
+      if node = null then
+         node_out := null;
+      elsif i < 0 then
+         deleted := true;
+         if has_no_children (node) then
+            deallocate (node);
+            node_out := null;
+         else
+            node_out := node;
+         end if;
+      else
+         index := key_nibble (key, i);
+         delete_aux
+           (node.children (index),
+            key,
+            i - 1,
+            new_child,
+            child_deleted);
+         node.children (index) := new_child;
+         deletion_done := @ or child_deleted;
+         if has_no_children (node) then
+            deallocate (node);
+            node_out := null;
+         else
+            node_out := node;
+         end if;
+      end if;
+      deleted := deletion_done;
+   end delete_aux;
+
+   procedure delete_aux
      (node    : in out radix_node_access;
       key     : unsigned_32;
       i       : integer;
-      deleted : in out boolean) return radix_node_access
+      deleted : out boolean)
    is
-      index : natural;
+      bit_bucket : radix_node_access;
    begin
-      return result : radix_node_access do
-         if node = null then
-            result := null;
-         elsif i < 0 then
-            deleted := true;
-            if has_no_children (node) then
-               deallocate (node);
-               result := null;
-            else
-               result := node;
-            end if;
-         else
-            index := key_nibble (key, i);
-            node.children (index) :=
-              delete_helper
-                (node.children (index), key, i - 1, deleted);
-            if has_no_children (node) then
-               deallocate (node);
-               result := null;
-            else
-               result := node;
-            end if;
-         end if;
-      end return;
-   end delete_helper;
+      delete_aux (node, key, i, bit_bucket, deleted);
+   end delete_aux;
 
    procedure delete
      (container : in out radix_trie; key : in unsigned_32)
    is
-      deleted : boolean := false;
-      dummy   : radix_node_access;
+      deleted : boolean;
    begin
-      dummy :=
-        delete_helper (container.root, key, total_steps - 1, deleted);
+      delete_aux (container.root, key, total_steps - 1, deleted);
       if deleted then
          container.count := @ - 1;
       else
@@ -238,11 +262,9 @@ package body radix_tries is
    procedure exclude
      (container : in out radix_trie; key : in unsigned_32)
    is
-      deleted : boolean := false;
-      dummy   : radix_node_access;
+      deleted : boolean;
    begin
-      dummy :=
-        delete_helper (container.root, key, total_steps - 1, deleted);
+      delete_aux (container.root, key, total_steps - 1, deleted);
       if deleted then
          container.count := @ - 1;
       end if;
