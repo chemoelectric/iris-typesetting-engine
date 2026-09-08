@@ -21,6 +21,17 @@ package radix_tries is
 
    type radix_trie is limited private;
 
+   procedure insert
+     (container : in out radix_trie;
+      key       : in unsigned_32;
+      new_item  : in element_type)
+   with
+     warnings       => off,
+     contract_cases =>
+       (contains (container, key)     => raise key_error,
+        not contains (container, key) =>
+          length (container) = length (container)'old + 1);
+
    procedure include
      (container : in out radix_trie;
       key       : in unsigned_32;
@@ -34,12 +45,12 @@ package radix_tries is
 
    procedure delete
      (container : in out radix_trie; key : in unsigned_32)
-     with
-       warnings => off,
-       contract_cases =>
-         (contains (container, key)     =>
-            length (container) = length (container)'old - 1,
-          not contains (container, key) => raise key_error);
+   with
+     warnings       => off,
+     contract_cases =>
+       (contains (container, key)     =>
+          length (container) = length (container)'old - 1,
+        not contains (container, key) => raise key_error);
 
    procedure exclude
      (container : in out radix_trie; key : in unsigned_32)

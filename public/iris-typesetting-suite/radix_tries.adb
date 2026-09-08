@@ -29,6 +29,12 @@ package body radix_tries is
        (total_steps * bits_per_step = bits_per_integer);
    pragma warnings (on, "*predicate is redundant*");
 
+   function key_not_found (key : in unsigned_32) return string
+   is ("key not found: " & key'img);
+
+   function key_already_contained (key : in unsigned_32) return string
+   is ("key already contained: " & key'img);
+
    function key_nibble
      (key : in unsigned_32; i : in integer) return natural
    is (natural
@@ -58,6 +64,31 @@ package body radix_tries is
       recursive_wipe (container.root);
    end finalize;
 
+   procedure insert
+     (container : in out radix_trie;
+      key       : in unsigned_32;
+      new_item  : in element_type)
+   is
+      current         : radix_node_access := container.root;
+      index           : natural;
+      increment_count : boolean := false;
+   begin
+      for step in reverse 0 .. total_steps - 1 loop
+         index := key_nibble (key, step);
+         if current.children (index) = null then
+            current.children (index) := new radix_node;
+            increment_count := true;
+         end if;
+         current := current.children (index);
+      end loop;
+      if increment_count then
+         current.element := new_item;
+         container.count := @ + 1;
+      else
+         raise key_error with key_already_contained (key);
+      end if;
+   end insert;
+
    procedure include
      (container : in out radix_trie;
       key       : in unsigned_32;
@@ -80,6 +111,28 @@ package body radix_tries is
          container.count := @ + 1;
       end if;
    end include;
+
+   procedure replace
+     (container : in out radix_trie;
+      key       : in unsigned_32;
+      new_item  : in element_type)
+   is
+      current : radix_node_access := container.root;
+      step    : integer range -1 .. total_steps - 1;
+   begin
+      step := total_steps - 1;
+      while step /= -1
+        and then current.children (key_nibble (key, step)) /= null
+      loop
+         current := current.children (key_nibble (key, step));
+         step := @ - 1;
+      end loop;
+      if step /= -1 then
+         raise key_error with key_not_found (key);
+      else
+         current.element := new_item;
+      end if;
+   end replace;
 
    function contains
      (container : radix_trie; key : unsigned_32) return boolean
@@ -166,7 +219,7 @@ package body radix_tries is
       if deleted then
          container.count := @ - 1;
       else
-         raise key_error with "key not found: " & key'img;
+         raise key_error with key_not_found (key);
       end if;
    end delete;
 
