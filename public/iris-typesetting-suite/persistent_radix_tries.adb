@@ -5,14 +5,29 @@
 --
 -- Maps from unsigned 32-bit integers to elements.
 --
+--  FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+--  This is not persistent yet.
+--  FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+--
 
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
 with unchecked_deallocation;
-with ada.text_io; use ada.text_io; -- FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: for debugging
 
-package body radix_tries is
+package body persistent_radix_tries is
+
+   -- 32-bit integers four bits at a time.
+   bits_per_step    : constant := 4;
+   bits_per_integer : constant := 32;
+   total_steps      : constant := bits_per_integer / bits_per_step;
+
+   subtype total_steps_divides_bits_per_integer is boolean
+   with
+     unreferenced,
+     warnings         => off,
+     static_predicate =>
+       (total_steps * bits_per_step = bits_per_integer);
 
    procedure deallocate is new
      unchecked_deallocation (radix_node, radix_node_access);
@@ -23,16 +38,7 @@ package body radix_tries is
    function key_already_contained (key : in unsigned_32) return string
    is ("key already contained: " & key'img);
 
-   function busy_delete (key : in unsigned_32) return string
-   is ("trie busy, cannot delete: " & key'img);
-
-   function busy_insert (key : in unsigned_32) return string
-   is ("trie busy, cannot insert at: " & key'img);
-
-   function busy_clear return string
-   is ("trie busy, cannot clear it");
-
-   function key_nybble
+   function key_nibble
      (key : in unsigned_32; i : in integer) return natural
    is (natural
          ((key / (2**(i * bits_per_step))) mod (2**bits_per_step)))
@@ -56,11 +62,8 @@ package body radix_tries is
       incr_the_count : boolean := false;
    begin
       for i in reverse 0 .. total_steps - 1 loop
-         index := key_nybble (key, i);
+         index := key_nibble (key, i);
          if node.children (index) = null then
-            if container.busy_count /= 0 then
-               raise program_error with busy_insert (key);
-            end if;
             node.children (index) := new radix_node (is_leaf => i = 0);
             incr_the_count := true;
          end if;
@@ -81,7 +84,7 @@ package body radix_tries is
       insert_aux (container, key, node, increment_the_count);
       if increment_the_count then
          node.element := new_item;
-         container.element_count := @ + 1;
+         container.count := @ + 1;
       else
          raise constraint_error with key_already_contained (key);
       end if;
@@ -97,7 +100,7 @@ package body radix_tries is
    begin
       insert_aux (container, key, node, increment_the_count);
       if increment_the_count then
-         container.element_count := @ + 1;
+         container.count := @ + 1;
       end if;
       node_out := node;
    end include_aux;
@@ -122,9 +125,9 @@ package body radix_tries is
       i    : integer range -1 .. total_steps - 1;
    begin
       i := total_steps - 1;
-      while i /= -1 and then node.children (key_nybble (key, i)) /= null
+      while i /= -1 and then node.children (key_nibble (key, i)) /= null
       loop
-         node := node.children (key_nybble (key, i));
+         node := node.children (key_nibble (key, i));
          i := @ - 1;
       end loop;
       if i /= -1 then
@@ -141,7 +144,7 @@ package body radix_tries is
       i    : integer range -1 .. total_steps - 1;
    begin
       i := total_steps - 1;
-      while i /= -1 and then node.children (key_nybble (key, i)) /= null
+      while i /= -1 and then node.children (key_nibble (key, i)) /= null
       loop
          i := @ - 1;
       end loop;
@@ -154,7 +157,7 @@ package body radix_tries is
       node : radix_node_access := container.root;
    begin
       for i in reverse 0 .. total_steps - 1 loop
-         node := node.children (key_nybble (key, i));
+         node := node.children (key_nibble (key, i));
       end loop;
       return node.element;
    end element;
@@ -166,7 +169,7 @@ package body radix_tries is
       node : radix_node_access := container.root;
    begin
       for i in reverse 0 .. total_steps - 1 loop
-         node := node.children (key_nybble (key, i));
+         node := node.children (key_nibble (key, i));
       end loop;
       return (element => node.element'access);
    end constant_reference;
@@ -193,62 +196,58 @@ package body radix_tries is
       return (i = node.children'last + 1);
    end has_no_children;
 
-   subtype delete_aux_index is integer range -1 .. total_steps - 1;
-
    procedure delete_aux
      (node     : in out radix_node_access;
-      key      : in unsigned_32;
-      busy     : in boolean;
-      i        : in delete_aux_index;
+      key      : unsigned_32;
+      i        : integer;
       node_out : out radix_node_access;
       deleted  : out boolean)
    is
-      index     : natural;
-      new_child : radix_node_access;
+      deletion_done : boolean;
+      child_deleted : boolean;
+      index         : natural;
+      new_child     : radix_node_access;
    begin
+      deletion_done := false;
       if node = null then
          node_out := null;
-         deleted := false;
-      elsif node.is_leaf then
-         if busy then
-            raise program_error with busy_delete (key);
-         end if;
-         deallocate (node);
-         node_out := null;
+      elsif i < 0 then
          deleted := true;
+         if has_no_children (node) then
+            deallocate (node);
+            node_out := null;
+         else
+            node_out := node;
+         end if;
       else
-         index := key_nybble (key, i);
+         index := key_nibble (key, i);
          delete_aux
            (node.children (index),
             key,
-            busy,
             i - 1,
             new_child,
-            deleted);
-         if deleted then
-            node.children (index) := new_child;
-            if has_no_children (node) then
-               deallocate (node);
-               node_out := null;
-            else
-               node_out := node;
-            end if;
+            child_deleted);
+         node.children (index) := new_child;
+         deletion_done := @ or child_deleted;
+         if has_no_children (node) then
+            deallocate (node);
+            node_out := null;
          else
             node_out := node;
          end if;
       end if;
+      deleted := deletion_done;
    end delete_aux;
 
    procedure delete_aux
      (node    : in out radix_node_access;
-      key     : in unsigned_32;
-      busy    : in boolean;
+      key     : unsigned_32;
+      i       : integer;
       deleted : out boolean)
    is
       bit_bucket : radix_node_access;
    begin
-      delete_aux
-        (node, key, busy, total_steps - 1, bit_bucket, deleted);
+      delete_aux (node, key, i, bit_bucket, deleted);
    end delete_aux;
 
    procedure delete
@@ -256,10 +255,9 @@ package body radix_tries is
    is
       deleted : boolean;
    begin
-      delete_aux
-        (container.root, key, (container.busy_count /= 0), deleted);
+      delete_aux (container.root, key, total_steps - 1, deleted);
       if deleted then
-         container.element_count := @ - 1;
+         container.count := @ - 1;
       else
          raise constraint_error with key_not_found (key);
       end if;
@@ -270,18 +268,17 @@ package body radix_tries is
    is
       deleted : boolean;
    begin
-      delete_aux
-        (container.root, key, (container.busy_count /= 0), deleted);
+      delete_aux (container.root, key, total_steps - 1, deleted);
       if deleted then
-         container.element_count := @ - 1;
+         container.count := @ - 1;
       end if;
    end exclude;
 
    function length (container : in radix_trie) return count_type
-   is (container.element_count);
+   is (container.count);
 
    function is_empty (container : in radix_trie) return boolean
-   is (container.element_count = 0);
+   is (container.count = 0);
 
    procedure empty_out (container : in out radix_trie) is
       procedure delete_node (node : in out radix_node_access) is
@@ -304,8 +301,7 @@ package body radix_tries is
    procedure start_up (container : in out radix_trie) is
    begin
       container.root := new radix_node (is_leaf => false);
-      container.element_count := 0;
-      container.busy_count := 0;
+      container.count := 0;
    end start_up;
 
    procedure deep_copy (container : in out radix_trie) is
@@ -333,9 +329,6 @@ package body radix_tries is
 
    procedure clear (container : in out radix_trie) is
    begin
-      if container.busy_count /= 0 then
-         raise program_error with busy_clear;
-      end if;
       empty_out (container);
       start_up (container);
    end clear;
@@ -354,7 +347,6 @@ package body radix_tries is
       -- done.
       --
       deep_copy (container);
-      container.busy_count := 0;
    end adjust;
 
    overriding
@@ -363,92 +355,4 @@ package body radix_tries is
       empty_out (container);
    end finalize;
 
-   ---------------------------------------------------------------------
-
-   function first (container : in radix_trie) return cursor'class is
-      temp : cursor;
-   begin
-      temp.container := container'unrestricted_access;
-      temp.container.busy_count := @ + 1;
-      temp.depth := 1;
-      temp.nodes (1) := container.root;
-      temp.next_indices (1) := 0;
-      temp.current_node := container.root;
-      return next (container, temp);
-   end first;
-
-   function next
-     (container : in radix_trie; position : in cursor'class)
-      return cursor'class
-   is
-      searching : boolean := (position.current_node /= null);
-   begin
-      return result : cursor := cursor (position) do
-         while searching and result.depth /= 0 loop
-            if result.next_indices (result.depth) /= 2**bits_per_step
-            then
-               declare
-                  current_parent : constant radix_node_access :=
-                    result.nodes (result.depth);
-                  child_index    : constant natural :=
-                    result.next_indices (result.depth);
-                  child          : constant radix_node_access :=
-                    current_parent.children (child_index);
-               begin
-                  result.next_indices (result.depth) := child_index + 1;
-                  if child /= null then
-                     if result.depth /= total_steps then
-                        result.depth := @ + 1;
-                        result.nodes (result.depth) := child;
-                        result.next_indices (result.depth) := 0;
-                     end if;
-                     if child.is_leaf then
-                        result.current_node := child;
-                        searching := false;
-                     end if;
-                  end if;
-               end;
-            else
-               result.depth := @ - 1;
-            end if;
-         end loop;
-         if searching then
-            result.current_node := null;
-         end if;
-      end return;
-   end next;
-
-   function has_element
-     (container : in radix_trie; position : in cursor'class)
-      return boolean
-   is (position.current_node /= null);
-
-   function element
-     (container : in radix_trie; position : in cursor'class)
-      return element_type
-   is (position.current_node.element);
-
-   overriding
-   procedure adjust (position : in out cursor) is
-   begin
-      if position.container = null then
-         null;
-      else
-         position.container.busy_count := @ + 1;
-      end if;
-   end adjust;
-
-   overriding
-   procedure finalize (position : in out cursor) is
-   begin
-      if position.container = null then
-         null;
-      else
-         position.container.busy_count := @ - 1;
-         position.container := null;
-      end if;
-   end finalize;
-
-   ---------------------------------------------------------------------
-
-end radix_tries;
+end persistent_radix_tries;

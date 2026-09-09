@@ -13,6 +13,9 @@ LIBIRIS_ADB_FILES += sequential_identifiers.adb
 LIBIRIS_ADS_FILES += radix_tries.ads
 LIBIRIS_ADB_FILES += radix_tries.adb
 
+LIBIRIS_ADS_FILES += persistent_radix_tries.ads
+LIBIRIS_ADB_FILES += persistent_radix_tries.adb
+
 LIBIRIS_ADS_FILES += hash_tables.ads
 LIBIRIS_ADB_FILES += hash_tables.adb
 

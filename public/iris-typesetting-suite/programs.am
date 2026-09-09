@@ -22,6 +22,18 @@ test_radix_tries_DEPENDENCIES = test_radix_tries.lo test_radix_tries.ali
 DEP_FILES += .deps/test_radix_tries.adbdep
 CLEANFILES += test_radix_tries$(EXEEXT)
 
+test_persistent_radix_tries$(EXEEXT): test_persistent_radix_tries.lo test_persistent_radix_tries.ali libiris.la
+	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
+
+check_PROGRAMS += test_persistent_radix_tries
+test_persistent_radix_tries_SOURCES = test_persistent_radix_tries.adb
+test_persistent_radix_tries_LDADD = .libs/test_persistent_radix_tries.$(OBJEXT)
+test_persistent_radix_tries_LDADD += libiris.la
+test_persistent_radix_tries_DEPENDENCIES = test_persistent_radix_tries.lo test_persistent_radix_tries.ali
+
+DEP_FILES += .deps/test_persistent_radix_tries.adbdep
+CLEANFILES += test_persistent_radix_tries$(EXEEXT)
+
 test_hash_tables$(EXEEXT): test_hash_tables.lo test_hash_tables.ali libiris.la
 	$(call link-ada,$(basename $(@)),          $(filter-out %.ali,$(^)),$(LIBS))
 

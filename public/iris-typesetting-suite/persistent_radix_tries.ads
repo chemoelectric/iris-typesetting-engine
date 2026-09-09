@@ -5,6 +5,10 @@
 --
 -- Maps from unsigned 32-bit integers to elements.
 --
+--  FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+--  This is not persistent yet.
+--  FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+--
 
 pragma wide_character_encoding (utf8);
 pragma ada_2022;
@@ -15,21 +19,14 @@ with ada.finalization;
 
 generic
    type element_type is private;
-package radix_tries is
+package persistent_radix_tries is
 
    type radix_trie is tagged private
    with
      aggregate         =>
        (empty => empty_radix_trie, add_named => insert),
      constant_indexing => constant_reference,
-     variable_indexing => variable_reference,
-     iterable          =>
-       (first       => first,
-        next        => next,
-        has_element => has_element,
-        element     => element);
-
-   type cursor is tagged private;
+     variable_indexing => variable_reference;
 
    type constant_element_reference
      (element : not null access constant element_type)
@@ -113,18 +110,6 @@ package radix_tries is
    function is_empty (container : in radix_trie) return boolean
    with post => is_empty'result = (length (container) = 0);
 
-   function first (container : in radix_trie) return cursor'class;
-   function next
-     (container : in radix_trie; position : in cursor'class)
-      return cursor'class;
-   function has_element
-     (container : in radix_trie; position : in cursor'class)
-      return boolean;
-   function element
-     (container : in radix_trie; position : in cursor'class)
-      return element_type
-   with pre => has_element (container, position);
-
    function constant_reference
      (container : in radix_trie; key : in unsigned_32)
       return constant_element_reference
@@ -137,26 +122,10 @@ package radix_tries is
 
 private
 
-   -- 32-bit integers, read high nybble first, four bits at a time, to
-   -- go through the trie.
-   bits_per_step    : constant := 4;
-   bits_per_integer : constant := 32;
-   total_steps      : constant := bits_per_integer / bits_per_step;
-
-   subtype total_steps_divides_bits_per_integer is boolean
-   with
-     unreferenced,
-     warnings         => off,
-     static_predicate =>
-       (total_steps * bits_per_step = bits_per_integer);
-
-   subtype controlled is ada.finalization.controlled;
-
    type radix_node;
    type radix_node_access is access all radix_node;
 
-   type children_array is
-     array (0 .. (2**bits_per_step) - 1) of radix_node_access;
+   type children_array is array (0 .. 15) of radix_node_access;
 
    type radix_node (is_leaf : boolean) is record
       case is_leaf is
@@ -168,10 +137,9 @@ private
       end case;
    end record;
 
-   type radix_trie is new controlled with record
-      root          : radix_node_access;
-      element_count : count_type;
-      busy_count    : natural;
+   type radix_trie is new ada.finalization.controlled with record
+      root  : radix_node_access;
+      count : count_type;
    end record
    with dynamic_predicate => root /= null;
 
@@ -184,30 +152,9 @@ private
 
    type constant_element_reference
      (element : not null access constant element_type)
-   is null record;   -- 32-bit integers, four bits at a time.
-
+   is null record;
    type variable_element_reference
      (element : not null access element_type)
    is null record;
 
-   subtype depth_range is integer range 0 .. total_steps;
-   subtype index_range is integer range 1 .. total_steps;
-
-   type cursor_nodes_array is array (index_range) of radix_node_access;
-   type cursor_next_indices_array is
-     array (index_range) of integer range 0 .. 2**bits_per_step;
-
-   type cursor is new controlled with record
-      container    : access radix_trie;
-      current_node : radix_node_access;
-      nodes        : cursor_nodes_array;
-      next_indices : cursor_next_indices_array;
-      depth        : depth_range := 0;
-   end record;
-
-   overriding
-   procedure adjust (position : in out cursor);
-   overriding
-   procedure finalize (position : in out cursor);
-
-end radix_tries;
+end persistent_radix_tries;

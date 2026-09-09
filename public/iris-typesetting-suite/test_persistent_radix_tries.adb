@@ -8,17 +8,17 @@ pragma ada_2022;
 with ada.text_io;           use ada.text_io;
 with ada.strings.unbounded; use ada.strings.unbounded;
 with ada.containers;        use ada.containers;
-with radix_tries;
+with persistent_radix_tries;
 
-procedure test_radix_tries is
-   package integer_radix_tries is new
-     radix_tries (element_type => integer);
-   subtype integer_radix_trie is integer_radix_tries.radix_trie;
+procedure test_persistent_radix_tries is
+   package integer_persistent_radix_tries is new
+     persistent_radix_tries (element_type => integer);
+   subtype integer_radix_trie is integer_persistent_radix_tries.radix_trie;
 
-   package unbounded_string_radix_tries is new
-     radix_tries (element_type => unbounded_string);
+   package unbounded_string_persistent_radix_tries is new
+     persistent_radix_tries (element_type => unbounded_string);
    subtype unbounded_string_radix_trie is
-     unbounded_string_radix_tries.radix_trie;
+     unbounded_string_persistent_radix_tries.radix_trie;
 
    procedure try (predicate_string : in string; predicate : in boolean)
    is
@@ -66,9 +66,6 @@ procedure test_radix_tries is
       try
         ("p.element (1234567890) = to_unbounded_string (""d"")",
          p.element (1234567890) = to_unbounded_string ("d"));
-      for s of p loop
-         put_line (to_string (s));
-      end loop;
    end test_aggregates;
 
    procedure test_indices is
@@ -95,12 +92,9 @@ procedure test_radix_tries is
       try ("p (5555555) = 3", p (5555555) = 3);
       try ("p (54321) = 2", p (54321) = 2);
       try ("p (543210) = 543210", p (543210) = 543210);
-      for s of p loop
-         put_line ((s'img));
-      end loop;
    end test_indices;
 
 begin
    test_aggregates;
    test_indices;
-end test_radix_tries;
+end test_persistent_radix_tries;
