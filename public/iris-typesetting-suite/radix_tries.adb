@@ -10,7 +10,9 @@ pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
 with unchecked_deallocation;
-with ada.text_io; use ada.text_io; -- FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: for debugging
+with ada.text_io;
+use ada
+      .text_io; -- FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: for debugging
 
 package body radix_tries is
 
@@ -397,6 +399,7 @@ package body radix_tries is
                begin
                   result.next_indices (result.depth) := child_index + 1;
                   if child /= null then
+                     result.path_indices (result.depth) := child_index;
                      if result.depth /= total_steps then
                         result.depth := @ + 1;
                         result.nodes (result.depth) := child;
@@ -418,15 +421,36 @@ package body radix_tries is
       end return;
    end next;
 
+   function next (position : in cursor) return cursor
+   is (cursor (next (position.container.all, position)));
+
    function has_element
      (container : in radix_trie; position : in cursor'class)
       return boolean
+   is (position.current_node /= null);
+
+   function has_element (position : in cursor) return boolean
    is (position.current_node /= null);
 
    function element
      (container : in radix_trie; position : in cursor'class)
       return element_type
    is (position.current_node.element);
+
+   function element (position : in cursor) return element_type
+   is (position.current_node.element);
+
+   function key (position : in cursor) return unsigned_32 is
+      key : unsigned_32;
+   begin
+      key := 0;
+      for i in index_range loop
+         key :=
+           (@ * 2**bits_per_step)
+           + unsigned_32 (position.path_indices (i));
+      end loop;
+      return key;
+   end key;
 
    overriding
    procedure adjust (position : in out cursor) is

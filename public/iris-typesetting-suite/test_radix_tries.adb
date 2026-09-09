@@ -8,6 +8,7 @@ pragma ada_2022;
 with ada.text_io;           use ada.text_io;
 with ada.strings.unbounded; use ada.strings.unbounded;
 with ada.containers;        use ada.containers;
+with interfaces;            use interfaces;
 with radix_tries;
 
 procedure test_radix_tries is
@@ -98,6 +99,13 @@ procedure test_radix_tries is
       for s of p loop
          put_line ((s'img));
       end loop;
+      declare
+         pos : integer_radix_tries.cursor :=
+           integer_radix_tries.cursor (p.first);
+      begin
+         put_line (unsigned_32'image (pos.key));
+         put_line (integer'image (pos.element));
+      end;
    end test_indices;
 
 begin

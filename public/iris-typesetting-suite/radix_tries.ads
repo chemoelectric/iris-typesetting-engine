@@ -13,9 +13,16 @@ with interfaces;     use interfaces;
 with ada.containers; use ada.containers;
 with ada.finalization;
 
+------------------------------------------------------------------------
+
 generic
+
    type element_type is private;
-package radix_tries is
+
+package radix_tries
+is
+
+   ---------------------------------------------------------------------
 
    type radix_trie is tagged private
    with
@@ -29,19 +36,7 @@ package radix_tries is
         has_element => has_element,
         element     => element);
 
-   type cursor is tagged private;
-
-   type constant_element_reference
-     (element : not null access constant element_type)
-   is
-     private
-   with implicit_dereference => element;
-
-   type variable_element_reference
-     (element : not null access element_type)
-   is
-     private
-   with implicit_dereference => element;
+   ---------------------------------------------------------------------
 
    function empty_radix_trie return radix_trie
    with post => is_empty (empty_radix_trie'result);
@@ -113,17 +108,54 @@ package radix_tries is
    function is_empty (container : in radix_trie) return boolean
    with post => is_empty'result = (length (container) = 0);
 
+   ---------------------------------------------------------------------
+   --
+   -- Iterables and cursors.
+   --
+
+   type cursor is tagged private;
+
    function first (container : in radix_trie) return cursor'class;
+
    function next
      (container : in radix_trie; position : in cursor'class)
       return cursor'class;
+
+   function next (position : in cursor) return cursor;
+
    function has_element
      (container : in radix_trie; position : in cursor'class)
       return boolean;
+
+   function has_element (position : in cursor) return boolean;
+
    function element
      (container : in radix_trie; position : in cursor'class)
       return element_type
    with pre => has_element (container, position);
+
+   function element (position : in cursor) return element_type
+   with pre => has_element (position);
+
+   function key (position : in cursor) return unsigned_32
+   with pre => has_element (position);
+
+   ---------------------------------------------------------------------
+   --
+   -- Indices.
+   --
+
+   type constant_element_reference
+     (element : not null access constant element_type)
+   is
+     private
+   with implicit_dereference => element;
+
+   type variable_element_reference
+     (element : not null access element_type)
+   is
+     private
+   with implicit_dereference => element;
 
    function constant_reference
      (container : in radix_trie; key : in unsigned_32)
@@ -135,7 +167,11 @@ package radix_tries is
       return variable_element_reference
    with pre => contains (container, key);
 
+   ---------------------------------------------------------------------
+
 private
+
+   ---------------------------------------------------------------------
 
    -- 32-bit integers, read high nybble first, four bits at a time, to
    -- go through the trie.
@@ -150,7 +186,11 @@ private
      static_predicate =>
        (total_steps * bits_per_step = bits_per_integer);
 
+   ---------------------------------------------------------------------
+
    subtype controlled is ada.finalization.controlled;
+
+   ---------------------------------------------------------------------
 
    type radix_node;
    type radix_node_access is access all radix_node;
@@ -182,6 +222,8 @@ private
    overriding
    procedure finalize (container : in out radix_trie);
 
+   ---------------------------------------------------------------------
+
    type constant_element_reference
      (element : not null access constant element_type)
    is null record;   -- 32-bit integers, four bits at a time.
@@ -190,18 +232,23 @@ private
      (element : not null access element_type)
    is null record;
 
+   ---------------------------------------------------------------------
+
    subtype depth_range is integer range 0 .. total_steps;
    subtype index_range is integer range 1 .. total_steps;
 
    type cursor_nodes_array is array (index_range) of radix_node_access;
    type cursor_next_indices_array is
      array (index_range) of integer range 0 .. 2**bits_per_step;
+   type cursor_path_indices_array is
+     array (index_range) of integer range 0 .. 2**bits_per_step - 1;
 
    type cursor is new controlled with record
       container    : access radix_trie;
       current_node : radix_node_access;
       nodes        : cursor_nodes_array;
       next_indices : cursor_next_indices_array;
+      path_indices : cursor_path_indices_array;
       depth        : depth_range := 0;
    end record;
 
@@ -209,5 +256,7 @@ private
    procedure adjust (position : in out cursor);
    overriding
    procedure finalize (position : in out cursor);
+
+   ---------------------------------------------------------------------
 
 end radix_tries;
