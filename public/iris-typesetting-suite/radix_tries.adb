@@ -10,9 +10,6 @@ pragma wide_character_encoding (utf8);
 pragma ada_2022;
 
 with unchecked_deallocation;
-with ada.text_io;
-use ada
-      .text_io; -- FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: FIXME: for debugging
 
 package body radix_tries is
 
@@ -367,7 +364,8 @@ package body radix_tries is
 
    ---------------------------------------------------------------------
 
-   function first (container : in radix_trie) return cursor'class is
+   function first_cursor (container : in radix_trie) return cursor'class
+   is
       temp : cursor;
    begin
       temp.container := container'unrestricted_access;
@@ -376,10 +374,13 @@ package body radix_tries is
       temp.nodes (1) := container.root;
       temp.next_indices (1) := 0;
       temp.current_node := container.root;
-      return next (container, temp);
-   end first;
+      return next_cursor (container, temp);
+   end first_cursor;
 
-   function next
+   function first (container : in radix_trie'class) return cursor
+   is (cursor (first_cursor (radix_trie (container))));
+
+   function next_cursor
      (container : in radix_trie; position : in cursor'class)
       return cursor'class
    is
@@ -419,10 +420,10 @@ package body radix_tries is
             result.current_node := null;
          end if;
       end return;
-   end next;
+   end next_cursor;
 
    function next (position : in cursor) return cursor
-   is (cursor (next (position.container.all, position)));
+   is (cursor (next_cursor (position.container.all, position)));
 
    function has_element
      (container : in radix_trie; position : in cursor'class)
@@ -472,6 +473,26 @@ package body radix_tries is
          position.container := null;
       end if;
    end finalize;
+
+   ---------------------------------------------------------------------
+
+   function keys (container : aliased radix_trie) return keys_view
+   is (keys_view'(target => container'access));
+
+   function first_cursor (view : in keys_view) return cursor
+   is (cursor (first_cursor (view.target.all)));
+
+   function next_cursor
+     (view : in keys_view; position : in cursor) return cursor
+   is (cursor (next_cursor (view.target.all, position)));
+
+   function has_key
+     (view : in keys_view; position : in cursor) return boolean
+   is (has_element (view.target.all, position));
+
+   function key
+     (view : in keys_view; position : in cursor) return unsigned_32
+   is (position.key);
 
    ---------------------------------------------------------------------
 

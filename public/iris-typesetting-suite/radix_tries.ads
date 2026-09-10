@@ -31,10 +31,22 @@ is
      constant_indexing => constant_reference,
      variable_indexing => variable_reference,
      iterable          =>
-       (first       => first,
-        next        => next,
+       (first       => first_cursor,
+        next        => next_cursor,
         has_element => has_element,
         element     => element);
+
+   type keys_view (target : access constant radix_trie) is null record
+   with
+     iterable =>
+       (first       => first_cursor,
+        next        => next_cursor,
+        has_element => has_key,
+        element     => key);
+
+   ---------------------------------------------------------------------
+
+   function keys (container : aliased radix_trie) return keys_view;
 
    ---------------------------------------------------------------------
 
@@ -115,9 +127,12 @@ is
 
    type cursor is tagged private;
 
-   function first (container : in radix_trie) return cursor'class;
+   function first_cursor
+     (container : in radix_trie) return cursor'class;
 
-   function next
+   function first (container : in radix_trie'class) return cursor;
+
+   function next_cursor
      (container : in radix_trie; position : in cursor'class)
       return cursor'class;
 
@@ -139,6 +154,20 @@ is
 
    function key (position : in cursor) return unsigned_32
    with pre => has_element (position);
+
+   --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  -
+
+   function first_cursor (view : in keys_view) return cursor;
+
+   function next_cursor
+     (view : in keys_view; position : in cursor) return cursor;
+
+   function has_key
+     (view : in keys_view; position : in cursor) return boolean;
+
+   function key
+     (view : in keys_view; position : in cursor) return unsigned_32
+   with pre => has_key (view, position);
 
    ---------------------------------------------------------------------
    --

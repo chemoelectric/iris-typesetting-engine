@@ -12,9 +12,8 @@ with interfaces;            use interfaces;
 with radix_tries;
 
 procedure test_radix_tries is
-   package integer_radix_tries is new
-     radix_tries (element_type => integer);
-   subtype integer_radix_trie is integer_radix_tries.radix_trie;
+
+   package u32_to_int is new radix_tries (element_type => integer);
 
    package unbounded_string_radix_tries is new
      radix_tries (element_type => unbounded_string);
@@ -67,13 +66,10 @@ procedure test_radix_tries is
       try
         ("p.element (1234567890) = to_unbounded_string (""d"")",
          p.element (1234567890) = to_unbounded_string ("d"));
-      for s of p loop
-         put_line (to_string (s));
-      end loop;
    end test_aggregates;
 
    procedure test_indices is
-      p : integer_radix_trie := [123 => 123];
+      p : u32_to_int.radix_trie := [123 => 123];
    begin
       put_line ("test_indices");
       p (54321) := 54321;
@@ -96,19 +92,29 @@ procedure test_radix_tries is
       try ("p (5555555) = 3", p (5555555) = 3);
       try ("p (54321) = 2", p (54321) = 2);
       try ("p (543210) = 543210", p (543210) = 543210);
-      for s of p loop
-         put_line ((s'img));
+   end test_indices;
+
+   procedure test_cursors is
+      p : u32_to_int.radix_trie;
+   begin
+      put_line ("test_cursors");
+      p := [100 => 1000, 10000 => 100000, 100000 => -1000000];
+      for i of p.keys loop
+         put_line (i'img & " => " & integer'image (p (i)) );
       end loop;
       declare
-         pos : integer_radix_tries.cursor :=
-           integer_radix_tries.cursor (p.first);
+         pos : u32_to_int.cursor := p.first;
       begin
-         put_line (unsigned_32'image (pos.key));
-         put_line (integer'image (pos.element));
+         while pos.has_element loop
+            put_line (unsigned_32'image (pos.key));
+            put_line (integer'image (pos.element));
+            pos := @.next;
+         end loop;
       end;
-   end test_indices;
+   end test_cursors;
 
 begin
    test_aggregates;
    test_indices;
+   test_cursors;
 end test_radix_tries;
