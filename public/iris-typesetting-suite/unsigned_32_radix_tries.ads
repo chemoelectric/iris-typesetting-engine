@@ -38,6 +38,11 @@ is
         has_element => has_element_at_cursor,
         element     => element_at_cursor);
 
+   type pair is record
+      key     : unsigned_32;
+      element : element_type;
+   end record;
+
    type keys_view (target : access constant map) is null record
    with
      iterable =>
@@ -57,6 +62,16 @@ is
         previous    => previous_cursor_for_elements_view,
         has_element => has_element_for_elements_view,
         element     => element_for_elements_view);
+
+   type pairs_view (target : access constant map) is null record
+   with
+     iterable =>
+       (first       => first_cursor_for_pairs_view,
+        next        => next_cursor_for_pairs_view,
+        last        => last_cursor_for_pairs_view,
+        previous    => previous_cursor_for_pairs_view,
+        has_element => has_pair_for_pairs_view,
+        element     => pair_for_pairs_view);
 
    ---------------------------------------------------------------------
 
@@ -212,6 +227,29 @@ is
    function element_for_elements_view
      (view : in elements_view; position : in cursor) return element_type
    with pre => has_element_for_elements_view (view, position);
+
+   --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  -
+
+   function pairs (container : aliased map) return pairs_view;
+
+   function first_cursor_for_pairs_view
+     (view : in pairs_view) return cursor;
+
+   function last_cursor_for_pairs_view
+     (view : in pairs_view) return cursor;
+
+   function next_cursor_for_pairs_view
+     (view : in pairs_view; position : in cursor) return cursor;
+
+   function previous_cursor_for_pairs_view
+     (view : in pairs_view; position : in cursor) return cursor;
+
+   function has_pair_for_pairs_view
+     (view : in pairs_view; position : in cursor) return boolean;
+
+   function pair_for_pairs_view
+     (view : in pairs_view; position : in cursor) return pair
+   with pre => has_pair_for_pairs_view (view, position);
 
    ---------------------------------------------------------------------
    --

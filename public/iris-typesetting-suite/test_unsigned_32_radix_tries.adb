@@ -79,6 +79,12 @@ procedure test_unsigned_32_radix_tries is
       for i of reverse p.keys loop
          put_line (i'img & " => " & to_string (p (i)));
       end loop;
+      for q of p.pairs loop
+         put_line (q.key'img & " => " & to_string (q.element));
+      end loop;
+      for q of reverse p.pairs loop
+         put_line (q.key'img & " => " & to_string (q.element));
+      end loop;
    end test_aggregates;
 
    procedure test_indices is

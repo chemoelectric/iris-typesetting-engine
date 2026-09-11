@@ -567,4 +567,33 @@ package body unsigned_32_radix_tries is
 
    ---------------------------------------------------------------------
 
+   function pairs (container : aliased map) return pairs_view
+   is (pairs_view'(target => container'access));
+
+   function first_cursor_for_pairs_view
+     (view : in pairs_view) return cursor
+   is (cursor (first_cursor (view.target.all)));
+
+   function last_cursor_for_pairs_view
+     (view : in pairs_view) return cursor
+   is (cursor (last_cursor (view.target.all)));
+
+   function next_cursor_for_pairs_view
+     (view : in pairs_view; position : in cursor) return cursor
+   is (cursor (next_cursor (view.target.all, position)));
+
+   function previous_cursor_for_pairs_view
+     (view : in pairs_view; position : in cursor) return cursor
+   is (cursor (previous_cursor (view.target.all, position)));
+
+   function has_pair_for_pairs_view
+     (view : in pairs_view; position : in cursor) return boolean
+   is (has_element_at_cursor (view.target.all, position));
+
+   function pair_for_pairs_view
+     (view : in pairs_view; position : in cursor) return pair
+   is ((key => position.key, element => position.element));
+
+   ---------------------------------------------------------------------
+
 end unsigned_32_radix_tries;
