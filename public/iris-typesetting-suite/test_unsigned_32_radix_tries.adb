@@ -64,6 +64,21 @@ procedure test_unsigned_32_radix_tries is
       try
         ("p.element (1234567890) = to_unbounded_string (""d"")",
          p.element (1234567890) = to_unbounded_string ("d"));
+      for s of p loop
+         put_line (to_string (s));
+      end loop;
+      for s of reverse p.elements loop
+         put_line (to_string (s));
+      end loop;
+      for s of reverse p loop
+         put_line (to_string (s));
+      end loop;
+      for i of p.keys loop
+         put_line (i'img & " => " & to_string (p (i)));
+      end loop;
+      for i of reverse p.keys loop
+         put_line (i'img & " => " & to_string (p (i)));
+      end loop;
    end test_aggregates;
 
    procedure test_indices is

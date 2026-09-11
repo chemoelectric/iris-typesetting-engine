@@ -20,6 +20,7 @@ generic
    type element_type is private;
 
 package unsigned_32_radix_tries
+
 is
 
    ---------------------------------------------------------------------
@@ -32,20 +33,30 @@ is
      iterable          =>
        (first       => first_cursor,
         next        => next_cursor,
-        has_element => has_element,
-        element     => element);
+        last        => last_cursor,
+        previous    => previous_cursor,
+        has_element => has_element_at_cursor,
+        element     => element_at_cursor);
 
    type keys_view (target : access constant map) is null record
    with
      iterable =>
-       (first       => first_cursor,
-        next        => next_cursor,
-        has_element => has_key,
-        element     => key);
+       (first       => first_cursor_for_keys_view,
+        next        => next_cursor_for_keys_view,
+        last        => last_cursor_for_keys_view,
+        previous    => previous_cursor_for_keys_view,
+        has_element => has_key_for_keys_view,
+        element     => key_for_keys_view);
 
-   ---------------------------------------------------------------------
-
-   function keys (container : aliased map) return keys_view;
+   type elements_view (target : access constant map) is null record
+   with
+     iterable =>
+       (first       => first_cursor_for_elements_view,
+        next        => next_cursor_for_elements_view,
+        last        => last_cursor_for_elements_view,
+        previous    => previous_cursor_for_elements_view,
+        has_element => has_element_for_elements_view,
+        element     => element_for_elements_view);
 
    ---------------------------------------------------------------------
 
@@ -124,24 +135,31 @@ is
    type cursor is tagged private;
 
    function first_cursor (container : in map) return cursor'class;
+   function last_cursor (container : in map) return cursor'class;
 
    function first (container : in map'class) return cursor;
+   function last (container : in map'class) return cursor;
 
    function next_cursor
      (container : in map; position : in cursor'class)
       return cursor'class;
 
-   function next (position : in cursor) return cursor;
+   function previous_cursor
+     (container : in map; position : in cursor'class)
+      return cursor'class;
 
-   function has_element
+   function next (position : in cursor) return cursor;
+   function previous (position : in cursor) return cursor;
+
+   function has_element_at_cursor
      (container : in map; position : in cursor'class) return boolean;
 
    function has_element (position : in cursor) return boolean;
 
-   function element
+   function element_at_cursor
      (container : in map; position : in cursor'class)
       return element_type
-   with pre => has_element (container, position);
+   with pre => has_element_at_cursor (container, position);
 
    function element (position : in cursor) return element_type
    with pre => has_element (position);
@@ -151,17 +169,49 @@ is
 
    --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  -
 
-   function first_cursor (view : in keys_view) return cursor;
+   function keys (container : aliased map) return keys_view;
 
-   function next_cursor
+   function first_cursor_for_keys_view
+     (view : in keys_view) return cursor;
+
+   function last_cursor_for_keys_view
+     (view : in keys_view) return cursor;
+
+   function next_cursor_for_keys_view
      (view : in keys_view; position : in cursor) return cursor;
 
-   function has_key
+   function previous_cursor_for_keys_view
+     (view : in keys_view; position : in cursor) return cursor;
+
+   function has_key_for_keys_view
      (view : in keys_view; position : in cursor) return boolean;
 
-   function key
+   function key_for_keys_view
      (view : in keys_view; position : in cursor) return unsigned_32
-   with pre => has_key (view, position);
+   with pre => has_key_for_keys_view (view, position);
+
+   --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  -
+
+   function elements (container : aliased map) return elements_view;
+
+   function first_cursor_for_elements_view
+     (view : in elements_view) return cursor;
+
+   function last_cursor_for_elements_view
+     (view : in elements_view) return cursor;
+
+   function next_cursor_for_elements_view
+     (view : in elements_view; position : in cursor) return cursor;
+
+   function previous_cursor_for_elements_view
+     (view : in elements_view; position : in cursor) return cursor;
+
+   function has_element_for_elements_view
+     (view : in elements_view; position : in cursor) return boolean;
+
+   function element_for_elements_view
+     (view : in elements_view; position : in cursor) return element_type
+   with pre => has_element_for_elements_view (view, position);
 
    ---------------------------------------------------------------------
    --
@@ -262,7 +312,7 @@ private
 
    type cursor_nodes_array is array (index_range) of radix_node_access;
    type cursor_next_indices_array is
-     array (index_range) of integer range 0 .. 2**bits_per_step;
+     array (index_range) of integer range -1 .. 2**bits_per_step;
    type cursor_path_indices_array is
      array (index_range) of integer range 0 .. 2**bits_per_step - 1;
 

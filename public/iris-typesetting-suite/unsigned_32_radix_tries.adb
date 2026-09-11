@@ -367,22 +367,47 @@ package body unsigned_32_radix_tries is
       temp.depth := 1;
       temp.nodes (1) := container.root;
       temp.next_indices (1) := 0;
+      temp.path_indices (1) := 0;
       temp.current_node := container.root;
       return next_cursor (container, temp);
    end first_cursor;
 
+   function last_cursor (container : in map) return cursor'class is
+      temp : cursor;
+   begin
+      temp.container := container'unrestricted_access;
+      temp.container.busy_count := @ + 1;
+      temp.depth := 1;
+      temp.nodes (1) := container.root;
+      temp.next_indices (1) := 2**bits_per_step - 1;
+      temp.path_indices (1) := 2**bits_per_step - 1;
+      temp.current_node := container.root;
+      return previous_cursor (container, temp);
+   end last_cursor;
+
    function first (container : in map'class) return cursor
    is (cursor (first_cursor (map (container))));
 
-   function next_cursor
-     (container : in map; position : in cursor'class)
-      return cursor'class
+   function last (container : in map'class) return cursor
+   is (cursor (last_cursor (map (container))));
+
+   function nudged_cursor
+     (container : in map;
+      position  : in cursor'class;
+      increment : integer) return cursor'class
+   with pre => (increment in -1 | 1)
    is
-      searching : boolean := (position.current_node /= null);
+      next_indices_end_stop    : constant integer :=
+        (if increment = 1 then 2**bits_per_step else -1);
+      next_indices_start_index : constant integer :=
+        (if increment = 1 then 0 else 2**bits_per_step - 1);
+      searching                : boolean :=
+        (position.current_node /= null);
    begin
       return result : cursor := cursor (position) do
          while searching and result.depth /= 0 loop
-            if result.next_indices (result.depth) /= 2**bits_per_step
+            if result.next_indices (result.depth)
+              /= next_indices_end_stop
             then
                declare
                   current_parent : constant radix_node_access :=
@@ -392,13 +417,15 @@ package body unsigned_32_radix_tries is
                   child          : constant radix_node_access :=
                     current_parent.children (child_index);
                begin
-                  result.next_indices (result.depth) := child_index + 1;
+                  result.next_indices (result.depth) :=
+                    child_index + increment;
                   if child /= null then
                      result.path_indices (result.depth) := child_index;
                      if result.depth /= total_steps then
                         result.depth := @ + 1;
                         result.nodes (result.depth) := child;
-                        result.next_indices (result.depth) := 0;
+                        result.next_indices (result.depth) :=
+                          next_indices_start_index;
                      end if;
                      if child.is_leaf then
                         result.current_node := child;
@@ -414,19 +441,32 @@ package body unsigned_32_radix_tries is
             result.current_node := null;
          end if;
       end return;
-   end next_cursor;
+   end nudged_cursor;
+
+   function next_cursor
+     (container : in map; position : in cursor'class)
+      return cursor'class
+   is (nudged_cursor (container, position, 1));
+
+   function previous_cursor
+     (container : in map; position : in cursor'class)
+      return cursor'class
+   is (nudged_cursor (container, position, -1));
 
    function next (position : in cursor) return cursor
    is (cursor (next_cursor (position.container.all, position)));
 
-   function has_element
+   function previous (position : in cursor) return cursor
+   is (cursor (previous_cursor (position.container.all, position)));
+
+   function has_element_at_cursor
      (container : in map; position : in cursor'class) return boolean
    is (position.current_node /= null);
 
    function has_element (position : in cursor) return boolean
    is (position.current_node /= null);
 
-   function element
+   function element_at_cursor
      (container : in map; position : in cursor'class)
       return element_type
    is (position.current_node.element);
@@ -472,20 +512,58 @@ package body unsigned_32_radix_tries is
    function keys (container : aliased map) return keys_view
    is (keys_view'(target => container'access));
 
-   function first_cursor (view : in keys_view) return cursor
+   function first_cursor_for_keys_view
+     (view : in keys_view) return cursor
    is (cursor (first_cursor (view.target.all)));
 
-   function next_cursor
+   function last_cursor_for_keys_view
+     (view : in keys_view) return cursor
+   is (cursor (last_cursor (view.target.all)));
+
+   function next_cursor_for_keys_view
      (view : in keys_view; position : in cursor) return cursor
    is (cursor (next_cursor (view.target.all, position)));
 
-   function has_key
-     (view : in keys_view; position : in cursor) return boolean
-   is (has_element (view.target.all, position));
+   function previous_cursor_for_keys_view
+     (view : in keys_view; position : in cursor) return cursor
+   is (cursor (previous_cursor (view.target.all, position)));
 
-   function key
+   function has_key_for_keys_view
+     (view : in keys_view; position : in cursor) return boolean
+   is (has_element_at_cursor (view.target.all, position));
+
+   function key_for_keys_view
      (view : in keys_view; position : in cursor) return unsigned_32
    is (position.key);
+
+   ---------------------------------------------------------------------
+
+   function elements (container : aliased map) return elements_view
+   is (elements_view'(target => container'access));
+
+   function first_cursor_for_elements_view
+     (view : in elements_view) return cursor
+   is (cursor (first_cursor (view.target.all)));
+
+   function last_cursor_for_elements_view
+     (view : in elements_view) return cursor
+   is (cursor (last_cursor (view.target.all)));
+
+   function next_cursor_for_elements_view
+     (view : in elements_view; position : in cursor) return cursor
+   is (cursor (next_cursor (view.target.all, position)));
+
+   function previous_cursor_for_elements_view
+     (view : in elements_view; position : in cursor) return cursor
+   is (cursor (previous_cursor (view.target.all, position)));
+
+   function has_element_for_elements_view
+     (view : in elements_view; position : in cursor) return boolean
+   is (has_element_at_cursor (view.target.all, position));
+
+   function element_for_elements_view
+     (view : in elements_view; position : in cursor) return element_type
+   is (position.element);
 
    ---------------------------------------------------------------------
 
