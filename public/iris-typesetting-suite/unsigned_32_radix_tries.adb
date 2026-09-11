@@ -11,7 +11,7 @@ pragma ada_2022;
 
 with unchecked_deallocation;
 
-package body radix_tries is
+package body unsigned_32_radix_tries is
 
    procedure deallocate is new
      unchecked_deallocation (radix_node, radix_node_access);
@@ -37,15 +37,15 @@ package body radix_tries is
          ((key / (2**(i * bits_per_step))) mod (2**bits_per_step)))
    with pre => (0 <= i and i <= total_steps - 1);
 
-   function empty_radix_trie return radix_trie is
+   function empty_map return map is
    begin
-      return result : radix_trie do
+      return result : map do
          null;
       end return;
-   end empty_radix_trie;
+   end empty_map;
 
    procedure insert_aux
-     (container           : in out radix_trie;
+     (container           : in out map;
       key                 : in unsigned_32;
       node_out            : out radix_node_access;
       increment_the_count : out boolean)
@@ -70,7 +70,7 @@ package body radix_tries is
    end insert_aux;
 
    procedure insert
-     (container : in out radix_trie;
+     (container : in out map;
       key       : in unsigned_32;
       new_item  : in element_type)
    is
@@ -87,7 +87,7 @@ package body radix_tries is
    end insert;
 
    procedure include_aux
-     (container : in out radix_trie;
+     (container : in out map;
       key       : in unsigned_32;
       node_out  : out radix_node_access)
    is
@@ -102,7 +102,7 @@ package body radix_tries is
    end include_aux;
 
    procedure include
-     (container : in out radix_trie;
+     (container : in out map;
       key       : in unsigned_32;
       new_item  : in element_type)
    is
@@ -113,7 +113,7 @@ package body radix_tries is
    end include;
 
    procedure replace
-     (container : in out radix_trie;
+     (container : in out map;
       key       : in unsigned_32;
       new_item  : in element_type)
    is
@@ -133,8 +133,7 @@ package body radix_tries is
       end if;
    end replace;
 
-   function contains
-     (container : radix_trie; key : unsigned_32) return boolean
+   function contains (container : map; key : unsigned_32) return boolean
    is
       node : radix_node_access := container.root;
       i    : integer range -1 .. total_steps - 1;
@@ -148,7 +147,7 @@ package body radix_tries is
    end contains;
 
    function element
-     (container : radix_trie; key : unsigned_32) return element_type
+     (container : map; key : unsigned_32) return element_type
    is
       node : radix_node_access := container.root;
    begin
@@ -159,7 +158,7 @@ package body radix_tries is
    end element;
 
    function constant_reference
-     (container : in radix_trie; key : in unsigned_32)
+     (container : in map; key : in unsigned_32)
       return constant_element_reference
    is
       node : radix_node_access := container.root;
@@ -171,7 +170,7 @@ package body radix_tries is
    end constant_reference;
 
    function variable_reference
-     (container : in out radix_trie; key : in unsigned_32)
+     (container : in out map; key : in unsigned_32)
       return variable_element_reference
    is
       node : radix_node_access;
@@ -250,9 +249,7 @@ package body radix_tries is
         (node, key, busy, total_steps - 1, bit_bucket, deleted);
    end delete_aux;
 
-   procedure delete
-     (container : in out radix_trie; key : in unsigned_32)
-   is
+   procedure delete (container : in out map; key : in unsigned_32) is
       deleted : boolean;
    begin
       delete_aux
@@ -264,9 +261,7 @@ package body radix_tries is
       end if;
    end delete;
 
-   procedure exclude
-     (container : in out radix_trie; key : in unsigned_32)
-   is
+   procedure exclude (container : in out map; key : in unsigned_32) is
       deleted : boolean;
    begin
       delete_aux
@@ -276,13 +271,13 @@ package body radix_tries is
       end if;
    end exclude;
 
-   function length (container : in radix_trie) return count_type
+   function length (container : in map) return count_type
    is (container.element_count);
 
-   function is_empty (container : in radix_trie) return boolean
+   function is_empty (container : in map) return boolean
    is (container.element_count = 0);
 
-   procedure empty_out (container : in out radix_trie) is
+   procedure empty_out (container : in out map) is
       procedure delete_node (node : in out radix_node_access) is
       begin
          if node = null then
@@ -300,14 +295,14 @@ package body radix_tries is
       delete_node (container.root);
    end empty_out;
 
-   procedure start_up (container : in out radix_trie) is
+   procedure start_up (container : in out map) is
    begin
       container.root := new radix_node (is_leaf => false);
       container.element_count := 0;
       container.busy_count := 0;
    end start_up;
 
-   procedure deep_copy (container : in out radix_trie) is
+   procedure deep_copy (container : in out map) is
       function copy_node
         (old_node : in radix_node_access) return radix_node_access is
       begin
@@ -330,7 +325,7 @@ package body radix_tries is
       container.root := copy_node (container.root);
    end deep_copy;
 
-   procedure clear (container : in out radix_trie) is
+   procedure clear (container : in out map) is
    begin
       if container.busy_count /= 0 then
          raise program_error with busy_clear;
@@ -340,13 +335,13 @@ package body radix_tries is
    end clear;
 
    overriding
-   procedure initialize (container : in out radix_trie) is
+   procedure initialize (container : in out map) is
    begin
       start_up (container);
    end initialize;
 
    overriding
-   procedure adjust (container : in out radix_trie) is
+   procedure adjust (container : in out map) is
    begin
       --
       -- There is no attempt to share structure. A full deep copy is
@@ -357,15 +352,14 @@ package body radix_tries is
    end adjust;
 
    overriding
-   procedure finalize (container : in out radix_trie) is
+   procedure finalize (container : in out map) is
    begin
       empty_out (container);
    end finalize;
 
    ---------------------------------------------------------------------
 
-   function first_cursor (container : in radix_trie) return cursor'class
-   is
+   function first_cursor (container : in map) return cursor'class is
       temp : cursor;
    begin
       temp.container := container'unrestricted_access;
@@ -377,11 +371,11 @@ package body radix_tries is
       return next_cursor (container, temp);
    end first_cursor;
 
-   function first (container : in radix_trie'class) return cursor
-   is (cursor (first_cursor (radix_trie (container))));
+   function first (container : in map'class) return cursor
+   is (cursor (first_cursor (map (container))));
 
    function next_cursor
-     (container : in radix_trie; position : in cursor'class)
+     (container : in map; position : in cursor'class)
       return cursor'class
    is
       searching : boolean := (position.current_node /= null);
@@ -426,15 +420,14 @@ package body radix_tries is
    is (cursor (next_cursor (position.container.all, position)));
 
    function has_element
-     (container : in radix_trie; position : in cursor'class)
-      return boolean
+     (container : in map; position : in cursor'class) return boolean
    is (position.current_node /= null);
 
    function has_element (position : in cursor) return boolean
    is (position.current_node /= null);
 
    function element
-     (container : in radix_trie; position : in cursor'class)
+     (container : in map; position : in cursor'class)
       return element_type
    is (position.current_node.element);
 
@@ -476,7 +469,7 @@ package body radix_tries is
 
    ---------------------------------------------------------------------
 
-   function keys (container : aliased radix_trie) return keys_view
+   function keys (container : aliased map) return keys_view
    is (keys_view'(target => container'access));
 
    function first_cursor (view : in keys_view) return cursor
@@ -496,4 +489,4 @@ package body radix_tries is
 
    ---------------------------------------------------------------------
 
-end radix_tries;
+end unsigned_32_radix_tries;

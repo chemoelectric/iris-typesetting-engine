@@ -19,15 +19,14 @@ generic
 
    type element_type is private;
 
-package radix_tries
+package unsigned_32_radix_tries
 is
 
    ---------------------------------------------------------------------
 
-   type radix_trie is tagged private
+   type map is tagged private
    with
-     aggregate         =>
-       (empty => empty_radix_trie, add_named => insert),
+     aggregate         => (empty => empty_map, add_named => insert),
      constant_indexing => constant_reference,
      variable_indexing => variable_reference,
      iterable          =>
@@ -36,7 +35,7 @@ is
         has_element => has_element,
         element     => element);
 
-   type keys_view (target : access constant radix_trie) is null record
+   type keys_view (target : access constant map) is null record
    with
      iterable =>
        (first       => first_cursor,
@@ -46,15 +45,15 @@ is
 
    ---------------------------------------------------------------------
 
-   function keys (container : aliased radix_trie) return keys_view;
+   function keys (container : aliased map) return keys_view;
 
    ---------------------------------------------------------------------
 
-   function empty_radix_trie return radix_trie
-   with post => is_empty (empty_radix_trie'result);
+   function empty_map return map
+   with post => is_empty (empty_map'result);
 
    procedure insert
-     (container : in out radix_trie;
+     (container : in out map;
       key       : in unsigned_32;
       new_item  : in element_type)
    with
@@ -65,7 +64,7 @@ is
           length (container) = length (container)'old + 1);
 
    procedure include
-     (container : in out radix_trie;
+     (container : in out map;
       key       : in unsigned_32;
       new_item  : in element_type)
    with
@@ -76,7 +75,7 @@ is
           length (container) = length (container)'old + 1);
 
    procedure replace
-     (container : in out radix_trie;
+     (container : in out map;
       key       : in unsigned_32;
       new_item  : in element_type)
    with
@@ -86,8 +85,7 @@ is
         not contains (container, key) =>
           length (container) = length (container)'old + 1);
 
-   procedure delete
-     (container : in out radix_trie; key : in unsigned_32)
+   procedure delete (container : in out map; key : in unsigned_32)
    with
      warnings       => off,
      contract_cases =>
@@ -95,8 +93,7 @@ is
           length (container) = length (container)'old - 1,
         not contains (container, key) => raise constraint_error);
 
-   procedure exclude
-     (container : in out radix_trie; key : in unsigned_32)
+   procedure exclude (container : in out map; key : in unsigned_32)
    with
      contract_cases =>
        (contains (container, key)     =>
@@ -104,20 +101,19 @@ is
         not contains (container, key) =>
           length (container) = length (container)'old);
 
-   procedure clear (container : in out radix_trie)
+   procedure clear (container : in out map)
    with post => is_empty (container);
 
    function contains
-     (container : in radix_trie; key : in unsigned_32) return boolean;
+     (container : in map; key : in unsigned_32) return boolean;
 
    function element
-     (container : in radix_trie; key : in unsigned_32)
-      return element_type
+     (container : in map; key : in unsigned_32) return element_type
    with pre => contains (container, key);
 
-   function length (container : in radix_trie) return count_type;
+   function length (container : in map) return count_type;
 
-   function is_empty (container : in radix_trie) return boolean
+   function is_empty (container : in map) return boolean
    with post => is_empty'result = (length (container) = 0);
 
    ---------------------------------------------------------------------
@@ -127,25 +123,23 @@ is
 
    type cursor is tagged private;
 
-   function first_cursor
-     (container : in radix_trie) return cursor'class;
+   function first_cursor (container : in map) return cursor'class;
 
-   function first (container : in radix_trie'class) return cursor;
+   function first (container : in map'class) return cursor;
 
    function next_cursor
-     (container : in radix_trie; position : in cursor'class)
+     (container : in map; position : in cursor'class)
       return cursor'class;
 
    function next (position : in cursor) return cursor;
 
    function has_element
-     (container : in radix_trie; position : in cursor'class)
-      return boolean;
+     (container : in map; position : in cursor'class) return boolean;
 
    function has_element (position : in cursor) return boolean;
 
    function element
-     (container : in radix_trie; position : in cursor'class)
+     (container : in map; position : in cursor'class)
       return element_type
    with pre => has_element (container, position);
 
@@ -187,12 +181,12 @@ is
    with implicit_dereference => element;
 
    function constant_reference
-     (container : in radix_trie; key : in unsigned_32)
+     (container : in map; key : in unsigned_32)
       return constant_element_reference
    with pre => contains (container, key);
 
    function variable_reference
-     (container : in out radix_trie; key : in unsigned_32)
+     (container : in out map; key : in unsigned_32)
       return variable_element_reference
    with pre => contains (container, key);
 
@@ -237,7 +231,7 @@ private
       end case;
    end record;
 
-   type radix_trie is new controlled with record
+   type map is new controlled with record
       root          : radix_node_access;
       element_count : count_type;
       busy_count    : natural;
@@ -245,11 +239,11 @@ private
    with dynamic_predicate => root /= null;
 
    overriding
-   procedure initialize (container : in out radix_trie);
+   procedure initialize (container : in out map);
    overriding
-   procedure adjust (container : in out radix_trie);
+   procedure adjust (container : in out map);
    overriding
-   procedure finalize (container : in out radix_trie);
+   procedure finalize (container : in out map);
 
    ---------------------------------------------------------------------
 
@@ -273,7 +267,7 @@ private
      array (index_range) of integer range 0 .. 2**bits_per_step - 1;
 
    type cursor is new controlled with record
-      container    : access radix_trie;
+      container    : access map;
       current_node : radix_node_access;
       nodes        : cursor_nodes_array;
       next_indices : cursor_next_indices_array;
@@ -288,4 +282,4 @@ private
 
    ---------------------------------------------------------------------
 
-end radix_tries;
+end unsigned_32_radix_tries;

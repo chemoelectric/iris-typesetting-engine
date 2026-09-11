@@ -15,11 +15,6 @@ AT_KEYWORDS([radix_tries trie tree map container])
 AT_CHECK(["${abs_builddir}"/test_radix_trie],[0],[ignore])
 AT_CLEANUP
 
-AT_SETUP([persistent_radix_tries])
-AT_KEYWORDS([persistent_radix_tries trie tree map container persistent immutable])
-AT_CHECK(["${abs_builddir}"/test_radix_trie],[0],[ignore])
-AT_CLEANUP
-
 AT_SETUP([spookyhash])
 AT_KEYWORDS([spookyhash hash hashtable hashmap container])
 AT_CHECK(["${abs_builddir}"/test_spookyhash],[0])

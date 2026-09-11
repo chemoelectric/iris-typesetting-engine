@@ -9,16 +9,14 @@ with ada.text_io;           use ada.text_io;
 with ada.strings.unbounded; use ada.strings.unbounded;
 with ada.containers;        use ada.containers;
 with interfaces;            use interfaces;
-with radix_tries;
+with unsigned_32_radix_tries;
 
-procedure test_radix_tries is
+procedure test_unsigned_32_radix_tries is
 
-   package u32_to_int is new radix_tries (element_type => integer);
-
-   package unbounded_string_radix_tries is new
-     radix_tries (element_type => unbounded_string);
-   subtype unbounded_string_radix_trie is
-     unbounded_string_radix_tries.radix_trie;
+   package u32_to_int is new
+     unsigned_32_radix_tries (element_type => integer);
+   package u32_to_ubstr is new
+     unsigned_32_radix_tries (element_type => unbounded_string);
 
    procedure try (predicate_string : in string; predicate : in boolean)
    is
@@ -30,7 +28,7 @@ procedure test_radix_tries is
    end try;
 
    procedure test_aggregates is
-      p : unbounded_string_radix_trie;
+      p : u32_to_ubstr.map;
    begin
       put_line ("test_aggregates");
       try ("p.length = 0", p.length = 0);
@@ -69,7 +67,7 @@ procedure test_radix_tries is
    end test_aggregates;
 
    procedure test_indices is
-      p : u32_to_int.radix_trie := [123 => 123];
+      p : u32_to_int.map := [123 => 123];
    begin
       put_line ("test_indices");
       p (54321) := 54321;
@@ -95,12 +93,12 @@ procedure test_radix_tries is
    end test_indices;
 
    procedure test_cursors is
-      p : u32_to_int.radix_trie;
+      p : u32_to_int.map;
    begin
       put_line ("test_cursors");
       p := [100 => 1000, 10000 => 100000, 100000 => -1000000];
       for i of p.keys loop
-         put_line (i'img & " => " & integer'image (p (i)) );
+         put_line (i'img & " => " & integer'image (p (i)));
       end loop;
       declare
          pos : u32_to_int.cursor := p.first;
@@ -117,4 +115,4 @@ begin
    test_aggregates;
    test_indices;
    test_cursors;
-end test_radix_tries;
+end test_unsigned_32_radix_tries;
